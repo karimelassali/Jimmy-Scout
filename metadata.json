@@ -1,0 +1,6 @@
+{
+  "name": "JimiScout BTP",
+  "description": "Automated Swiss B2B machinery procurement platform and PWA CRM with AI triage engine and real-time deal alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

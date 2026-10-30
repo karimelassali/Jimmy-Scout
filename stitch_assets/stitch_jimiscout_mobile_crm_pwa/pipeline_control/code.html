@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;min-height:100%;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;font-family:'IBM Plex Sans',sans-serif;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 0.5rem);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}.header-offset{padding-top:calc(env(safe-area-inset-top,0px) + 4rem);}.nav-bottom-offset{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 5rem);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          navy: "#0B2240",
+          orange: {
+            DEFAULT: "#FF6B00",
+            dark: "#E05E00",
+            light: "#FFF4ED"
+          },
+          slate: {
+            50: "#F8F9FA",
+            100: "#F1F5F9",
+            200: "#E2E8F0",
+            400: "#94A3B8",
+            600: "#475569",
+            700: "#334155",
+            800: "#1E293B",
+            900: "#0F172A"
+          },
+          forest: {
+            DEFAULT: "#059669",
+            light: "#ECFDF5",
+            dark: "#047857"
+          }
+        },
+        fontFamily: {
+          heading: ["Space Grotesk", "sans-serif"],
+          body: ["IBM Plex Sans", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"]
+        },
+        borderRadius: {
+          "2xl": "1rem",
+          "3xl": "1.25rem"
+        }
+      }
+    }
+  };
+</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-[#F8F9FA] text-[#0B2240] antialiased flex justify-center min-h-screen selection:bg-orange/20"><div class="w-full max-w-[640px] flex flex-col relative min-h-screen border-x border-[#E2E8F0] shadow-sm"><header class="fixed top-0 w-full max-w-[640px] z-50 bg-[#FFFFFF]/95 backdrop-blur-md pt-safe border-b border-[#E2E8F0] shadow-sm"><div class="h-16 px-4 flex items-center justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-xl bg-orange flex items-center justify-center text-white font-heading font-bold text-xl shadow-md shrink-0"><span class="material-symbols-outlined text-[24px]">precision_manufacturing</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-2"><span class="font-heading font-bold text-lg text-navy tracking-tight truncate">JimiScout BTP</span><div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-forest-light border border-forest/30 shrink-0"><span class="w-2 h-2 rounded-full bg-forest animate-pulse"></span><span class="font-mono text-[12px] font-bold text-forest tracking-tight uppercase">ACTIF • CH</span></div></div><span class="font-mono text-[12px] text-slate-600 font-medium truncate uppercase tracking-wider">Flottes &amp; Génie Civil Radar</span></div></div><div class="flex items-center gap-2 shrink-0"><button class="w-11 h-11 flex items-center justify-center relative rounded-xl border border-[#E2E8F0] bg-white text-navy active:scale-95 transition-transform hover:bg-slate-50"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-orange ring-2 ring-white"></span></button><div class="w-11 h-11 flex items-center justify-center"><img alt="Superviseur Travaux" class="w-9 h-9 rounded-xl object-cover border-2 border-orange/40 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAE5Luas3yOIWFp7EToIf7P05y1fbSdmeSVJg11SxWPFBPXpeSiHh8THxOmErTwFVe_PfmlhWyiPN83TH2_xEV1PMjadmrvI54SfL9ouZ-vtx7CprxSvHqJ1GyA6-2Q7_wNGhzJdFUAfBlpnXs5pupvG5slYx5eunMK0_vH37Yh9cBozUmYjVJuoHfZ6VCZqV0oZ1D61-iZ0N7Djj89CmebdxX9SswErSOMISN8Iok"/></div></div></div></header><main class="flex-1 flex flex-col w-full bg-[#F8F9FA] pt-16 nav-bottom-offset px-4"><div class="flex flex-col w-full pb-28 space-y-4">
+<!-- Top Status & Segmented Filter Control -->
+<section class="flex flex-col space-y-3 pt-3">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-2.5">
+<span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-navy text-white shadow-sm">
+<span class="material-symbols-outlined text-[20px]">construction</span>
+</span>
+<div class="flex flex-col">
+<span class="font-heading font-bold text-base text-navy">Executive Radar BTP</span>
+<span class="font-mono text-[13px] font-semibold text-slate-600">CHE-109.842.114 • Registre Travaux Spéciaux</span>
+</div>
+</div>
+<div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-forest-light border border-forest/30 shadow-xs">
+<span class="w-2 h-2 rounded-full bg-forest animate-ping"></span>
+<span class="font-mono text-[12px] text-forest font-bold tracking-tight uppercase">SYNC: ZEFIX BTP</span>
+</div>
+</div>
+<!-- Field Segmented Time Toggle -->
+<div class="p-1 rounded-2xl bg-[#E2E8F0] flex items-center justify-between shadow-inner border border-slate-300/40" id="time-segment-control">
+<button class="flex-1 py-2 px-3 rounded-xl font-heading font-bold text-[13px] text-white bg-navy shadow-sm transition-all duration-200 active:scale-95 text-center" data-segment="today" type="button">Aujourd'hui</button>
+<button class="flex-1 py-2 px-3 rounded-xl font-heading font-semibold text-[13px] text-slate-700 hover:text-navy transition-all duration-200 active:scale-95 text-center" data-segment="week" type="button">Cette Semaine</button>
+<button class="flex-1 py-2 px-3 rounded-xl font-heading font-semibold text-[13px] text-slate-700 hover:text-navy transition-all duration-200 active:scale-95 text-center" data-segment="q3" type="button">Q3 Pipeline Suisse</button>
+</div>
+</section>
+<!-- Top Key Metrics Carousel -->
+<section class="flex flex-col space-y-2">
+<div class="flex items-center justify-between px-1">
+<span class="font-heading font-bold text-sm text-navy uppercase tracking-wider">Télémétrie Engins &amp; Affaires</span>
+<span class="font-mono text-[13px] text-orange font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">swipe</span> Défilement live
+      </span>
+</div>
+<div class="flex space-x-3 overflow-x-auto pb-2 pt-1 -mx-4 px-4 scroll-smooth no-scrollbar">
+<!-- Metric 1: Chantiers Détectés -->
+<div class="min-w-[220px] p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col justify-between shrink-0">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-[13px] text-slate-700 uppercase tracking-wider">Chantiers Détectés</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-light border border-orange/40 text-orange font-mono text-[13px] font-bold">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+            +18.4%
+          </span>
+</div>
+<div class="my-3">
+<div class="font-heading font-bold text-3xl text-navy tracking-tight" id="metric-scouted">428</div>
+<span class="font-mono text-[13px] text-slate-600 font-medium">26 Cantons • Terrassement &amp; GC</span>
+</div>
+<div class="w-full bg-[#E2E8F0] rounded-full h-2 overflow-hidden">
+<div class="bg-orange h-full rounded-full" style="width: 72%"></div>
+</div>
+</div>
+<!-- Metric 2: Besoins Validés -->
+<div class="min-w-[220px] p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col justify-between shrink-0">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-[13px] text-slate-700 uppercase tracking-wider">Engins Requis Validés</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-300 text-navy font-mono text-[13px] font-bold">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+            94.2%
+          </span>
+</div>
+<div class="my-3">
+<div class="font-heading font-bold text-3xl text-navy tracking-tight" id="metric-matches">86</div>
+<span class="font-mono text-[13px] text-slate-600 font-medium">Validation UID &amp; Appels d'offres</span>
+</div>
+<div class="w-full bg-[#E2E8F0] rounded-full h-2 overflow-hidden">
+<div class="bg-navy h-full rounded-full" style="width: 86%"></div>
+</div>
+</div>
+<!-- Metric 3: Offres Matériel Déployées -->
+<div class="min-w-[220px] p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col justify-between shrink-0">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-[13px] text-slate-700 uppercase tracking-wider">Offres Déployées</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-forest-light border border-forest/30 text-forest font-mono text-[13px] font-bold">
+<span class="material-symbols-outlined text-[14px]">hourglass_top</span>
+            4 En Attente
+          </span>
+</div>
+<div class="my-3">
+<div class="font-heading font-bold text-3xl text-navy tracking-tight" id="metric-dispatched">64</div>
+<span class="font-mono text-[13px] text-slate-600 font-medium">Dossiers techniques FR/DE</span>
+</div>
+<div class="w-full bg-[#E2E8F0] rounded-full h-2 overflow-hidden">
+<div class="bg-forest h-full rounded-full" style="width: 64%"></div>
+</div>
+</div>
+<!-- Metric 4: Volume Marchés Engins -->
+<div class="min-w-[220px] p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col justify-between shrink-0">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-[13px] text-slate-700 uppercase tracking-wider">Volume Marchés Engins</span>
+<span class="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-navy font-mono text-[13px] font-bold border border-slate-300">
+            CHF BTP
+          </span>
+</div>
+<div class="my-3">
+<div class="font-heading font-bold text-3xl text-orange tracking-tight" id="metric-pipeline">CHF 4.82M</div>
+<span class="font-mono text-[13px] text-forest font-bold">↑ +CHF 640k aujourd'hui</span>
+</div>
+<div class="w-full bg-[#E2E8F0] rounded-full h-2 overflow-hidden">
+<div class="bg-orange h-full rounded-full" style="width: 82%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Tactile Lead Conversion Funnel Card -->
+<section class="w-full p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2.5">
+<span class="w-9 h-9 rounded-xl bg-orange-light border border-orange/30 flex items-center justify-center text-orange shadow-xs">
+<span class="material-symbols-outlined text-[22px]">filter_alt</span>
+</span>
+<div>
+<h2 class="font-heading font-bold text-base text-navy">Tactile Lead Funnel</h2>
+<p class="font-body text-[13px] text-slate-600 font-medium">Vélocité de conversion des parcs matériel</p>
+</div>
+</div>
+<span class="font-mono text-[13px] px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-navy font-bold">Rendement: 78.4%</span>
+</div>
+<!-- Tiered Horizontal Segment Funnel -->
+<div class="flex flex-col space-y-2.5">
+<div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 space-x-1 border border-slate-200">
+<div class="h-full rounded-full bg-navy transition-all duration-500" style="width: 44%;" title="Chantiers Détectés"></div>
+<div class="h-full rounded-full bg-orange transition-all duration-500" style="width: 28%;" title="Besoins Matériel"></div>
+<div class="h-full rounded-full bg-slate-700 transition-all duration-500" style="width: 18%;" title="Offres Envoyées"></div>
+<div class="h-full rounded-full bg-forest transition-all duration-500" style="width: 10%;" title="Machines Réservées"></div>
+</div>
+<!-- Funnel Metadata Pills Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+<div class="flex flex-col items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2.5 h-2.5 rounded-full bg-navy"></span>
+<span class="font-heading font-semibold text-[13px] text-slate-700">Chantiers Détectés</span>
+</div>
+<span class="font-heading font-bold text-lg text-navy">428</span>
+<span class="font-mono text-[13px] text-navy font-bold">100% (Base)</span>
+</div>
+<div class="flex flex-col items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2.5 h-2.5 rounded-full bg-orange"></span>
+<span class="font-heading font-semibold text-[13px] text-slate-700">Besoins Matériel</span>
+</div>
+<span class="font-heading font-bold text-lg text-orange">186</span>
+<span class="font-mono text-[13px] text-orange font-bold">43.4%</span>
+</div>
+<div class="flex flex-col items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+<span class="font-heading font-semibold text-[13px] text-slate-700">Offres Envoyées</span>
+</div>
+<span class="font-heading font-bold text-lg text-navy">64</span>
+<span class="font-mono text-[13px] text-slate-700 font-bold">14.9%</span>
+</div>
+<div class="flex flex-col items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2.5 h-2.5 rounded-full bg-forest"></span>
+<span class="font-heading font-semibold text-[13px] text-slate-700">Machines Réservées</span>
+</div>
+<span class="font-heading font-bold text-lg text-forest">19</span>
+<span class="font-mono text-[13px] text-forest font-bold">4.4%</span>
+</div>
+</div>
+</div>
+<!-- High-priority Lead Quick Callout -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-orange-light/60 border border-orange/30">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-xl bg-orange text-white flex items-center justify-center font-heading font-bold text-base shadow-sm shrink-0">
+          VD
+        </div>
+<div class="flex flex-col min-w-0">
+<span class="font-heading font-bold text-[14px] text-navy truncate">Orllati SA • Terrassement &amp; Dépollution</span>
+<span class="font-body text-[13px] text-slate-700 font-medium">Bussigny (VD) • Réservation acceptée: 2 Pelles 30t</span>
+</div>
+</div>
+<button class="px-3.5 py-2 rounded-xl bg-navy text-white font-heading font-bold text-[13px] shadow-sm active:scale-95 transition-transform flex items-center gap-1 shrink-0 hover:bg-slate-800">
+<span>Voir fiche</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Live Signal Feed (Heavy Civil Engineering & Machinery) -->
+<section class="w-full flex flex-col space-y-3">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-2">
+<span class="relative flex h-3.5 w-3.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange"></span>
+</span>
+<h2 class="font-heading font-bold text-base text-navy">Live Signal Feed • Génie Civil</h2>
+</div>
+<span class="font-mono text-[13px] text-slate-600 font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-forest">sensors</span> 3.2s latence
+      </span>
+</div>
+<div class="flex flex-col space-y-3" id="signal-feed-container">
+<!-- Signal Item 1: Marti Construction SA -->
+<div class="p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col space-y-3 transition-transform active:scale-[0.99]">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-11 h-11 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">front_loader</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<span class="font-heading font-bold text-sm sm:text-base text-navy">Marti Construction SA • Vaud / GE</span>
+<span class="px-2 py-0.5 rounded bg-orange-light border border-orange/40 text-orange font-mono text-[12px] font-bold">VD</span>
+</div>
+<span class="font-body text-[13px] text-orange font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">assignment_turned_in</span> Marché Public Remporté
+              </span>
+</div>
+</div>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">2m</span>
+</div>
+<p class="font-body text-[13px] text-slate-800 bg-slate-50 border border-slate-200 p-3 rounded-xl leading-relaxed">
+          Marché public remporté: Terrassement &amp; Génie Civil autoroutier. Recherche active de: <strong class="text-navy font-bold">Pelle sur chenilles (15–30t)</strong> et <strong class="text-navy font-bold">Camion benne 4 essieux</strong>.
+        </p>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-2">
+<span class="px-2.5 py-1 rounded-full bg-forest-light border border-forest/30 text-forest font-mono text-[12px] font-bold">98% Match Matériel</span>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">Autoroute A1 Jonction</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 hover:text-navy active:scale-95 transition-transform" title="Ignorer">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<button class="px-3.5 py-2 rounded-xl bg-orange hover:bg-orange-dark text-white font-heading font-bold text-[13px] active:scale-95 transition-transform flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Envoyer Devis</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Signal Item 2: Implenia Tiefbau & Concassage -->
+<div class="p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col space-y-3 transition-transform active:scale-[0.99]">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-11 h-11 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">rv_hookup</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<span class="font-heading font-bold text-sm sm:text-base text-navy">Implenia Tiefbau &amp; Concassage • Zürich</span>
+<span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-navy font-mono text-[12px] font-bold">ZH</span>
+</div>
+<span class="font-body text-[13px] text-forest font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">published_with_changes</span> Renouvellement de Parc Matériel
+              </span>
+</div>
+</div>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">11m</span>
+</div>
+<p class="font-body text-[13px] text-slate-800 bg-slate-50 border border-slate-200 p-3 rounded-xl leading-relaxed">
+          Renouvellement de parc matériel: Rachat de <strong class="text-navy font-bold">Chargeuse sur pneus</strong> et <strong class="text-navy font-bold">concasseur mobile</strong> pour carrière Kieswerk (CHE-105.821.144).
+        </p>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-2">
+<span class="px-2.5 py-1 rounded-full bg-forest-light border border-forest/30 text-forest font-mono text-[12px] font-bold">94% Match Spéc</span>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">Opfikon Kieswerk</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 hover:text-navy active:scale-95 transition-transform" title="Ignorer">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<button class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-navy font-heading font-bold text-[13px] active:scale-95 transition-transform flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">build</span>
+<span>Proposer Matériel</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Signal Item 3: Walo Bertschinger AG -->
+<div class="p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col space-y-3 transition-transform active:scale-[0.99]">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-11 h-11 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">forklift</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<span class="font-heading font-bold text-sm sm:text-base text-navy">Walo Bertschinger AG • Valais &amp; Vaud</span>
+<span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-navy font-mono text-[12px] font-bold">VS</span>
+</div>
+<span class="font-body text-[13px] text-orange font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">campaign</span> Appel d'offres Engins Lourds
+              </span>
+</div>
+</div>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">28m</span>
+</div>
+<p class="font-body text-[13px] text-slate-800 bg-slate-50 border border-slate-200 p-3 rounded-xl leading-relaxed">
+          Chantier d'envergure Tiefbau &amp; Terrassement: Appel d'offres pour <strong class="text-navy font-bold">Bulldozer</strong> et <strong class="text-navy font-bold">Dumper articulé</strong> (CHE-101.445.981).
+        </p>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-2">
+<span class="px-2.5 py-1 rounded-full bg-forest-light border border-forest/30 text-forest font-mono text-[12px] font-bold">91% Match Parc</span>
+<span class="font-mono text-[13px] text-slate-600 font-semibold">Sion Dépôt</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 hover:text-navy active:scale-95 transition-transform" title="Ignorer">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<button class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-navy font-heading font-bold text-[13px] active:scale-95 transition-transform flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span>Examiner Lot</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Swiss Canton Territory Overview -->
+<section class="w-full p-4 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm flex flex-col space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-orange text-[22px]">domain</span>
+<h2 class="font-heading font-bold text-base text-navy">Saturation Régionale Chantiers &amp; Flottes</h2>
+</div>
+<span class="font-mono text-[12px] text-forest font-bold uppercase tracking-wider">3 Pôles Travaux Actifs</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+<div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-lg text-navy">ZH</span>
+<span class="w-2.5 h-2.5 rounded-full bg-forest"></span>
+</div>
+<span class="font-body text-[13px] text-slate-700 font-semibold">Tiefbau &amp; Terrassement</span>
+<span class="font-mono text-[13px] text-orange font-bold">184 Chantiers</span>
+</div>
+<div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-lg text-navy">VD</span>
+<span class="w-2.5 h-2.5 rounded-full bg-orange"></span>
+</div>
+<span class="font-body text-[13px] text-slate-700 font-semibold">Démolition &amp; Concassage</span>
+<span class="font-mono text-[13px] text-orange font-bold">112 Chantiers</span>
+</div>
+<div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-heading font-bold text-lg text-navy">BE</span>
+<span class="w-2.5 h-2.5 rounded-full bg-forest"></span>
+</div>
+<span class="font-body text-[13px] text-slate-700 font-semibold">Kieswerk &amp; Carrières</span>
+<span class="font-mono text-[13px] text-orange font-bold">96 Chantiers</span>
+</div>
+</div>
+</section>
+<!-- Quick Action Floating Dock (Field Control) -->
+<div class="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[608px] z-40">
+<div class="p-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E2E8F0] shadow-xl flex items-center justify-between space-x-2">
+<!-- Action 1: Lancer le scan chantiers & matériel -->
+<button class="flex-1 py-3 px-4 rounded-xl bg-orange hover:bg-orange-dark text-white font-heading font-bold text-[14px] flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all" id="btn-run-scan">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+<span class="truncate">Lancer le scan chantiers &amp; matériel</span>
+</button>
+<!-- Action 2: Export CSV -->
+<button class="py-3 px-3.5 rounded-xl border border-slate-200 bg-slate-100 text-navy font-heading font-bold text-[13px] flex items-center justify-center space-x-1 hover:bg-slate-200 active:scale-95 transition-all" id="btn-export-csv">
+<span class="material-symbols-outlined text-[19px]">file_download</span>
+<span class="hidden sm:inline">Export</span>
+<span>CSV</span>
+</button>
+<!-- Action 3: Refine Filters -->
+<button class="w-12 h-12 rounded-xl border border-slate-200 bg-slate-100 text-navy flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all shrink-0" id="btn-filters">
+<span class="material-symbols-outlined text-[22px]">tune</span>
+</button>
+</div>
+</div>
+<!-- Notification Toast Container -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-2" id="toast-notification">
+<div class="px-4 py-2.5 rounded-xl bg-navy text-white border border-slate-700 shadow-xl flex items-center space-x-2">
+<span class="material-symbols-outlined text-[18px] text-orange" id="toast-icon">check_circle</span>
+<span class="font-body text-[13px] font-semibold" id="toast-message">Télémétrie chantiers actualisée</span>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    // Segmented Time Toggle Logic
+    const segmentButtons = document.querySelectorAll('#time-segment-control button');
+    const scoutedEl = document.getElementById('metric-scouted');
+    const matchesEl = document.getElementById('metric-matches');
+    const dispatchedEl = document.getElementById('metric-dispatched');
+    const pipelineEl = document.getElementById('metric-pipeline');
+
+    const datasets = {
+      today: { scouted: '428', matches: '86', dispatched: '64', pipeline: 'CHF 4.82M' },
+      week: { scouted: '1,842', matches: '394', dispatched: '280', pipeline: 'CHF 18.6M' },
+      q3: { scouted: '7,419', matches: '1,420', dispatched: '960', pipeline: 'CHF 62.4M' }
+    };
+
+    segmentButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Reset classes
+        segmentButtons.forEach(b => {
+          b.className = 'flex-1 py-2 px-3 rounded-xl font-heading font-semibold text-[13px] text-slate-700 hover:text-navy transition-all duration-200 active:scale-95 text-center';
+        });
+
+        // Set active class
+        btn.className = 'flex-1 py-2 px-3 rounded-xl font-heading font-bold text-[13px] text-white bg-navy shadow-sm transition-all duration-200 active:scale-95 text-center';
+
+        const segment = btn.getAttribute('data-segment');
+        if (datasets[segment]) {
+          scoutedEl.textContent = datasets[segment].scouted;
+          matchesEl.textContent = datasets[segment].matches;
+          dispatchedEl.textContent = datasets[segment].dispatched;
+          pipelineEl.textContent = datasets[segment].pipeline;
+          showToast(`Données actualisées : ${btn.textContent}`);
+        }
+      });
+    });
+
+    // Toast feedback helper
+    const toast = document.getElementById('toast-notification');
+    const toastMsg = document.getElementById('toast-message');
+    let toastTimeout;
+
+    function showToast(message) {
+      if (!toast) return;
+      toastMsg.textContent = message;
+      toast.classList.remove('opacity-0', '-translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-2');
+      }, 2200);
+    }
+
+    // Floating Bar Action Triggers
+    const btnScan = document.getElementById('btn-run-scan');
+    const btnExport = document.getElementById('btn-export-csv');
+    const btnFilters = document.getElementById('btn-filters');
+
+    if (btnScan) {
+      btnScan.addEventListener('click', () => {
+        btnScan.disabled = true;
+        const origText = btnScan.innerHTML;
+        btnScan.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin">refresh</span><span>Scan ZEFIX BTP en cours...</span>`;
+        setTimeout(() => {
+          btnScan.innerHTML = origText;
+          btnScan.disabled = false;
+          showToast('Scan terminé : 18 nouveaux chantiers & besoins détectés');
+        }, 1400);
+      });
+    }
+
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        showToast('Export généré : JimiScout-Chantiers-Suisse.csv');
+      });
+    }
+
+    if (btnFilters) {
+      btnFilters.addEventListener('click', () => {
+        showToast('Filtres Engins : Pelles > 20t • Dumpers • Concasseurs');
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full max-w-[640px] z-50 pb-safe bg-white/95 backdrop-blur-xl border-t border-[#E2E8F0] shadow-sm"><div class="h-16 px-4 flex items-center justify-around"><a aria-current="page" class="flex flex-col items-center justify-center gap-1 w-16 h-12 active:scale-95 transition-all text-orange" data-path="pipeline-control" href="#"><span class="material-symbols-outlined text-[24px]">construction</span><span class="font-heading font-bold text-[12px] tracking-tight">Control</span></a><a class="flex flex-col items-center justify-center gap-1 w-16 h-12 relative text-slate-600 hover:text-navy active:scale-95 transition-all" data-path="leads-scout" href="#"><div class="relative"><span class="material-symbols-outlined text-[24px]">front_loader</span><span class="absolute -top-1 -right-2 px-1 min-w-[16px] h-[15px] flex items-center justify-center bg-orange text-white text-[10px] font-bold rounded-full font-mono">8</span></div><span class="font-heading font-medium text-[12px] tracking-tight">Engins</span></a><a class="flex flex-col items-center justify-center gap-1 w-16 h-12 text-slate-600 hover:text-navy active:scale-95 transition-all" data-path="canton-targets" href="#"><span class="material-symbols-outlined text-[24px]">map</span><span class="font-heading font-medium text-[12px] tracking-tight">Chantiers</span></a><a class="flex flex-col items-center justify-center gap-1 w-16 h-12 text-slate-600 hover:text-navy active:scale-95 transition-all" data-path="scout-persona" href="#"><span class="material-symbols-outlined text-[24px]">tune</span><span class="font-heading font-medium text-[12px] tracking-tight">Filtres</span></a></div></nav></div></body></html>

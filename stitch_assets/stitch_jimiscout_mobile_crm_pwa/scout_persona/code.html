@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>@layer base{html,body{margin:0;padding:0;min-height:100%;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;font-family:'IBM Plex Sans',sans-serif;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 0.5rem);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}.header-offset{padding-top:calc(env(safe-area-inset-top,0px) + 4rem);}.nav-bottom-offset{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 4.5rem);}}::-webkit-scrollbar{display:none;}
+body { min-height: max(884px, 100dvh); }
+</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "brand-orange": "#FF6B00",
+          "brand-navy": "#0B2240",
+          "field-bg": "#F8F9FA",
+          "slate-body": "#475569",
+          "status-green": "#059669",
+          "border-field": "#E2E8F0"
+        },
+        fontFamily: {
+          sans: ['IBM Plex Sans', 'sans-serif'],
+          heading: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace']
+        }
+      }
+    }
+  };
+</script></head><body class="bg-[#F8F9FA] text-[#0B2240] antialiased flex justify-center min-h-screen selection:bg-[#FF6B00]/20"><div class="w-full max-w-[640px] flex flex-col relative min-h-screen bg-[#F8F9FA]">
+<!-- Top Shell Navigation Bar with High Sunlight Legibility -->
+<header class="fixed top-0 w-full max-w-[640px] z-50 bg-[#FFFFFF]/95 backdrop-blur-md pt-safe border-b border-[#E2E8F0] shadow-sm"><div class="h-16 px-4 flex items-center justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><img alt="JimiScout Emblem" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1W1kJjDXHKiwk33mvPhIImCKDrN-k-GcJYyqRripoflzIWANAfA1462xwAOqrQGNxEKIpz7r9iprKU4o6XQdwA3igFXR3bTxlF9un_0tP3rnLBfW32a0dZ1YD1GEEixDJLvSRGjpYZyRxyJxAEyESHVKSB89wDXzgqJrR2ScC65oi2We9F3pPCNt-jlUJJn1eAwWXpBM-Zq6rIlTnhk8pAG7jowgKhWeIXHPGvhbIm_"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-2"><span class="font-heading font-bold text-base text-[#0B2240] tracking-tight truncate">JimiScout BTP</span><div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 shrink-0"><span class="w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span><span class="text-[13px] text-[#059669] font-bold uppercase tracking-wider font-mono">En ligne</span></div></div><span class="text-[13px] text-[#475569] font-semibold truncate tracking-tight">Directrice Grands Comptes • Vente &amp; Flottes</span></div></div><div class="flex items-center gap-2 shrink-0"><button aria-label="Notifications" class="w-10 h-10 flex items-center justify-center relative rounded-xl border border-[#E2E8F0] bg-white text-[#0B2240] active:scale-95 transition-transform"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#FF6B00] ring-2 ring-white"></span></button><div class="w-10 h-10 flex items-center justify-center"><img alt="Profile" class="w-9 h-9 rounded-xl object-cover border border-[#E2E8F0] shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAE5Luas3yOIWFp7EToIf7P05y1fbSdmeSVJg11SxWPFBPXpeSiHh8THxOmErTwFVe_PfmlhWyiPN83TH2_xEV1PMjadmrvI54SfL9ouZ-vtx7CprxSvHqJ1GyA6-2Q7_wNGhzJdFUAfBlpnXs5pupvG5slYx5eunMK0_vH37Yh9cBozUmYjVJuoHfZ6VCZqV0oZ1D61-iZ0N7Djj89CmebdxX9SswErSOMISN8Iok"/></div></div></div></header>
+<!-- Main Field Content -->
+<main class="flex-1 flex flex-col w-full bg-[#F8F9FA] pt-20 nav-bottom-offset px-4"><div class="flex flex-col w-full pb-6 space-y-4">
+<!-- Status Banner / Dispatch Hub -->
+<div class="flex items-center justify-between bg-white border border-[#E2E8F0] px-4 py-3 rounded-xl shadow-sm">
+<div class="flex items-center space-x-2.5 min-w-0">
+<span class="w-2.5 h-2.5 rounded-full bg-[#059669] shrink-0 animate-ping"></span>
+<span class="text-[14px] font-bold text-[#0B2240] truncate">Hub Chantiers &amp; Négociation BTP</span>
+</div>
+<div class="flex items-center space-x-1.5 shrink-0 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[#059669] text-[16px] font-bold">verified</span>
+<span class="font-mono text-[13px] text-[#059669] font-bold">SMTP Connecté (M365)</span>
+</div>
+</div>
+<!-- Screen Narrative & Tone Selector -->
+<div class="bg-white border border-[#E2E8F0] p-4 rounded-2xl shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[#FF6B00] text-[20px]">precision_manufacturing</span>
+<span class="font-heading font-bold text-[13px] text-[#0B2240] tracking-wide uppercase">PERSONA DE NÉGOCIATION MATÉRIEL &amp; BTP</span>
+</div>
+<span class="font-mono text-[13px] text-[#059669] font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">v4.2 Synthétiseur d'offres engins</span>
+</div>
+<!-- Tone Segmented Pills -->
+<div class="space-y-1.5">
+<label class="text-[13px] text-[#475569] font-bold">Calibrage de la tonalité commerciale</label>
+<div class="grid grid-cols-3 gap-1.5 bg-[#F1F5F9] p-1.5 rounded-xl border border-[#E2E8F0]" id="tone-selector">
+<button class="tone-btn active-tone py-2.5 px-2 text-center rounded-lg bg-white border border-[#FF6B00] text-[#0B2240] font-bold shadow-sm transition-all duration-150 active:scale-95" data-tone="pragmatique" type="button">
+<span class="text-[13px] font-bold text-[#0B2240] block">Pragmatique Chantier</span>
+<span class="block text-[13px] text-[#FF6B00] font-mono font-semibold">Direct / Devis</span>
+</button>
+<button class="tone-btn py-2.5 px-2 text-center rounded-lg text-[#475569] border border-transparent hover:bg-white/60 transition-all duration-150 active:scale-95" data-tone="technique" type="button">
+<span class="text-[13px] font-bold block">Technique BTP</span>
+<span class="block text-[13px] text-[#475569] font-mono">Normes / Euro 6</span>
+</button>
+<button class="tone-btn py-2.5 px-2 text-center rounded-lg text-[#475569] border border-transparent hover:bg-white/60 transition-all duration-150 active:scale-95" data-tone="direction" type="button">
+<span class="text-[13px] font-bold block">Direction Matériel</span>
+<span class="block text-[13px] text-[#475569] font-mono">Achat / Leasing</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Component 1: Persona Profile Card -->
+<div class="relative bg-white border border-[#E2E8F0] p-4 rounded-2xl shadow-sm overflow-hidden space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<div class="relative">
+<img class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow bg-slate-100" data-alt="Photo professionnelle d'une directrice commerciale BTP en Suisse" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCslj-ZlKNY79P2XEXHydFpakUo4pZ6TcnMtQtTfa4VyEOzrOTMrDaOUIe4OBJ10NnTs4iEGt-SLTGYLmt5MFOjQdg5bM4awiPw0IxJU9lATxR0Z9svc8mGH6BLnaVUof9qMpj2ld-LQlmToEwgEzdHQLWHOsaIunCvmY5YWwqKc-w9MsmHY-afao0-vNE3nfCPbZE6DbWkBqAZhnOKdig91ei2dlDRYE5FCJfz7KU"/>
+<span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#059669] flex items-center justify-center shadow-md ring-2 ring-white">
+<span class="material-symbols-outlined text-white text-[12px] font-bold">handyman</span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center space-x-1.5">
+<span class="font-heading font-bold text-base text-[#0B2240] truncate">Heidi Zürcher</span>
+<span class="material-symbols-outlined text-[#FF6B00] text-[18px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-[13px] font-semibold text-[#475569] truncate">Directrice Grands Comptes BTP &amp; Engins</span>
+<span class="font-mono text-[13px] text-[#0B2240] font-bold mt-0.5">UID: CHE-492.810.229 • Actif</span>
+</div>
+</div>
+<button aria-label="Paramètres persona" class="bg-[#F8F9FA] border border-[#E2E8F0] hover:bg-slate-100 text-[#0B2240] p-2.5 rounded-xl active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+<!-- Language alignment pills (Territory & Sector alignment) -->
+<div class="bg-[#F8F9FA] border border-[#E2E8F0] p-3 rounded-xl space-y-2">
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold text-[#0B2240] uppercase tracking-wide">Alignement Régional &amp; Chantiers</span>
+<span class="text-[13px] font-mono text-[#059669] font-bold">100% Terminologie Terrain</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-[#E2E8F0] shadow-sm">
+<span class="w-6 h-6 rounded-lg bg-[#FF6B00]/15 text-[#FF6B00] font-mono text-[13px] font-bold flex items-center justify-center shrink-0">CH</span>
+<div class="min-w-0">
+<p class="text-[13px] font-bold text-[#0B2240] truncate">Français</p>
+<p class="text-[13px] text-[#475569] truncate">Terrassement / Démolition</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-[#E2E8F0] shadow-sm">
+<span class="w-6 h-6 rounded-lg bg-[#0B2240]/10 text-[#0B2240] font-mono text-[13px] font-bold flex items-center justify-center shrink-0">DE</span>
+<div class="min-w-0">
+<p class="text-[13px] font-bold text-[#0B2240] truncate">Deutsch</p>
+<p class="text-[13px] text-[#475569] truncate">Kieswerk / Tiefbau</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-[#E2E8F0] shadow-sm">
+<span class="w-6 h-6 rounded-lg bg-emerald-100 text-[#059669] font-mono text-[13px] font-bold flex items-center justify-center shrink-0">IT</span>
+<div class="min-w-0">
+<p class="text-[13px] font-bold text-[#0B2240] truncate">Italiano</p>
+<p class="text-[13px] text-[#475569] truncate">Cave / Cantieri</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 bg-white p-2.5 rounded-xl border border-[#E2E8F0] shadow-sm">
+<span class="w-6 h-6 rounded-lg bg-slate-200 text-[#475569] font-mono text-[13px] font-bold flex items-center justify-center shrink-0">EN</span>
+<div class="min-w-0">
+<p class="text-[13px] font-bold text-[#0B2240] truncate">English</p>
+<p class="text-[13px] text-[#475569] truncate">Heavy Machinery Export</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Component 2: Real-Time Multilingual Email & Offer Preview Frame -->
+<div class="bg-white border border-[#E2E8F0] rounded-2xl shadow-sm p-4 space-y-3">
+<!-- Header with Live Indicator -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[#FF6B00] text-[22px]">drafts</span>
+<span class="font-heading font-bold text-[14px] text-[#0B2240]">Aperçu Offre &amp; Courriel Temps Réel</span>
+</div>
+<div class="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+<span class="w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span>
+<span class="font-mono text-[13px] text-[#059669] font-bold">99.4% Pertinence</span>
+</div>
+</div>
+<!-- Segmented Language Bar -->
+<div class="bg-[#F1F5F9] p-1.5 rounded-xl border border-[#E2E8F0] flex items-center justify-between gap-1" id="language-switcher">
+<button class="lang-tab flex-1 py-2 rounded-lg bg-white border border-[#FF6B00] text-[#0B2240] font-bold shadow-sm text-center text-[13px] transition-all" data-lang="fr" type="button">
+  FR 🇨🇭
+</button>
+<button class="lang-tab flex-1 py-2 rounded-lg text-[#475569] hover:text-[#0B2240] font-bold text-center text-[13px] transition-all" data-lang="de" type="button">
+  DE 🇨🇭
+</button>
+<button class="lang-tab flex-1 py-2 rounded-lg text-[#475569] hover:text-[#0B2240] font-bold text-center text-[13px] transition-all" data-lang="en" type="button">
+  EN 🇬🇧
+</button>
+<button class="lang-tab flex-1 py-2 rounded-lg text-[#475569] hover:text-[#0B2240] font-bold text-center text-[13px] transition-all" data-lang="it" type="button">
+  IT 🇨🇭
+</button>
+</div>
+<!-- Dispatch Dispatch Mail Emulation Card -->
+<div class="bg-[#F8F9FA] border border-[#E2E8F0] rounded-xl p-3.5 space-y-3">
+<!-- Envelope Header -->
+<div class="space-y-2 pb-2.5 bg-white p-3 rounded-lg border border-[#E2E8F0] shadow-sm">
+<div class="flex items-center justify-between text-[13px]">
+<span class="text-[#475569] font-bold w-16 shrink-0">À / Pour:</span>
+<div class="flex items-center space-x-1.5 min-w-0 flex-1 justify-end">
+<span class="font-bold text-[#0B2240] truncate" id="mail-recipient">Marc Bovet (Directeur Matériel, Marti Construction SA, Lausanne)</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-[13px]">
+<span class="text-[#475569] font-bold w-16 shrink-0">De:</span>
+<span class="text-[13px] text-[#0B2240] font-medium truncate flex-1 text-right font-mono">heidi.zuercher@jimi-scout.ch</span>
+</div>
+<div class="flex items-start justify-between text-[13px] pt-1">
+<span class="text-[#475569] font-bold w-16 shrink-0">Objet:</span>
+<span class="font-bold text-[#0B2240] flex-1 text-right break-words" id="mail-subject">
+  Disponibilité immédiate: Pelle sur chenilles (15–30t) &amp; Chargeuse sur pneus pour votre chantier autoroutier
+</span>
+</div>
+</div>
+<!-- Live Dynamic Email Body -->
+<div class="bg-white p-4 rounded-lg border border-[#E2E8F0] shadow-sm space-y-3">
+<!-- Salutation Preview -->
+<p class="font-bold text-[14px] text-[#0B2240]" id="mail-salutation">
+  Bonjour Monsieur Bovet,
+</p>
+<!-- Dynamic Context Content with Machinery Signal Anchors -->
+<p class="text-[14px] leading-relaxed text-[#0B2240]" id="mail-body-lead">
+  Suite à l'adjudication de votre lot de Tiefbau &amp; Terrassement et l'extension des cadences sur votre chantier, nous avons identifié un besoin critique en matériel lourd.
+</p>
+<p class="text-[14px] leading-relaxed text-[#0B2240]" id="mail-body-pitch">
+  Notre plateforme JimiScout BTP suit en temps réel la disponibilité d'engins certifiés en Suisse romande. Nous avons actuellement 
+  <span class="inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold">2x Pelle sur chenilles (15–30t)</span> 
+  et 
+  <span class="inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold">1x Chargeuse sur pneus</span> 
+  récentes prêtes pour déploiement immédiat avec carnet d'entretien à jour.
+</p>
+<p class="text-[14px] leading-relaxed text-[#0B2240]" id="mail-callout">
+  Seriez-vous disponible ce jeudi à 09h30 pour un appel téléphonique rapide ou un passage sur votre base matériel ?
+</p>
+<!-- Signature -->
+<div class="pt-2 text-[13px] text-[#475569] border-t border-[#E2E8F0] space-y-0.5">
+<p class="font-bold text-[#0B2240]" id="mail-valediction">Meilleures salutations,</p>
+<p class="font-bold text-[#0B2240]">Heidi Zürcher</p>
+<p class="text-[13px] text-[#475569] font-medium">Division Matériel &amp; Génie Civil JimiScout • Zurich &amp; Lausanne</p>
+</div>
+</div>
+<!-- Real-Time Token Bar -->
+<div class="flex items-center justify-between px-1">
+<span class="text-[13px] font-bold text-[#475569] uppercase tracking-wide">Ancres de Signaux Détectés:</span>
+<div class="flex flex-wrap gap-1.5 justify-end">
+<span class="px-2.5 py-0.5 bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 rounded-full font-mono text-[13px] font-bold">Permis Chantier VD-8812</span>
+<span class="px-2.5 py-0.5 bg-[#0B2240]/10 text-[#0B2240] border border-[#0B2240]/20 rounded-full font-mono text-[13px] font-bold">Pelle 15–30t</span>
+<span class="px-2.5 py-0.5 bg-emerald-50 text-[#059669] border border-emerald-200 rounded-full font-mono text-[13px] font-bold">Chargeuse pneus</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Component 3: Dispatch & Protocol Controls -->
+<div class="bg-white border border-[#E2E8F0] rounded-2xl shadow-sm p-4 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[#FF6B00] text-[22px]">send_time_extension</span>
+<span class="font-heading font-bold text-[14px] text-[#0B2240]">Contrôle d'Expédition &amp; Protocole</span>
+</div>
+<span class="text-[13px] font-mono text-[#059669] font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">Norme: SIA / FINMA</span>
+</div>
+<!-- Provider Selection -->
+<div class="grid grid-cols-2 gap-2">
+<button class="provider-pill flex items-center justify-center space-x-2 p-3 rounded-xl bg-emerald-50 border-2 border-[#059669] text-[#059669] font-bold active:scale-95 transition-all shadow-sm" type="button">
+<span class="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
+<span class="material-symbols-outlined text-[18px]">mark_email_read</span>
+<span class="text-[13px]">Microsoft 365 (SMTP Connecté)</span>
+</button>
+<button class="provider-pill flex items-center justify-center space-x-2 p-3 rounded-xl bg-[#F8F9FA] border border-[#E2E8F0] text-[#475569] hover:text-[#0B2240] font-bold active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+<span class="text-[13px]">Google Workspace</span>
+</button>
+</div>
+<!-- Swiss Business Hours Switch -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-[#F8F9FA] border border-[#E2E8F0]">
+<div class="flex items-center space-x-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-white border border-[#E2E8F0] flex items-center justify-center text-[#FF6B00] shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[20px]">nest_clock_farsight_analog</span>
+</div>
+<div class="min-w-0">
+<p class="text-[13px] font-bold text-[#0B2240] truncate">Garde Horaires Chantiers (Envoi 06:30 - 18:00)</p>
+<p class="text-[13px] text-[#475569] truncate">Planification optimisée pour les chefs de chantier BTP</p>
+</div>
+</div>
+<!-- High contrast Toggle Switch (Green Active) -->
+<label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+<input checked="" class="sr-only peer" id="biz-hours-toggle" type="checkbox"/>
+<div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+</label>
+</div>
+<!-- Primary Action Button: Solid Industrial Safety Orange -->
+<div class="pt-1">
+<button class="w-full h-13 py-3.5 px-4 bg-[#FF6B00] hover:bg-[#e05e00] text-white rounded-xl font-heading font-bold text-[15px] flex items-center justify-center space-x-2 shadow-lg shadow-[#FF6B00]/25 active:scale-98 transition-all" id="dispatch-btn" type="button">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<span id="dispatch-label">Envoyer l'offre aux acheteurs BTP</span>
+<span class="material-symbols-outlined text-[18px] text-white/80">chevron_right</span>
+</button>
+</div>
+<!-- Secondary Micro Audit Info -->
+<div class="flex items-center justify-between text-[13px] font-medium px-1 text-[#475569]">
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#059669]">shield</span>
+<span class="text-[13px]">Protocole TLS 1.3 Sécurisé Suisse</span>
+</div>
+<span class="font-mono text-[13px] font-bold text-[#059669]">Prêt pour expédition</span>
+</div>
+</div>
+<!-- Toast Notification Container -->
+<div class="hidden transition-all duration-300 transform translate-y-2 opacity-0 p-3.5 rounded-xl bg-[#0B2240] text-white flex items-center justify-between shadow-xl" id="dispatch-toast">
+<div class="flex items-center space-x-2.5 min-w-0">
+<span class="material-symbols-outlined text-[#059669] text-[22px]">task_alt</span>
+<span class="text-[13px] font-bold truncate" id="toast-message">Offre programmée pour envoi sur chantier à 06:30</span>
+</div>
+<span class="text-[13px] font-mono bg-white/20 px-2 py-0.5 rounded text-white font-bold cursor-pointer">Annuler</span>
+</div>
+</div>
+<script>
+  (function initHeavyMachineryScout() {
+    const translations = {
+      fr: {
+        recipient: "Marc Bovet (Directeur Matériel, Marti Construction SA, Lausanne)",
+        subject: "Disponibilité immédiate: Pelle sur chenilles (15–30t) & Chargeuse sur pneus pour votre chantier autoroutier",
+        salutation: "Bonjour Monsieur Bovet,",
+        lead: "Suite à l'adjudication de votre lot de Tiefbau & Terrassement et l'extension des cadences sur votre chantier, nous avons identifié un besoin critique en matériel lourd.",
+        pitch: "Notre plateforme JimiScout BTP suit en temps réel la disponibilité d'engins certifiés en Suisse romande. Nous avons actuellement <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">2x Pelle sur chenilles (15–30t)</span> et <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">1x Chargeuse sur pneus</span> récentes prêtes pour déploiement immédiat avec carnet d'entretien à jour.",
+        callout: "Seriez-vous disponible ce jeudi à 09h30 pour un appel téléphonique rapide ou un passage sur votre base matériel ?",
+        valediction: "Meilleures salutations,"
+      },
+      de: {
+        recipient: "Hanspeter Meier (Leiter Werkhof & Maschinen, Implenia Schweiz AG, Zürich)",
+        subject: "Sofortige Verfügbarkeit: Raupenbagger (15–30t) & Radlader für Baustelle A1",
+        salutation: "Guten Tag Herr Meier,",
+        lead: "Nach dem Zuschlag für Ihr Tiefbau- und Erdbau-Baulos sowie der Erhöhung der Taktung auf Ihrer Baustelle haben wir einen dringenden Bedarf an Schwermaschinen identifiziert.",
+        pitch: "Unsere Plattform JimiScout BTP analysiert Baustellen-Signale in der Schweiz. Aktuell stehen <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">2x Raupenbagger (15–30t)</span> und <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">1x Radlader</span> ab Schweizer Werkhof mit aktuellem Serviceheft sofort einsatzbereit.",
+        callout: "Passt Ihnen ein 10-minütiger Austausch am Donnerstag um 09:30 Uhr oder eine Besichtigung auf Ihrem Werkhof?",
+        valediction: "Freundliche Grüsse,"
+      },
+      en: {
+        recipient: "Marc Bovet (Equipment Director, Marti Construction SA, Lausanne)",
+        subject: "Immediate Availability: Crawler Excavator (15–30t) & Wheel Loader for Highway Infrastructure",
+        salutation: "Dear Mr. Bovet,",
+        lead: "Following your earthworks tender award and the acceleration of work shifts on your site, we identified an immediate heavy machinery requirement.",
+        pitch: "JimiScout Heavy Machinery tracks certified machinery in real-time across Switzerland. We currently have <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">2x Crawler Excavator (15–30t)</span> and <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">1x Wheel Loader</span> fully serviced and certified for swift site mobilization.",
+        callout: "Would you be open for a brief 10-minute briefing next Thursday at 09:30 CET or a yard visit?",
+        valediction: "Kind regards,"
+      },
+      it: {
+        recipient: "Marco Bernasconi (Responsabile Parco Macchine, CSC Costruzioni SA, Lugano)",
+        subject: "Disponibilità immediata: Escavatore cingolato (15–30t) & Pala gommata per cantiere",
+        salutation: "Gentile Sig. Bernasconi,",
+        lead: "A seguito dell'assegnazione del lotto di scavo e movimentazione terra, abbiamo individuato una tempestiva opportunità per il vostro parco macchine.",
+        pitch: "JimiScout BTP traccia la disponibilità di macchine operatrici pesanti in Svizzera. Disponiamo attualmente di <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">2x Escavatori cingolati (15–30t)</span> e <span class=\"inline-block bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 px-2 py-0.5 rounded font-mono text-[13px] font-bold\">1x Pala gommata</span> con libretto manutenzione in regola.",
+        callout: "Avrebbe 10 minuti giovedì alle 09:30 per un rapido contatto telefonico o un sopralluogo in cantiere?",
+        valediction: "Cordiali saluti,"
+      }
+    };
+
+    const toneSalutations = {
+      pragmatique: {
+        fr: "Bonjour Monsieur Bovet,",
+        de: "Hallo Herr Meier,",
+        en: "Hello Mr. Bovet,",
+        it: "Buongiorno Sig. Bernasconi,"
+      },
+      technique: {
+        fr: "Monsieur le Directeur Matériel,",
+        de: "Sehr geehrter Herr Werkhofleiter Meier,",
+        en: "Attention: Technical Fleet Management,",
+        it: "All'attenzione della Direzione Tecnica Macchine,"
+      },
+      direction: {
+        fr: "Cher Monsieur Bovet, Direction des Investissements,",
+        de: "Sehr geehrter Herr Direktor Meier,",
+        en: "Dear Director Bovet,",
+        it: "Egregio Direttore Bernasconi,"
+      }
+    };
+
+    let currentLang = "fr";
+    let currentTone = "pragmatique";
+
+    const mailRecipient = document.getElementById("mail-recipient");
+    const mailSubject = document.getElementById("mail-subject");
+    const mailSalutation = document.getElementById("mail-salutation");
+    const mailLead = document.getElementById("mail-body-lead");
+    const mailPitch = document.getElementById("mail-body-pitch");
+    const mailCallout = document.getElementById("mail-callout");
+    const mailValediction = document.getElementById("mail-valediction");
+
+    function renderMail() {
+      const data = translations[currentLang];
+      mailRecipient.textContent = data.recipient;
+      mailSubject.textContent = data.subject;
+      mailLead.innerHTML = data.lead;
+      mailPitch.innerHTML = data.pitch;
+      mailCallout.textContent = data.callout;
+      mailValediction.textContent = data.valediction;
+      mailSalutation.textContent = toneSalutations[currentTone][currentLang];
+    }
+
+    const langTabs = document.querySelectorAll(".lang-tab");
+    langTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        langTabs.forEach((t) => {
+          t.classList.remove("bg-white", "border", "border-[#FF6B00]", "text-[#0B2240]", "shadow-sm");
+          t.classList.add("text-[#475569]");
+        });
+        tab.classList.add("bg-white", "border", "border-[#FF6B00]", "text-[#0B2240]", "shadow-sm");
+        tab.classList.remove("text-[#475569]");
+        currentLang = tab.getAttribute("data-lang");
+        renderMail();
+      });
+    });
+
+    const toneBtns = document.querySelectorAll(".tone-btn");
+    toneBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        toneBtns.forEach((b) => {
+          b.classList.remove("bg-white", "border-[#FF6B00]", "text-[#0B2240]", "shadow-sm");
+          b.classList.add("border-transparent", "text-[#475569]");
+          const sub = b.querySelector("span:last-child");
+          if (sub) {
+            sub.classList.remove("text-[#FF6B00]");
+            sub.classList.add("text-[#475569]");
+          }
+        });
+        btn.classList.add("bg-white", "border-[#FF6B00]", "text-[#0B2240]", "shadow-sm");
+        btn.classList.remove("border-transparent", "text-[#475569]");
+        const activeSub = btn.querySelector("span:last-child");
+        if (activeSub) {
+          activeSub.classList.remove("text-[#475569]");
+          activeSub.classList.add("text-[#FF6B00]");
+        }
+        currentTone = btn.getAttribute("data-tone");
+        renderMail();
+      });
+    });
+
+    const dispatchBtn = document.getElementById("dispatch-btn");
+    const toast = document.getElementById("dispatch-toast");
+    const toastMsg = document.getElementById("toast-message");
+    const bizToggle = document.getElementById("biz-hours-toggle");
+
+    if (dispatchBtn) {
+      dispatchBtn.addEventListener("click", () => {
+        dispatchBtn.classList.add("scale-95");
+        setTimeout(() => dispatchBtn.classList.remove("scale-95"), 120);
+
+        const scheduled = bizToggle && bizToggle.checked;
+        const msg = scheduled 
+          ? "Offre engins programmée pour expédition chantier à 06:30" 
+          : "Expédié immédiatement à Marc Bovet (Marti Construction)";
+
+        toastMsg.textContent = msg;
+        toast.classList.remove("hidden");
+        requestAnimationFrame(() => {
+          toast.classList.remove("opacity-0", "translate-y-2");
+          toast.classList.add("opacity-100", "translate-y-0");
+        });
+
+        setTimeout(() => {
+          toast.classList.remove("opacity-100", "translate-y-0");
+          toast.classList.add("opacity-0", "translate-y-2");
+          setTimeout(() => toast.classList.add("hidden"), 300);
+        }, 4000);
+      });
+    }
+  })();
+</script></main>
+<!-- Bottom PWA Shell Navigation: Active tab with Deep Swiss Navy / Industrial Safety Orange -->
+<nav class="fixed bottom-0 w-full max-w-[640px] z-50 pb-safe bg-white/95 backdrop-blur-md border-t border-[#E2E8F0] shadow-[0_-2px_10px_rgba(0,0,0,0.03)]"><div class="h-16 px-4 flex items-center justify-around">
+<a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 text-[#475569] active:scale-95 transition-all" data-path="pipeline-control" href="#">
+<span class="material-symbols-outlined text-[24px]">radar</span>
+<span class="text-[13px] font-bold">Radar</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 relative text-[#475569] active:scale-95 transition-all" data-path="leads-scout" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-[24px]">view_carousel</span>
+<span class="absolute -top-1 -right-2 px-1 min-w-[16px] h-[15px] flex items-center justify-center bg-[#FF6B00] text-white text-[10px] font-mono font-bold rounded-full">8</span>
+</div>
+<span class="text-[13px] font-bold">Offres</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 text-[#475569] active:scale-95 transition-all" data-path="canton-targets" href="#">
+<span class="material-symbols-outlined text-[24px]">filter_center_focus</span>
+<span class="text-[13px] font-bold">Chantiers</span>
+</a>
+<a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 active:scale-95 transition-all text-[#FF6B00]" data-path="scout-persona" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">tune</span>
+<span class="text-[13px] font-bold text-[#0B2240]">Persona</span>
+</a>
+</div></nav>
+</div></body></html>

@@ -1,0 +1,1 @@
+worker: tsx src/index.ts
