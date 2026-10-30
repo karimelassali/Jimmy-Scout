@@ -24,9 +24,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3001;
 
-app.use(express.json());
+app.use(express.json({ limit: '35mb' }));
+app.use(express.urlencoded({ limit: '35mb', extended: true }));
 
 // ----------------------------------------------------
 // HELPER: Process a single inbound email (from IMAP or Webhook)
@@ -37,18 +38,80 @@ async function handleInboundEmailPayload(params: {
   canton?: string;
   rawSubject: string;
   rawBody: string;
+  messageId?: string;
 }) {
   const senderEmail = params.senderEmail.trim().toLowerCase();
+
+  // Guard against self-emails
+  const myImapUser = (process.env.IMAP_USER || '').trim().toLowerCase();
+  const mySmtpUser = (process.env.SMTP_USER || '').trim().toLowerCase();
+  if (senderEmail === myImapUser || senderEmail === mySmtpUser) {
+    return { analysis: { intent: 'SELF_IGNORE' }, lead: null, isDuplicate: true };
+  }
+
+  // Deduplication check: check if this specific email body was already ingested
+  const existingLeads = await supabaseDataService.getLeads();
+  const alreadyExists = existingLeads.find(
+    (l) =>
+      l.sender_email.toLowerCase() === senderEmail &&
+      (l.raw_body?.trim() === params.rawBody?.trim() ||
+        (params.messageId && (l as any).message_id === params.messageId))
+  );
+
+  if (alreadyExists) {
+    return {
+      analysis: { intent: alreadyExists.intent },
+      lead: alreadyExists,
+      isDuplicate: true,
+    };
+  }
+
   const existingCompany = await supabaseDataService.findCompanyByEmail(senderEmail);
 
   const companyName =
     params.companyName?.trim() ||
     existingCompany?.name ||
-    senderEmail.split('@')[1] ||
+    senderEmail.split('@')[0] ||
     senderEmail;
-  const canton = (params.canton?.trim() || existingCompany?.canton || 'CH').toUpperCase();
 
-  // 1. Live Gemini 3.8 Flash Triage
+  // Smart Swiss Canton extraction from text
+  let canton = (params.canton?.trim() || existingCompany?.canton || '').toUpperCase();
+  if (!canton || canton === 'CH') {
+    const textUpper = (params.rawBody + ' ' + params.rawSubject).toUpperCase();
+    const cantonMap: Record<string, string> = {
+      BERN: 'BE',
+      BERNE: 'BE',
+      ZURICH: 'ZH',
+      ZÜRICH: 'ZH',
+      VAUD: 'VD',
+      GENEVA: 'GE',
+      GENEVE: 'GE',
+      GENÈVE: 'GE',
+      TICINO: 'TI',
+      TESSIN: 'TI',
+      VALAIS: 'VS',
+      WALLIS: 'VS',
+      AARGAU: 'AG',
+      LUZERN: 'LU',
+      LUCERNE: 'LU',
+      FRIBOURG: 'FR',
+      FREIBURG: 'FR',
+      NEUCHATEL: 'NE',
+      NEUCHÂTEL: 'NE',
+      BASEL: 'BS',
+      SOLOTHURN: 'SO',
+      THURGAU: 'TG',
+    };
+    for (const [kw, code] of Object.entries(cantonMap)) {
+      if (textUpper.includes(kw)) {
+        canton = code;
+        break;
+      }
+    }
+  }
+  if (!canton) canton = 'CH';
+
+  // 1. Live Gemini Triage
   const analysis = await geminiService.analyzeReply(
     params.rawSubject,
     params.rawBody,
@@ -58,7 +121,14 @@ async function handleInboundEmailPayload(params: {
   let createdLead: InboundLead | null = null;
   let telegramResult: any = null;
 
-  if (analysis.intent === 'HOT_LEAD') {
+  if (analysis.intent === 'UNSUBSCRIBE' || analysis.intent === 'NOT_INTERESTED') {
+    if (existingCompany) {
+      await supabaseDataService.updateCompany(existingCompany.id, { unsubscribed: true });
+    }
+  }
+
+  // Create lead for any genuine inbound reply that is not an outright unsubscribe/vacation auto-reply
+  if (analysis.intent !== 'UNSUBSCRIBE' && analysis.intent !== 'OUT_OF_OFFICE') {
     createdLead = await supabaseDataService.createLead({
       company_id: existingCompany?.id || null,
       company_name: companyName,
@@ -66,9 +136,9 @@ async function handleInboundEmailPayload(params: {
       sender_email: senderEmail,
       raw_subject: params.rawSubject,
       raw_body: params.rawBody,
-      intent: 'HOT_LEAD',
-      machinery_detected: analysis.machinery_detected,
-      contact_name: analysis.contact_name || existingCompany?.name || senderEmail,
+      intent: analysis.intent || 'HOT_LEAD',
+      machinery_detected: analysis.machinery_detected || [],
+      contact_name: analysis.contact_name || companyName || senderEmail,
       contact_phone: analysis.contact_phone || existingCompany?.phone || null,
       lead_status: 'new',
       ai_summary: analysis.french_summary,
@@ -76,19 +146,20 @@ async function handleInboundEmailPayload(params: {
     });
 
     // 2. Dispatch real Telegram notification
-    telegramResult = await telegramService.sendDealNotification({
-      companyName,
-      canton,
-      machinery: analysis.machinery_detected,
-      askingPrice: analysis.machinery_detected[0]?.asking_price,
-      sellerName: analysis.contact_name || companyName,
-      sellerPhone: analysis.contact_phone || existingCompany?.phone || undefined,
-      sellerEmail: senderEmail,
-      summary: analysis.french_summary,
-    });
-  } else if (analysis.intent === 'UNSUBSCRIBE' || analysis.intent === 'NOT_INTERESTED') {
-    if (existingCompany) {
-      await supabaseDataService.updateCompany(existingCompany.id, { unsubscribed: true });
+    if (
+      analysis.intent === 'HOT_LEAD' ||
+      (analysis.machinery_detected && analysis.machinery_detected.length > 0)
+    ) {
+      telegramResult = await telegramService.sendDealNotification({
+        companyName,
+        canton,
+        machinery: analysis.machinery_detected,
+        askingPrice: analysis.machinery_detected[0]?.asking_price,
+        sellerName: analysis.contact_name || companyName,
+        sellerPhone: analysis.contact_phone || existingCompany?.phone || undefined,
+        sellerEmail: senderEmail,
+        summary: analysis.french_summary,
+      });
     }
   }
 
@@ -96,6 +167,7 @@ async function handleInboundEmailPayload(params: {
     analysis,
     lead: createdLead,
     telegram: telegramResult,
+    isDuplicate: false,
   };
 }
 
@@ -261,6 +333,81 @@ app.delete('/api/companies/:id', async (req, res) => {
   }
 });
 
+// Bulk Insert Companies (e.g. from Business Card Scanner)
+app.post('/api/companies/bulk', async (req, res) => {
+  try {
+    const { companies } = req.body;
+    if (!Array.isArray(companies) || companies.length === 0) {
+      return res.status(400).json({ error: 'Array of companies is required' });
+    }
+
+    const sanitizedList = companies
+      .filter((c: any) => c && c.name && (c.email || c.phone || c.canton))
+      .map((c: any) => {
+        const cleanCanton = (c.canton || 'CH').trim().toUpperCase();
+        const language = c.language || getLanguageForCanton(cleanCanton);
+        return {
+          name: String(c.name).trim(),
+          email: c.email ? String(c.email).trim().toLowerCase() : `contact@${c.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.ch`,
+          canton: cleanCanton,
+          language,
+          phone: c.phone ? String(c.phone).trim() : null,
+          domain: c.domain ? String(c.domain).trim() : null,
+          industry: c.industry || 'civil_engineering',
+          last_contacted_at: null,
+          notes: c.notes ? String(c.notes).trim() : null,
+        };
+      });
+
+    const result = await supabaseDataService.addCompaniesBulk(sanitizedList);
+    res.status(201).json({
+      success: true,
+      added: result.added,
+      companies: result.companies,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to bulk add companies' });
+  }
+});
+
+// AI Multimodal Vision: Scan Business Cards from Image(s)
+app.post('/api/scan-business-card', async (req, res) => {
+  try {
+    const { images, image, mimeType } = req.body;
+    const imageList: Array<{ base64: string; mimeType?: string }> = [];
+
+    if (Array.isArray(images)) {
+      for (const img of images) {
+        if (typeof img === 'string') {
+          imageList.push({ base64: img });
+        } else if (img && img.base64) {
+          imageList.push({ base64: img.base64, mimeType: img.mimeType });
+        }
+      }
+    } else if (image && typeof image === 'string') {
+      imageList.push({ base64: image, mimeType });
+    }
+
+    if (imageList.length === 0) {
+      return res.status(400).json({
+        error: 'Please provide at least one photo of a business card (base64 string)',
+      });
+    }
+
+    const extraction = await geminiService.extractBusinessCards(imageList);
+    res.json({
+      success: true,
+      count: extraction.cards.length,
+      cards: extraction.cards,
+    });
+  } catch (err: any) {
+    console.error('[API /api/scan-business-card] Error:', err);
+    res.status(500).json({
+      error: err?.message || 'Failed to analyze business card with AI',
+    });
+  }
+});
+
 // 6. Outbound Logs
 app.get('/api/logs', async (_req, res) => {
   try {
@@ -279,7 +426,10 @@ app.post('/api/imap/poll', async (_req, res) => {
       subject: string;
       intent: string;
       leadId: string | null;
+      isNew: boolean;
     }> = [];
+
+    let newLeadsCount = 0;
 
     const pollResult = await imapService.pollOnce(async (msg) => {
       const outcome = await handleInboundEmailPayload({
@@ -287,13 +437,23 @@ app.post('/api/imap/poll', async (_req, res) => {
         companyName: msg.senderName,
         rawSubject: msg.subject,
         rawBody: msg.bodyText,
+        messageId: msg.messageId,
       });
-      processedResults.push({
-        senderEmail: msg.senderEmail,
-        subject: msg.subject,
-        intent: outcome.analysis.intent,
-        leadId: outcome.lead?.id || null,
-      });
+
+      const isNew = Boolean(outcome.lead && !outcome.isDuplicate);
+      if (isNew) {
+        newLeadsCount++;
+      }
+
+      if (outcome.analysis) {
+        processedResults.push({
+          senderEmail: msg.senderEmail,
+          subject: msg.subject,
+          intent: outcome.analysis.intent,
+          leadId: outcome.lead?.id || null,
+          isNew,
+        });
+      }
     });
 
     if (!pollResult.success) {
@@ -306,7 +466,8 @@ app.post('/api/imap/poll', async (_req, res) => {
 
     res.json({
       success: true,
-      messagesProcessed: processedResults.length,
+      messagesProcessed: newLeadsCount,
+      totalChecked: processedResults.length,
       results: processedResults,
     });
   } catch (err: any) {
@@ -330,39 +491,37 @@ app.post('/api/test-email', async (req, res) => {
 
     let subject = customSubject;
     let body = customBody;
+    let html = req.body?.customHtml;
 
-    if (!subject || !body) {
-      const params = {
-        companyName: 'Entreprise BTP Suisse SA',
-        recipientName: 'Direction du Parc Matériel',
-        canton: language === 'de' ? 'ZH' : language === 'it' ? 'TI' : 'VD',
-        senderName: settings.sender_name,
-        senderEmail: settings.sender_email,
-        senderPhone: settings.sender_phone,
-        tone: settings.tone,
-        hooks: settings.hooks,
-        equipmentFocus: settings.equipment_focus,
-      };
+    const templateParams = {
+      companyName: 'Entreprise BTP Suisse SA',
+      recipientName: undefined,
+      canton: language === 'de' ? 'ZH' : language === 'it' ? 'TI' : 'VD',
+      senderName: settings.sender_name,
+      senderEmail: settings.sender_email,
+      senderPhone: settings.sender_phone,
+      tone: settings.tone,
+      hooks: settings.hooks,
+      equipmentFocus: settings.equipment_focus,
+    };
 
-      if (language === 'de') {
-        const t = generateDeTemplate(params);
-        subject = t.subject;
-        body = t.body;
-      } else if (language === 'it') {
-        const t = generateItTemplate(params);
-        subject = t.subject;
-        body = t.body;
-      } else {
-        const t = generateFrTemplate(params);
-        subject = t.subject;
-        body = t.body;
-      }
-    }
+    const rendered =
+      language === 'de'
+        ? generateDeTemplate(templateParams)
+        : language === 'it'
+        ? generateItTemplate(templateParams)
+        : generateFrTemplate(templateParams);
+
+    if (!subject) subject = rendered.subject;
+    if (!body) body = rendered.body;
+    if (!html) html = rendered.html;
 
     const result = await smtpService.sendMail({
       to: recipient,
       subject,
       text: body,
+      html,
+      fromName: `${settings.sender_name} - JIMY EXPORT`,
       replyTo: settings.sender_email,
     });
 
@@ -522,7 +681,7 @@ app.post('/api/worker/step', async (_req, res) => {
     const lang = getLanguageForCanton(eligible.canton);
     const templateParams = {
       companyName: eligible.name,
-      recipientName: eligible.name,
+      recipientName: undefined,
       canton: eligible.canton,
       senderName: settings.sender_name,
       senderEmail: settings.sender_email,
@@ -543,6 +702,8 @@ app.post('/api/worker/step', async (_req, res) => {
       to: eligible.email,
       subject: rendered.subject,
       text: rendered.body,
+      html: rendered.html,
+      fromName: `${settings.sender_name} - JIMY EXPORT`,
       replyTo: settings.sender_email,
     });
 
@@ -610,6 +771,17 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    app.use('*', async (req, res, next) => {
+      try {
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        if (vite) vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req, res) => {

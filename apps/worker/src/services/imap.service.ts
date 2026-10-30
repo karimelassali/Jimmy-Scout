@@ -53,9 +53,18 @@ export class ImapService {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const unseenUids = await client.search({ seen: false });
-        if (unseenUids && unseenUids.length > 0) {
-          for await (const msg of client.fetch(unseenUids, {
+        // 1. Search for unseen messages
+        const unseenUids = (await client.search({ seen: false })) || [];
+
+        // 2. Also search recent messages in inbox so messages marked read in webmail/phone are not skipped
+        const allUids = (await client.search({ all: true })) || [];
+        const recentUids = allUids.slice(-30);
+
+        // Deduplicate UIDs
+        const targetUids = Array.from(new Set([...unseenUids, ...recentUids]));
+
+        if (targetUids.length > 0) {
+          for await (const msg of client.fetch(targetUids, {
             source: true,
             envelope: true,
             uid: true,
@@ -63,10 +72,11 @@ export class ImapService {
             if (!msg.source) continue;
             try {
               const parsed = await simpleParser(msg.source);
-              const fromAddress =
+              const fromAddress = (
                 parsed.from?.value?.[0]?.address ||
                 msg.envelope?.from?.[0]?.address ||
-                'unknown@contractor.ch';
+                ''
+              ).toLowerCase().trim();
               const fromName =
                 parsed.from?.value?.[0]?.name || msg.envelope?.from?.[0]?.name || undefined;
               const subject = parsed.subject || msg.envelope?.subject || '(No Subject)';
@@ -77,7 +87,18 @@ export class ImapService {
                   : '') ||
                 '';
 
-              if (bodyText.trim()) {
+              // Ignore outbound emails sent by ourselves
+              const myImapUser = (config.imap.user || '').toLowerCase().trim();
+              const mySmtpUser = (config.smtp.user || '').toLowerCase().trim();
+              const isSelf = fromAddress === myImapUser || fromAddress === mySmtpUser;
+
+              // Ignore provider system notifications
+              const isSystem =
+                fromAddress.includes('no-reply@infomaniak.com') ||
+                fromAddress.includes('mailer-daemon') ||
+                fromAddress.includes('postmaster');
+
+              if (!isSelf && !isSystem && bodyText.trim()) {
                 parsedEmails.push({
                   senderEmail: fromAddress,
                   senderName: fromName,
@@ -94,7 +115,7 @@ export class ImapService {
           }
 
           if (uidsToMarkSeen.length > 0) {
-            await client.messageFlagsAdd(uidsToMarkSeen, ['\\Seen'], { uid: true });
+            await client.messageFlagsAdd(uidsToMarkSeen, ['\\Seen'], { uid: true }).catch(() => {});
           }
         }
       } finally {

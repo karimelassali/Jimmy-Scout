@@ -249,6 +249,21 @@ export class SupabaseDataService {
     return record;
   }
 
+  async addCompaniesBulk(
+    companies: Array<Omit<Company, 'id' | 'created_at'>>
+  ): Promise<{ added: number; companies: Company[] }> {
+    const results: Company[] = [];
+    for (const c of companies) {
+      try {
+        const saved = await this.addCompany(c);
+        results.push(saved);
+      } catch (err) {
+        console.warn('[Supabase] Failed to insert company in bulk:', c.name, err);
+      }
+    }
+    return { added: results.length, companies: results };
+  }
+
   async deleteCompany(id: string): Promise<void> {
     if (this.client && (await this.isSqlReady())) {
       await this.client.from('companies').delete().eq('id', id);
@@ -366,8 +381,11 @@ export class SupabaseDataService {
 
   async deleteLead(id: string): Promise<void> {
     if (this.client && (await this.isSqlReady())) {
-      await this.client.from('inbound_leads').delete().eq('id', id);
-      return;
+      try {
+        await this.client.from('inbound_leads').delete().eq('id', id);
+      } catch (e) {
+        console.warn('[Supabase] SQL deleteLead warning:', e);
+      }
     }
     const state = await this.ensureStorageState();
     state.leads = state.leads.filter((l) => l.id !== id);

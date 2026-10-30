@@ -1,4 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import fs from 'node:fs';
+import path from 'node:path';
 import { config } from '../config/env.ts';
 
 export interface SendMailOptions {
@@ -7,6 +9,14 @@ export interface SendMailOptions {
   text: string;
   html?: string;
   replyTo?: string;
+  fromName?: string;
+  attachments?: Array<{
+    filename: string;
+    path?: string;
+    content?: any;
+    cid?: string;
+    contentType?: string;
+  }>;
 }
 
 export class SmtpService {
@@ -47,14 +57,41 @@ export class SmtpService {
     }
 
     try {
+      // Prepare attachments, including Jimy Export avatar if available and not explicitly provided
+      const attachments = options.attachments ? [...options.attachments] : [];
+      const hasAvatarAttachment = attachments.some((att) => att.cid === 'jimy_export_profile_pic');
+
+      if (!hasAvatarAttachment) {
+        const potentialAvatarPaths = [
+          path.resolve(process.cwd(), 'public/assets/jimy-export-avatar.jpg'),
+          path.resolve(process.cwd(), 'public/assets/jimy-export-avatar.png'),
+          path.resolve(process.cwd(), 'dist/assets/jimy-export-avatar.jpg'),
+        ];
+        for (const p of potentialAvatarPaths) {
+          if (fs.existsSync(p)) {
+            attachments.push({
+              filename: 'jimy-export-avatar.jpg',
+              path: p,
+              cid: 'jimy_export_profile_pic',
+              contentType: 'image/jpeg',
+            });
+            break;
+          }
+        }
+      }
+
+      const senderDisplayName = options.fromName || 'Jamal - JIMY EXPORT';
+
       const info = await this.transporter.sendMail({
-        from: `"JimiScout BTP" <${config.smtp.user.trim()}>`,
+        from: `"${senderDisplayName}" <${config.smtp.user.trim()}>`,
         to: options.to,
         subject: options.subject,
         text: options.text,
         html: options.html,
         replyTo: options.replyTo || config.smtp.user.trim(),
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
+
       return {
         success: true,
         messageId: info.messageId,

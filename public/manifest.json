@@ -1,19 +1,27 @@
 {
   "id": "/",
-  "name": "JimiScout BTP",
+  "name": "JimiScout — Swiss Heavy Machinery Agent",
   "short_name": "JimiScout",
-  "description": "Plateforme suisse automatisée d'acquisition et CRM d'engins de chantier BTP.",
+  "description": "Automated Swiss heavy machinery procurement & contractor CRM for JIMY EXPORT.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#0B2240",
-  "background_color": "#F8F9FA",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "theme_color": "#FF6B00",
+  "background_color": "#F8FAFC",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -27,6 +35,42 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open JimiScout Control Center",
+      "url": "/?tab=control",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Incoming Deals",
+      "short_name": "Deals",
+      "description": "View seller machine offers",
+      "url": "/?tab=leads",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Scan Business Cards",
+      "short_name": "Scan Cards",
+      "description": "Scan company visit cards with AI",
+      "url": "/?tab=scanner",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Swiss Regions",
+      "short_name": "Regions",
+      "description": "Manage cantons and companies",
+      "url": "/?tab=targets",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

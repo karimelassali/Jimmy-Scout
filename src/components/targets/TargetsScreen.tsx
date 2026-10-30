@@ -10,6 +10,8 @@ import {
   Plus,
   Trash2,
   Building2,
+  Camera,
+  MapPin,
 } from 'lucide-react';
 
 interface TargetsScreenProps {
@@ -17,6 +19,7 @@ interface TargetsScreenProps {
   companies: Company[];
   onUpdateSettings: (patch: Partial<AgentSettings>) => Promise<void>;
   onRefreshCompanies: () => Promise<void>;
+  onNavigateToScanner?: () => void;
 }
 
 interface CantonMeta {
@@ -132,6 +135,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   companies,
   onUpdateSettings,
   onRefreshCompanies,
+  onNavigateToScanner,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [regionFilter, setRegionFilter] = useState<'all' | 'de' | 'fr' | 'it'>('all');
@@ -147,6 +151,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const [newCompCanton, setNewCompCanton] = useState('ZH');
   const [newCompIndustry, setNewCompIndustry] = useState('civil_engineering');
   const [isSavingComp, setIsSavingComp] = useState(false);
+
+  // Delete Company Confirmation State
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [isDeletingComp, setIsDeletingComp] = useState(false);
 
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
@@ -166,7 +174,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     }
     await onUpdateSettings({ selected_cantons: next });
     showToast(
-      `Canton ${code} ${next.includes(code) ? 'added to outreach pool' : 'removed'}`
+      `Region ${code} ${next.includes(code) ? 'turned on' : 'turned off'}`
     );
   };
 
@@ -197,7 +205,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Failed to add contractor', true);
+        showToast(data.error || 'Failed to add company', true);
       } else {
         await onRefreshCompanies();
         setSelectedCantonCode(newCompCanton);
@@ -205,7 +213,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         setNewCompEmail('');
         setNewCompPhone('');
         setShowAddModal(false);
-        showToast(`Saved ${data.name} (${data.canton}) to Supabase directory`);
+        showToast(`Saved ${data.name} (${data.canton}) to your company list`);
       }
     } catch (err: any) {
       showToast(`Error: ${err?.message}`, true);
@@ -214,13 +222,18 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     }
   };
 
-  const handleDeleteCompany = async (id: string, name: string) => {
+  const handleConfirmDeleteCompany = async () => {
+    if (!companyToDelete) return;
+    setIsDeletingComp(true);
     try {
-      await fetch(`/api/companies/${id}`, { method: 'DELETE' });
+      await fetch(`/api/companies/${companyToDelete.id}`, { method: 'DELETE' });
       await onRefreshCompanies();
-      showToast(`Removed ${name} from directory`);
+      showToast(`Removed ${companyToDelete.name} from company list`);
+      setCompanyToDelete(null);
     } catch {
-      showToast('Failed to delete contractor', true);
+      showToast('Failed to delete company', true);
+    } finally {
+      setIsDeletingComp(false);
     }
   };
 
@@ -248,7 +261,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   });
 
   return (
-    <div className="space-y-6 pb-24 md:pb-12">
+    <div className="space-y-5 pb-24 md:pb-12 pt-2">
       {/* Snackbar Toast */}
       {toast && (
         <div
@@ -265,23 +278,35 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+      {/* Clean Single-Row Orange-Themed Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Swiss Cantons &amp; Contractor Directory
+            Swiss Regions &amp; Company List
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Manage your verified Swiss contractors in Supabase, select target cantons, and set your daily outreach pace.
+            Select active cantons, manage construction companies, and adjust your daily email speed.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-          <div className="text-xs font-medium text-slate-600 bg-white px-4 py-2.5 rounded-full border border-slate-200 tabular-nums">
-            <strong className="text-[#0B2240]">{settings.selected_cantons.length} cantons</strong>
-            <span className="mx-2">·</span>
-            <strong className="text-[#FF6B00]">{activeContractorsTotal} active contractors</strong>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-full border border-slate-200 text-xs font-medium shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+            <strong className="text-[#0B2240]">{settings.selected_cantons.length} regions active</strong>
+            <span className="text-slate-300">·</span>
+            <strong className="text-[#FF6B00]">{activeContractorsTotal} companies ready</strong>
           </div>
+
+          {onNavigateToScanner && (
+            <button
+              type="button"
+              onClick={onNavigateToScanner}
+              className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#0B2240] text-[#0B2240] font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+            >
+              <Camera className="w-4 h-4 text-[#FF6B00]" />
+              <span>Scan Business Cards</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -289,61 +314,83 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               setNewCompCanton(selectedCantonCode);
               setShowAddModal(true);
             }}
-            className="h-10 px-4 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            className="h-10 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Contractor</span>
+            <span>Add Company</span>
           </button>
         </div>
       </div>
 
-      {/* DAILY VOLUME SLIDER CARD */}
-      <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <Sliders className="w-5 h-5 text-[#FF6B00]" />
+      {/* COMPACT ORANGE-THEMED DAILY SPEED LIMIT BAR */}
+      <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200/80 text-[#FF6B00] flex items-center justify-center shrink-0">
+              <Sliders className="w-5 h-5" />
+            </div>
             <div>
-              <h2 className="font-heading font-bold text-lg text-[#0B2240]">
-                Daily Outreach Volume
-              </h2>
-              <p className="text-xs text-slate-500">
-                Maximum acquisition emails dispatched per day (Monday–Friday, 08:30–17:00 CET)
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading font-bold text-base text-[#0B2240]">
+                  Daily Speed Limit
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[#FF6B00] font-mono font-bold text-xs">
+                  {dailyPace} emails / day
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Sent automatically Monday–Friday (8:30 AM – 5:00 PM Swiss time)
               </p>
             </div>
           </div>
 
-          <div className="font-mono font-bold text-2xl text-[#FF6B00] tabular-nums">
-            {dailyPace} <span className="text-sm font-normal text-slate-500">emails / day</span>
-          </div>
-        </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1 max-w-xl">
+            <div className="flex-1 space-y-1.5">
+              <input
+                type="range"
+                min="10"
+                max="50"
+                step="1"
+                value={dailyPace}
+                onChange={(e) => handlePaceChange(Number(e.target.value))}
+                className="w-full accent-[#FF6B00] cursor-pointer h-2 bg-slate-200 rounded-full"
+              />
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                <span>10 / day (Gentle)</span>
+                <span>25 / day (Recommended)</span>
+                <span>50 / day (Fast)</span>
+              </div>
+            </div>
 
-        <div className="space-y-2 pt-1">
-          <input
-            type="range"
-            min="10"
-            max="50"
-            step="1"
-            value={dailyPace}
-            onChange={(e) => handlePaceChange(Number(e.target.value))}
-            className="w-full accent-[#FF6B00] cursor-pointer h-2.5 bg-slate-100 rounded-full"
-          />
-          <div className="flex items-center justify-between text-xs text-slate-500 font-mono tabular-nums">
-            <span>10 / day (Conservative)</span>
-            <span>25 / day (Recommended)</span>
-            <span>50 / day (Maximum)</span>
+            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-center">
+              {[15, 25, 35, 50].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => handlePaceChange(preset)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    dailyPace === preset
+                      ? 'bg-[#FF6B00] text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-[#0B2240]'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Search & Language Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md flex items-center bg-white rounded-full border border-slate-200 px-4 h-12 focus-within:border-[#0B2240] transition-colors">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md flex items-center bg-white rounded-full border border-slate-200 px-4 h-11 focus-within:border-[#FF6B00] transition-all">
           <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Filter by canton (ZH, VD, BE, TI) or postal code..."
+            placeholder="Search canton (Zürich, Vaud, Bern, TI) or postal code..."
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
           />
           {searchTerm && (
@@ -356,59 +403,36 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           )}
         </div>
 
-        {/* Language Region Filter Tabs */}
-        <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 self-start md:self-auto">
-          <button
-            type="button"
-            onClick={() => setRegionFilter('all')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-              regionFilter === 'all'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            All Regions
-          </button>
-          <button
-            type="button"
-            onClick={() => setRegionFilter('de')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-              regionFilter === 'de'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            German (DE)
-          </button>
-          <button
-            type="button"
-            onClick={() => setRegionFilter('fr')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-              regionFilter === 'fr'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            French (FR)
-          </button>
-          <button
-            type="button"
-            onClick={() => setRegionFilter('it')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-              regionFilter === 'it'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            Italian (IT)
-          </button>
+        {/* Clean Language Filter Pills */}
+        <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 self-start md:self-auto shadow-2xs">
+          {(
+            [
+              { id: 'all', label: `All Regions (${SWISS_CANTONS.length})` },
+              { id: 'de', label: 'German (DE)' },
+              { id: 'fr', label: 'French (FR)' },
+              { id: 'it', label: 'Italian (IT)' },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setRegionFilter(tab.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                regionFilter === tab.id
+                  ? 'bg-[#0B2240] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* 2-COLUMN WORKSPACE: Cantons Grid + Regional Contractor Dossier */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 8 Columns: Cantons Grid */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {/* Left 8 Columns: Clean Orange-Themed Canton Cards (No fake avatar circles) */}
+        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5" data-tour="canton-selection">
           {filteredCantons.map((canton) => {
             const isSelected = settings.selected_cantons.includes(canton.code);
             const isFocused = selectedCantonCode === canton.code;
@@ -419,30 +443,35 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div
                 key={canton.code}
                 onClick={() => setSelectedCantonCode(canton.code)}
-                className={`rounded-3xl bg-white p-5 transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
+                className={`rounded-2xl p-4 transition-all cursor-pointer flex flex-col justify-between space-y-3.5 ${
                   isFocused
-                    ? 'border-2 border-[#0B2240]'
-                    : 'border border-slate-200/90 hover:border-slate-300'
+                    ? 'bg-white border-2 border-[#FF6B00] ring-3 ring-[#FF6B00]/15 shadow-sm'
+                    : isSelected
+                    ? 'bg-white border border-slate-200 hover:border-orange-300 shadow-2xs'
+                    : 'bg-slate-50/70 border border-slate-200/70 opacity-75 hover:opacity-100 hover:bg-white'
                 }`}
               >
+                {/* Top Row: Full Canton Name + Code Pill + Orange Active Checkbox */}
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-heading font-bold text-lg text-[#0B2240]">
+                      <span className="font-heading font-bold text-lg text-[#0B2240] leading-tight">
                         {canton.name}
                       </span>
-                      <span className="font-mono text-xs font-semibold text-slate-400">
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[11px]">
                         {canton.code}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      <span>{canton.language.toUpperCase()}</span>
-                      <span className="mx-1.5">·</span>
+                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                      <span className="font-semibold text-slate-600">
+                        {canton.language.toUpperCase()}
+                      </span>
+                      <span>·</span>
                       <span className="tabular-nums">PLZ {canton.plz}</span>
                     </div>
                   </div>
 
-                  {/* 44x44px Touch Target Checkbox Button */}
+                  {/* Orange Toggle Pill */}
                   <button
                     type="button"
                     aria-label={`Toggle Canton ${canton.name}`}
@@ -450,26 +479,41 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                       e.stopPropagation();
                       handleToggleCanton(canton.code);
                     }}
-                    className="min-w-[44px] min-h-[44px] -m-2 flex items-center justify-center cursor-pointer"
+                    className={`h-7 px-2.5 rounded-full text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+                      isSelected
+                        ? 'bg-[#FF6B00] text-white shadow-2xs'
+                        : 'bg-white text-slate-500 border border-slate-200 hover:border-[#0B2240] hover:text-[#0B2240]'
+                    }`}
                   >
-                    <span
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? 'bg-[#FF6B00] text-white'
-                          : 'border-2 border-slate-300 bg-white text-transparent'
-                      }`}
-                    >
-                      <Check className="w-4 h-4 stroke-[3]" />
-                    </span>
+                    {isSelected ? (
+                      <>
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        <span>Active</span>
+                      </>
+                    ) : (
+                      <span>Off</span>
+                    )}
                   </button>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 space-y-1">
-                  <div className="text-xs font-medium text-[#0B2240] truncate">
+                {/* Bottom Row: Sector & Company Count Badge */}
+                <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
+                  <div className="text-xs font-medium text-slate-700 truncate">
                     {canton.primarySector}
                   </div>
-                  <div className="text-xs text-slate-500 tabular-nums">
-                    {cantonCompanies.length} contractor{cantonCompanies.length === 1 ? '' : 's'} ({cantonEligible} eligible)
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-xs font-semibold tabular-nums ${
+                        cantonEligible > 0 ? 'text-[#FF6B00]' : 'text-slate-400'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          cantonEligible > 0 ? 'bg-[#FF6B00]' : 'bg-slate-300'
+                        }`}
+                      />
+                      {cantonEligible} {cantonEligible === 1 ? 'company ready' : 'companies ready'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -477,62 +521,66 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           })}
         </div>
 
-        {/* Right 4 Columns: Focused Canton Dossier & Live Contractors List */}
-        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 space-y-5 sticky top-24">
-          <div className="pb-4 border-b border-slate-100 flex items-start justify-between gap-2">
-            <div>
-              <div className="text-xs text-slate-500">
-                <span>{selectedCantonMeta.region}</span>
-                <span className="mx-1.5">·</span>
-                <span>PLZ {selectedCantonMeta.plz}</span>
+        {/* Right 4 Columns: Clean Orange-Themed Canton Dossier & Companies List */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden sticky top-24" data-tour="company-database">
+          {/* Regional Header */}
+          <div className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-white border-b border-slate-100 space-y-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-xs font-medium text-slate-500">
+                  <span>{selectedCantonMeta.region}</span>
+                  <span className="mx-1.5">·</span>
+                  <span>PLZ {selectedCantonMeta.plz}</span>
+                </div>
+                <h3 className="font-heading font-bold text-xl text-[#0B2240] mt-0.5">
+                  Canton {selectedCantonMeta.name} ({selectedCantonMeta.code})
+                </h3>
               </div>
-              <h3 className="font-heading font-bold text-xl text-[#0B2240] mt-1">
-                Canton {selectedCantonMeta.name} ({selectedCantonMeta.code})
-              </h3>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setNewCompCanton(selectedCantonMeta.code);
+                  setShowAddModal(true);
+                }}
+                className="h-8 px-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setNewCompCanton(selectedCantonMeta.code);
-                setShowAddModal(true);
-              }}
-              className="h-9 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <span className="text-xs text-slate-500 block">In Directory</span>
-              <span className="font-heading font-bold text-2xl text-[#0B2240] tabular-nums mt-1 block">
-                {contractorsInSelectedCanton.length}
-              </span>
-            </div>
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <span className="text-xs text-slate-500 block">Eligible to Email</span>
-              <span className="font-heading font-bold text-2xl text-[#FF6B00] tabular-nums mt-1 block">
-                {contractorsInSelectedCanton.filter((c) => !c.unsubscribed).length}
-              </span>
+            {/* Stat Mini-Cards */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
+                <span className="text-[11px] text-slate-500 block">Companies on List</span>
+                <span className="font-heading font-bold text-xl text-[#0B2240] tabular-nums mt-0.5 block">
+                  {contractorsInSelectedCanton.length}
+                </span>
+              </div>
+              <div className="bg-orange-50/60 rounded-xl p-3 border border-orange-200/80">
+                <span className="text-[11px] text-slate-600 font-medium block">Ready to Email</span>
+                <span className="font-heading font-bold text-xl text-[#FF6B00] tabular-nums mt-0.5 block">
+                  {contractorsInSelectedCanton.filter((c) => !c.unsubscribed).length}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Live Contractors List for this Canton */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
+          <div className="p-5 space-y-3">
             <div className="text-xs font-semibold text-[#0B2240] flex items-center justify-between">
-              <span>Contractors in {selectedCantonMeta.name}</span>
-              <span className="font-mono text-slate-400">
-                {selectedCantonMeta.language.toUpperCase()} template
+              <span>Companies in {selectedCantonMeta.name}</span>
+              <span className="font-mono text-[11px] text-slate-400">
+                {selectedCantonMeta.language.toUpperCase()} language
               </span>
             </div>
 
             {contractorsInSelectedCanton.length === 0 ? (
-              <div className="bg-slate-50 rounded-2xl p-4 text-center space-y-2">
-                <Building2 className="w-5 h-5 text-slate-400 mx-auto" />
+              <div className="bg-slate-50 rounded-2xl p-6 text-center space-y-2 border border-dashed border-slate-200">
+                <Building2 className="w-6 h-6 text-slate-400 mx-auto" />
                 <p className="text-xs text-slate-600">
-                  No contractors saved in Canton {selectedCantonMeta.code} yet.
+                  No companies saved in {selectedCantonMeta.name} yet.
                 </p>
                 <button
                   type="button"
@@ -540,34 +588,38 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     setNewCompCanton(selectedCantonMeta.code);
                     setShowAddModal(true);
                   }}
-                  className="text-xs font-semibold text-[#FF6B00] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6B00] hover:underline cursor-pointer pt-1"
                 >
-                  + Add Contractor in {selectedCantonMeta.code}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Company in {selectedCantonMeta.name}</span>
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                 {contractorsInSelectedCanton.map((comp) => (
                   <div
                     key={comp.id}
-                    className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-xs"
+                    className="p-3 rounded-xl bg-slate-50 hover:bg-orange-50/30 border border-slate-200/80 hover:border-orange-200 flex items-center justify-between gap-2.5 text-xs transition-colors"
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-[#0B2240] truncate">
                         {comp.name}
                       </div>
-                      <div className="font-mono text-slate-500 truncate">{comp.email}</div>
+                      <div className="font-mono text-[11px] text-slate-500 truncate mt-0.5">
+                        {comp.email}
+                      </div>
                       {comp.unsubscribed && (
                         <span className="text-[10px] text-red-600 font-semibold">
-                          Opted Out (STOP)
+                          Unsubscribed (STOP)
                         </span>
                       )}
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleDeleteCompany(comp.id, comp.name)}
+                      onClick={() => setCompanyToDelete(comp)}
                       aria-label={`Remove ${comp.name}`}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+                      title="Delete company"
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -575,21 +627,26 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 ))}
               </div>
             )}
-          </div>
 
-          <button
-            type="button"
-            onClick={() => handleToggleCanton(selectedCantonMeta.code)}
-            className={`w-full h-11 rounded-full font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer ${
-              settings.selected_cantons.includes(selectedCantonMeta.code)
-                ? 'bg-slate-100 hover:bg-slate-200 text-[#0B2240]'
-                : 'bg-[#FF6B00] hover:bg-[#E05E00] text-white'
-            }`}
-          >
-            {settings.selected_cantons.includes(selectedCantonMeta.code)
-              ? `Remove Canton ${selectedCantonMeta.code} from Pool`
-              : `Enable Outreach in Canton ${selectedCantonMeta.code}`}
-          </button>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => handleToggleCanton(selectedCantonMeta.code)}
+                className={`w-full h-10 rounded-full font-heading font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  settings.selected_cantons.includes(selectedCantonMeta.code)
+                    ? 'bg-slate-100 hover:bg-slate-200 text-[#0B2240]'
+                    : 'bg-[#FF6B00] hover:bg-[#E05E00] text-white shadow-xs'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>
+                  {settings.selected_cantons.includes(selectedCantonMeta.code)
+                    ? `Turn Off Region ${selectedCantonMeta.name} (${selectedCantonMeta.code})`
+                    : `Turn On Region ${selectedCantonMeta.name} (${selectedCantonMeta.code})`}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -600,10 +657,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Add Contractor to Supabase
+                  Add a New Company
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Language is automatically assigned from the Swiss canton.
+                  Language (German, French, or Italian) will match the region automatically.
                 </p>
               </div>
               <button
@@ -625,13 +682,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   value={newCompName}
                   onChange={(e) => setNewCompName(e.target.value)}
                   placeholder="e.g. Kibag Bauleistungen AG"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                 />
               </div>
 
               <div>
                 <label className="font-semibold text-slate-600 block mb-1.5">
-                  Contractor Email *
+                  Company Email *
                 </label>
                 <input
                   type="email"
@@ -639,19 +696,19 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   value={newCompEmail}
                   onChange={(e) => setNewCompEmail(e.target.value)}
                   placeholder="werkstatt@contractor.ch"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Swiss Canton *
+                    Swiss Region / Canton *
                   </label>
                   <select
                     value={newCompCanton}
                     onChange={(e) => setNewCompCanton(e.target.value)}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   >
                     {SWISS_CANTONS.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -663,26 +720,26 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
 
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Direct Phone
+                    Phone Number
                   </label>
                   <input
                     type="text"
                     value={newCompPhone}
                     onChange={(e) => setNewCompPhone(e.target.value)}
                     placeholder="+41 44 123 45 67"
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="font-semibold text-slate-600 block mb-1.5">
-                  Primary Sector
+                  Type of Work
                 </label>
                 <select
                   value={newCompIndustry}
                   onChange={(e) => setNewCompIndustry(e.target.value)}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                 >
                   <option value="civil_engineering">Civil Engineering / Génie Civil</option>
                   <option value="tiefbau">Tiefbau &amp; Earthworks</option>
@@ -697,9 +754,68 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
-                <span>{isSavingComp ? 'Saving to Supabase...' : 'Save Contractor'}</span>
+                <span>{isSavingComp ? 'Saving...' : 'Save Company'}</span>
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE COMPANY CONFIRMATION MODAL */}
+      {companyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                    Remove this company?
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    This company will be removed from your outreach list.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCompanyToDelete(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
+              <div className="font-bold text-sm text-[#0B2240]">
+                {companyToDelete.name}
+              </div>
+              <div className="text-slate-600 font-mono">
+                {companyToDelete.email} · Canton {companyToDelete.canton}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setCompanyToDelete(null)}
+                disabled={isDeletingComp}
+                className="flex-1 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCompany}
+                disabled={isDeletingComp}
+                className="flex-1 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeletingComp ? 'Removing...' : 'Yes, Remove'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

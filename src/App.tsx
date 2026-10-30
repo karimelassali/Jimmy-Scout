@@ -5,12 +5,31 @@ import { ControlScreen } from './components/control/ControlScreen.tsx';
 import { LeadsScreen } from './components/leads/LeadsScreen.tsx';
 import { TargetsScreen } from './components/targets/TargetsScreen.tsx';
 import { PersonaScreen } from './components/persona/PersonaScreen.tsx';
+import { BusinessCardScannerScreen } from './components/scanner/BusinessCardScannerScreen.tsx';
+import { TourProvider } from './components/guide/TourContext.tsx';
+import { GuidedTourOverlay } from './components/guide/GuidedTourOverlay.tsx';
+import { PilotCheatSheetModal } from './components/guide/PilotCheatSheetModal.tsx';
+import { FloatingGuideTrigger } from './components/guide/FloatingGuideTrigger.tsx';
 import { AgentSettings, Company, DealStatus, OutboundLog } from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
 import { WifiOff } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('control');
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('tab');
+      if (
+        param === 'control' ||
+        param === 'leads' ||
+        param === 'targets' ||
+        param === 'scanner' ||
+        param === 'persona'
+      ) {
+        return param;
+      }
+    }
+    return 'control';
+  });
   const [openInboundModal, setOpenInboundModal] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
@@ -49,7 +68,7 @@ export default function App() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('SW registration skipped:', err);
       });
@@ -152,92 +171,115 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F0F4F9] text-[#0B2240] antialiased selection:bg-[#FF6B00]/15">
-      {/* Offline Banner */}
-      {!isOnline && (
-        <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
-          <WifiOff className="w-3.5 h-3.5" />
-          <span>Offline Mode — Showing cached Swiss procurement data</span>
-        </div>
-      )}
-
-      {/* Top Navigation Bar (3-zone contract on desktop, compact on mobile) */}
-      <TopHeader
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        unreadCount={unreadHotLeadsCount}
-        onPrimaryAction={handlePrimaryTrigger}
-      />
-
-      {/* Responsive Workspace Container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoading ? (
-          <div className="space-y-6 pt-2">
-            <div className="h-10 w-64 bg-white/70 rounded-2xl animate-pulse" />
-            <div className="h-48 w-full bg-white rounded-3xl border border-slate-200/60 animate-pulse" />
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="h-28 bg-white rounded-3xl border border-slate-200/60 animate-pulse" />
-              <div className="h-28 bg-white rounded-3xl border border-slate-200/60 animate-pulse" />
-              <div className="h-28 bg-white rounded-3xl border border-slate-200/60 animate-pulse" />
-              <div className="h-28 bg-white rounded-3xl border border-slate-200/60 animate-pulse" />
-            </div>
+    <TourProvider activeTab={activeTab} onSelectTab={setActiveTab}>
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative">
+        {/* Offline Banner */}
+        {!isOnline && (
+          <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
+            <WifiOff className="w-3.5 h-3.5" />
+            <span>Offline Mode — Showing cached Swiss procurement data</span>
           </div>
-        ) : (
-          <>
-            {activeTab === 'control' && (
-              <ControlScreen
-                settings={settings}
-                onUpdateSettings={handleUpdateSettings}
-                leads={leads}
-                companies={companies}
-                logs={logs}
-                sqlReady={sqlReady}
-                onRefreshAll={fetchData}
-                onNavigateToLeads={() => setActiveTab('leads')}
-                onNavigateToTargets={() => setActiveTab('targets')}
-                onNavigateToPersona={() => setActiveTab('persona')}
-                todaySentCount={todaySentCount}
-              />
-            )}
-
-            {activeTab === 'leads' && (
-              <LeadsScreen
-                leads={leads}
-                companies={companies}
-                onUpdateLeadStatus={handleUpdateLeadStatus}
-                onDeleteLead={handleDeleteLead}
-                onRefreshLeads={fetchData}
-                openInboundModalInitially={openInboundModal}
-                onInboundModalClose={() => setOpenInboundModal(false)}
-              />
-            )}
-
-            {activeTab === 'targets' && (
-              <TargetsScreen
-                settings={settings}
-                companies={companies}
-                onUpdateSettings={handleUpdateSettings}
-                onRefreshCompanies={fetchData}
-              />
-            )}
-
-            {activeTab === 'persona' && (
-              <PersonaScreen
-                settings={settings}
-                companies={companies}
-                onUpdateSettings={handleUpdateSettings}
-              />
-            )}
-          </>
         )}
-      </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <BottomBar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        leadsCount={unreadHotLeadsCount}
-      />
-    </div>
+        {/* Top Navigation Bar (3-zone contract on desktop, compact on mobile) */}
+        <TopHeader
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          unreadCount={unreadHotLeadsCount}
+          onPrimaryAction={handlePrimaryTrigger}
+          isAgentActive={settings.is_active}
+        />
+
+        {/* Responsive Workspace Container */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {isLoading ? (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center p-6">
+              <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-lg flex flex-col items-center max-w-xs w-full space-y-4">
+                <img
+                  src="/assets/jimiscout-logo.png"
+                  alt="JimiScout"
+                  className="w-44 h-auto object-contain"
+                />
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Swiss Heavy Machinery Agent
+                </div>
+                <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-2/3 h-full bg-[#FF6B00] rounded-full animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'control' && (
+                <ControlScreen
+                  settings={settings}
+                  onUpdateSettings={handleUpdateSettings}
+                  leads={leads}
+                  companies={companies}
+                  logs={logs}
+                  sqlReady={sqlReady}
+                  onRefreshAll={fetchData}
+                  onNavigateToLeads={() => setActiveTab('leads')}
+                  onNavigateToTargets={() => setActiveTab('targets')}
+                  onNavigateToPersona={() => setActiveTab('persona')}
+                  onNavigateToScanner={() => setActiveTab('scanner')}
+                  todaySentCount={todaySentCount}
+                />
+              )}
+
+              {activeTab === 'leads' && (
+                <LeadsScreen
+                  leads={leads}
+                  companies={companies}
+                  onUpdateLeadStatus={handleUpdateLeadStatus}
+                  onDeleteLead={handleDeleteLead}
+                  onRefreshLeads={fetchData}
+                  openInboundModalInitially={openInboundModal}
+                  onInboundModalClose={() => setOpenInboundModal(false)}
+                />
+              )}
+
+              {activeTab === 'targets' && (
+                <TargetsScreen
+                  settings={settings}
+                  companies={companies}
+                  onUpdateSettings={handleUpdateSettings}
+                  onRefreshCompanies={fetchData}
+                  onNavigateToScanner={() => setActiveTab('scanner')}
+                />
+              )}
+
+              {activeTab === 'scanner' && (
+                <BusinessCardScannerScreen
+                  existingCompanies={companies}
+                  onRefreshCompanies={fetchData}
+                  onNavigateToTargets={() => setActiveTab('targets')}
+                />
+              )}
+
+              {activeTab === 'persona' && (
+                <PersonaScreen
+                  settings={settings}
+                  companies={companies}
+                  onUpdateSettings={handleUpdateSettings}
+                />
+              )}
+            </>
+          )}
+        </main>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <BottomBar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          leadsCount={unreadHotLeadsCount}
+        />
+
+        {/* Guided Tour System Components */}
+        <GuidedTourOverlay />
+        <PilotCheatSheetModal />
+        <FloatingGuideTrigger />
+      </div>
+    </TourProvider>
   );
 }

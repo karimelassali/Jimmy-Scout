@@ -1,7 +1,7 @@
 import React from 'react';
-import { Gauge, Inbox, MapPin, SlidersHorizontal } from 'lucide-react';
+import { Gauge, Inbox, MapPin, Camera, SlidersHorizontal } from 'lucide-react';
 
-export type TabId = 'control' | 'leads' | 'targets' | 'persona';
+export type TabId = 'control' | 'leads' | 'targets' | 'scanner' | 'persona';
 
 interface BottomBarProps {
   activeTab: TabId;
@@ -17,7 +17,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const tabs: Array<{ id: TabId; label: string; icon: React.ReactNode; badge?: number }> = [
     {
       id: 'control',
-      label: 'Control',
+      label: 'Dashboard',
       icon: <Gauge className="w-5 h-5" />,
     },
     {
@@ -28,19 +28,24 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     },
     {
       id: 'targets',
-      label: 'Cantons',
+      label: 'Regions',
       icon: <MapPin className="w-5 h-5" />,
     },
     {
+      id: 'scanner',
+      label: 'Scan Cards',
+      icon: <Camera className="w-5 h-5" />,
+    },
+    {
       id: 'persona',
-      label: 'Persona',
+      label: 'Settings',
       icon: <SlidersHorizontal className="w-5 h-5" />,
     },
   ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 pb-safe bg-white/95 backdrop-blur-md border-t border-slate-200">
-      <div className="grid grid-cols-4 items-center h-16 max-w-lg mx-auto px-2">
+      <div className="grid grid-cols-5 items-center h-16 max-w-lg mx-auto px-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
