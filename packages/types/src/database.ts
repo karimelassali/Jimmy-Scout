@@ -2,7 +2,7 @@ export type SwissLanguage = 'de' | 'fr' | 'it';
 
 export type LeadIntent = 'HOT_LEAD' | 'NOT_INTERESTED' | 'UNSUBSCRIBE' | 'OUT_OF_OFFICE';
 
-export type DealStatus = 'new' | 'contacted' | 'inspecting' | 'closed' | 'passed';
+export type DealStatus = 'new' | 'contacted' | 'inspecting' | 'closed' | 'passed' | 'deleted';
 
 export type ToneType = 'swiss_formal' | 'approachable_trade' | 'fast_cash';
 
@@ -48,4 +48,8 @@ export interface OutboundLog {
   subject: string;
   body_snippet: string;
   delivery_status: 'delivered' | 'bounced' | 'deferred' | 'simulated';
+  recipient_email?: string;
+  company_name?: string;
+  canton?: string;
+  full_body?: string;
 }

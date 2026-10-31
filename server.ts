@@ -49,16 +49,44 @@ async function handleInboundEmailPayload(params: {
     return { analysis: { intent: 'SELF_IGNORE' }, lead: null, isDuplicate: true };
   }
 
-  // Deduplication check: check if this specific email body was already ingested
-  const existingLeads = await supabaseDataService.getLeads();
-  const alreadyExists = existingLeads.find(
+  // 1. Guard against previously deleted emails / deals
+  const isDeleted = await supabaseDataService.isDeletedEmail({
+    senderEmail,
+    rawBody: params.rawBody,
+    rawSubject: params.rawSubject,
+    messageId: params.messageId,
+  });
+
+  if (isDeleted) {
+    console.log(`[INBOUND] Ignored email from <${senderEmail}> because user previously deleted this deal.`);
+    return {
+      analysis: { intent: 'DELETED_IGNORE' },
+      lead: null,
+      isDuplicate: true,
+      isDeleted: true,
+    };
+  }
+
+  // 2. Deduplication check: check all leads (including any marked deleted)
+  const allLeads = await supabaseDataService.getLeads(true);
+  const alreadyExists = allLeads.find(
     (l) =>
-      l.sender_email.toLowerCase() === senderEmail &&
-      (l.raw_body?.trim() === params.rawBody?.trim() ||
-        (params.messageId && (l as any).message_id === params.messageId))
+      (l.sender_email.toLowerCase() === senderEmail &&
+        (l.raw_body?.trim() === params.rawBody?.trim() ||
+          (params.messageId && (l as any).message_id === params.messageId))) ||
+      (params.messageId && (l as any).message_id === params.messageId)
   );
 
   if (alreadyExists) {
+    if (alreadyExists.lead_status === 'deleted' || (alreadyExists as any).is_deleted) {
+      console.log(`[INBOUND] Ignored email from <${senderEmail}>: matching lead ${alreadyExists.id} was marked as deleted.`);
+      return {
+        analysis: { intent: 'DELETED_IGNORE' },
+        lead: null,
+        isDuplicate: true,
+        isDeleted: true,
+      };
+    }
     return {
       analysis: { intent: alreadyExists.intent },
       lead: alreadyExists,
@@ -143,6 +171,7 @@ async function handleInboundEmailPayload(params: {
       lead_status: 'new',
       ai_summary: analysis.french_summary,
       match_score: Math.round((analysis.confidence || 0.9) * 100),
+      message_id: params.messageId || null,
     });
 
     // 2. Dispatch real Telegram notification
@@ -413,6 +442,16 @@ app.get('/api/logs', async (_req, res) => {
   try {
     const logs = await supabaseDataService.getOutboundLogs();
     res.json(logs);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message });
+  }
+});
+
+app.delete('/api/logs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await supabaseDataService.deleteOutboundLog(id);
+    res.json({ success: true, id });
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
   }
@@ -713,6 +752,10 @@ app.post('/api/worker/step', async (_req, res) => {
         language: lang,
         subject: rendered.subject,
         body_snippet: `SMTP Error: ${sendResult.error}`,
+        full_body: rendered.body,
+        recipient_email: eligible.email,
+        company_name: eligible.name,
+        canton: eligible.canton,
         delivery_status: 'bounced',
       });
 
@@ -734,6 +777,10 @@ app.post('/api/worker/step', async (_req, res) => {
       language: lang,
       subject: rendered.subject,
       body_snippet: rendered.body.substring(0, 180),
+      full_body: rendered.body,
+      recipient_email: eligible.email,
+      company_name: eligible.name,
+      canton: eligible.canton,
       delivery_status: 'delivered',
     });
 

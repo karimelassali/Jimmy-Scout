@@ -35,6 +35,7 @@ interface ControlScreenProps {
   onNavigateToTargets: () => void;
   onNavigateToPersona: () => void;
   onNavigateToScanner?: () => void;
+  onNavigateToEmails?: () => void;
   todaySentCount: number;
 }
 
@@ -49,6 +50,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   onNavigateToTargets,
   onNavigateToPersona,
   onNavigateToScanner,
+  onNavigateToEmails,
   todaySentCount,
 }) => {
   const [isPollingImap, setIsPollingImap] = useState(false);
@@ -405,11 +407,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         </div>
 
         {/* Card 2: Emails Sent */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div
+          onClick={onNavigateToEmails}
+          className="bg-white rounded-2xl p-5 border border-slate-200/90 hover:border-blue-400 shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
+          title="Click to view all sent emails, full table and rich filters"
+        >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-500">Emails Sent by Jimy</span>
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 border border-slate-200/70 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <MailCheck className="w-4 h-4" />
               </div>
             </div>
@@ -420,8 +426,9 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {todaySentCount} sent today
             </span>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 text-xs">
-            <span>Automated business hours</span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[#1A73E8] font-medium text-xs group-hover:text-blue-700">
+            <span>View sent emails &amp; table</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
 
@@ -561,6 +568,16 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {onNavigateToEmails && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToEmails}
+                    className="h-8 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-[#1A73E8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <MailCheck className="w-3.5 h-3.5" />
+                    <span>View All ({logs.length}) in Table</span>
+                  </button>
+                )}
                 {onNavigateToScanner && (
                   <button
                     type="button"
@@ -637,6 +654,18 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     </div>
                   );
                 })}
+                {onNavigateToEmails && (
+                  <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={onNavigateToEmails}
+                      className="text-xs font-semibold text-[#1A73E8] hover:text-blue-700 flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                    >
+                      <span>Open Full Sent Emails Table &amp; Analytics</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -185,7 +185,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     }
   };
 
-  const filteredLeads = leads.filter((lead) => {
+  const activeLeads = leads.filter(
+    (l) => l.lead_status !== 'deleted' && !(l as any).is_deleted
+  );
+
+  const filteredLeads = activeLeads.filter((lead) => {
     const q = searchTerm.toLowerCase();
     const matchesSearch =
       !q ||
@@ -228,7 +232,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     return true;
   });
 
-  const savedCount = leads.filter((l) => bookmarkedIds.includes(l.id)).length;
+  const savedCount = activeLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
 
   const statusLabels: Record<DealStatus, string> = {
     new: 'New Offer',
@@ -236,6 +240,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     inspecting: 'Yard Inspection',
     closed: 'Purchased / Closed',
     passed: 'Passed',
+    deleted: 'Deleted',
   };
 
   return (
@@ -324,7 +329,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   : 'text-slate-600 hover:text-[#0B2240]'
               }`}
             >
-              All Deals ({leads.length})
+              All Deals ({activeLeads.length})
             </button>
             <button
               type="button"

@@ -24,6 +24,8 @@ export interface InboundLead {
   ai_summary?: string | null;
   received_at: string;
   match_score?: number;
+  message_id?: string | null;
+  is_deleted?: boolean;
 }
 
 export interface GeminiReplyAnalysis {

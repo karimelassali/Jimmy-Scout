@@ -7,6 +7,7 @@ interface TopHeaderProps {
   activeTab: TabId;
   onSelectTab: (tab: TabId) => void;
   unreadCount?: number;
+  sentCount?: number;
   onPrimaryAction?: () => void;
   isAgentActive?: boolean;
   onOpenGuide?: () => void;
@@ -16,6 +17,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   activeTab,
   onSelectTab,
   unreadCount = 0,
+  sentCount = 0,
   onPrimaryAction,
   isAgentActive = false,
   onOpenGuide,
@@ -25,6 +27,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
     {
       id: 'leads',
       label: unreadCount > 0 ? `Deals (${unreadCount})` : 'Deals',
+    },
+    {
+      id: 'emails',
+      label: sentCount > 0 ? `Sent Emails (${sentCount})` : 'Sent Emails',
     },
     { id: 'targets', label: 'Regions' },
     { id: 'scanner', label: 'Scan Cards' },

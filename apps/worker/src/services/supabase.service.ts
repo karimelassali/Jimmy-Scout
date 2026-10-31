@@ -16,6 +16,7 @@ interface PersistedState {
   companies: Company[];
   leads: InboundLead[];
   logs: OutboundLog[];
+  deleted_fingerprints?: string[];
 }
 
 export class SupabaseDataService {
@@ -106,6 +107,9 @@ export class SupabaseDataService {
           companies: Array.isArray(parsed.companies) ? parsed.companies : [],
           leads: Array.isArray(parsed.leads) ? parsed.leads : [],
           logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+          deleted_fingerprints: Array.isArray(parsed.deleted_fingerprints)
+            ? parsed.deleted_fingerprints
+            : [],
         };
         return this.cachedState;
       }
@@ -296,15 +300,22 @@ export class SupabaseDataService {
   // =========================================================
   // 3. INBOUND LEADS (CRM DEALS)
   // =========================================================
-  async getLeads(): Promise<InboundLead[]> {
+  async getLeads(includeDeleted = false): Promise<InboundLead[]> {
+    let leads: InboundLead[] = [];
     if (this.client && (await this.isSqlReady())) {
-      const { data, error } = await this.client
+      let query = this.client
         .from('inbound_leads')
         .select('*, companies(name, canton)')
         .order('received_at', { ascending: false });
 
+      if (!includeDeleted) {
+        query = query.neq('lead_status', 'deleted');
+      }
+
+      const { data, error } = await query;
+
       if (!error && data) {
-        return data.map((row: any) => ({
+        leads = data.map((row: any) => ({
           ...row,
           company_name: row.company_name || row.companies?.name || row.sender_email,
           canton: row.canton || row.companies?.canton || 'CH',
@@ -312,8 +323,18 @@ export class SupabaseDataService {
       }
     }
 
-    const state = await this.ensureStorageState();
-    return state.leads;
+    if (leads.length === 0) {
+      const state = await this.ensureStorageState();
+      leads = state.leads;
+    }
+
+    if (!includeDeleted) {
+      leads = leads.filter(
+        (l) => l.lead_status !== 'deleted' && !(l as any).is_deleted
+      );
+    }
+
+    return leads;
   }
 
   async createLead(
@@ -380,16 +401,102 @@ export class SupabaseDataService {
   }
 
   async deleteLead(id: string): Promise<void> {
+    const state = await this.ensureStorageState();
+    const targetLead = state.leads.find((l) => l.id === id);
+
+    // 1. In SQL tables (if available), soft-delete to 'deleted'
     if (this.client && (await this.isSqlReady())) {
       try {
-        await this.client.from('inbound_leads').delete().eq('id', id);
+        const { error } = await this.client
+          .from('inbound_leads')
+          .update({ lead_status: 'deleted' })
+          .eq('id', id);
+
+        if (error) {
+          // If postgres enum does not include 'deleted', mark as 'passed' with deleted note
+          await this.client
+            .from('inbound_leads')
+            .update({ lead_status: 'passed' })
+            .eq('id', id);
+        }
       } catch (e) {
         console.warn('[Supabase] SQL deleteLead warning:', e);
       }
     }
+
+    // 2. In Storage state, flag lead as deleted and record persistent fingerprint
+    if (targetLead) {
+      targetLead.lead_status = 'deleted';
+      (targetLead as any).is_deleted = true;
+
+      if (!state.deleted_fingerprints) {
+        state.deleted_fingerprints = [];
+      }
+
+      const email = (targetLead.sender_email || '').toLowerCase().trim();
+      if (email) {
+        // Fingerprint: sender email + first 150 chars of body
+        if (targetLead.raw_body) {
+          const bodySnippet = targetLead.raw_body.slice(0, 150).trim().toLowerCase();
+          state.deleted_fingerprints.push(`${email}|${bodySnippet}`);
+        }
+        // Fingerprint: sender email + subject
+        if (targetLead.raw_subject) {
+          state.deleted_fingerprints.push(
+            `${email}|subj:${targetLead.raw_subject.trim().toLowerCase()}`
+          );
+        }
+        // Fingerprint: messageId if stored
+        if ((targetLead as any).message_id) {
+          state.deleted_fingerprints.push(`msgid:${(targetLead as any).message_id}`);
+        }
+      }
+
+      state.deleted_fingerprints = Array.from(new Set(state.deleted_fingerprints));
+      await this.saveStorageState(state);
+    }
+  }
+
+  /**
+   * Checks whether an incoming email was previously marked as deleted by the user.
+   */
+  async isDeletedEmail(params: {
+    senderEmail: string;
+    rawBody?: string;
+    rawSubject?: string;
+    messageId?: string;
+  }): Promise<boolean> {
     const state = await this.ensureStorageState();
-    state.leads = state.leads.filter((l) => l.id !== id);
-    await this.saveStorageState(state);
+    const sender = params.senderEmail.toLowerCase().trim();
+    const fps = state.deleted_fingerprints || [];
+
+    if (params.messageId && fps.includes(`msgid:${params.messageId}`)) {
+      return true;
+    }
+
+    if (params.rawSubject) {
+      const subjKey = `${sender}|subj:${params.rawSubject.trim().toLowerCase()}`;
+      if (fps.includes(subjKey)) return true;
+    }
+
+    if (params.rawBody) {
+      const bodySnippet = params.rawBody.slice(0, 150).trim().toLowerCase();
+      if (fps.includes(`${sender}|${bodySnippet}`)) return true;
+    }
+
+    // Also check state leads marked as deleted
+    const isFoundDeleted = state.leads.some(
+      (l) =>
+        (l.lead_status === 'deleted' || (l as any).is_deleted === true) &&
+        l.sender_email.toLowerCase().trim() === sender &&
+        ((params.messageId && (l as any).message_id === params.messageId) ||
+          (params.rawBody && l.raw_body.trim() === params.rawBody.trim()) ||
+          (params.rawSubject &&
+            l.raw_subject &&
+            l.raw_subject.trim() === params.rawSubject.trim()))
+    );
+
+    return isFoundDeleted;
   }
 
   // =========================================================
@@ -431,6 +538,19 @@ export class SupabaseDataService {
     state.logs.unshift(record);
     await this.saveStorageState(state);
     return record;
+  }
+
+  async deleteOutboundLog(id: string): Promise<void> {
+    if (this.client && (await this.isSqlReady())) {
+      try {
+        await this.client.from('outbound_logs').delete().eq('id', id);
+      } catch (e) {
+        console.warn('[Supabase] SQL deleteOutboundLog warning:', e);
+      }
+    }
+    const state = await this.ensureStorageState();
+    state.logs = state.logs.filter((l) => l.id !== id);
+    await this.saveStorageState(state);
   }
 
   async getTodaySentCount(): Promise<number> {

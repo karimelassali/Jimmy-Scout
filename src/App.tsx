@@ -6,6 +6,7 @@ import { LeadsScreen } from './components/leads/LeadsScreen.tsx';
 import { TargetsScreen } from './components/targets/TargetsScreen.tsx';
 import { PersonaScreen } from './components/persona/PersonaScreen.tsx';
 import { BusinessCardScannerScreen } from './components/scanner/BusinessCardScannerScreen.tsx';
+import { OutboundEmailsScreen } from './components/emails/OutboundEmailsScreen.tsx';
 import { GoogleAppGuideModal } from './components/guide/GoogleAppGuideModal.tsx';
 import { AgentSettings, Company, DealStatus, OutboundLog } from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
@@ -18,6 +19,7 @@ export default function App() {
       if (
         param === 'control' ||
         param === 'leads' ||
+        param === 'emails' ||
         param === 'targets' ||
         param === 'scanner' ||
         param === 'persona'
@@ -161,7 +163,9 @@ export default function App() {
     }
   };
 
-  const unreadHotLeadsCount = leads.filter((l) => l.lead_status === 'new').length;
+  const unreadHotLeadsCount = leads.filter(
+    (l) => l.lead_status === 'new' && !(l as any).is_deleted
+  ).length;
 
   const handlePrimaryTrigger = () => {
     setActiveTab('leads');
@@ -183,6 +187,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         unreadCount={unreadHotLeadsCount}
+        sentCount={logs.length}
         onPrimaryAction={handlePrimaryTrigger}
         isAgentActive={settings.is_active}
         onOpenGuide={() => setIsGuideOpen(true)}
@@ -221,6 +226,7 @@ export default function App() {
                 onNavigateToTargets={() => setActiveTab('targets')}
                 onNavigateToPersona={() => setActiveTab('persona')}
                 onNavigateToScanner={() => setActiveTab('scanner')}
+                onNavigateToEmails={() => setActiveTab('emails')}
                 todaySentCount={todaySentCount}
               />
             )}
@@ -234,6 +240,18 @@ export default function App() {
                 onRefreshLeads={fetchData}
                 openInboundModalInitially={openInboundModal}
                 onInboundModalClose={() => setOpenInboundModal(false)}
+              />
+            )}
+
+            {activeTab === 'emails' && (
+              <OutboundEmailsScreen
+                logs={logs}
+                companies={companies}
+                settings={settings}
+                todaySentCount={todaySentCount}
+                onRefreshLogs={fetchData}
+                onNavigateToTargets={(_query?: string) => setActiveTab('targets')}
+                onNavigateToPersona={() => setActiveTab('persona')}
               />
             )}
 
@@ -272,6 +290,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         leadsCount={unreadHotLeadsCount}
+        sentCount={logs.length}
       />
 
       {/* Google Style Interactive App Guide Modal */}

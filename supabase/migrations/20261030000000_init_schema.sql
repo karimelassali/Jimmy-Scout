@@ -4,7 +4,7 @@
 -- 1. Enums
 CREATE TYPE swiss_language AS ENUM ('de', 'fr', 'it');
 CREATE TYPE lead_intent AS ENUM ('HOT_LEAD', 'NOT_INTERESTED', 'UNSUBSCRIBE', 'OUT_OF_OFFICE');
-CREATE TYPE deal_status AS ENUM ('new', 'contacted', 'inspecting', 'closed', 'passed');
+CREATE TYPE deal_status AS ENUM ('new', 'contacted', 'inspecting', 'closed', 'passed', 'deleted');
 CREATE TYPE tone_type AS ENUM ('swiss_formal', 'approachable_trade', 'fast_cash');
 
 -- 2. Verified Swiss Contractors Directory
@@ -63,6 +63,7 @@ CREATE TABLE inbound_leads (
     contact_name VARCHAR(100),
     contact_phone VARCHAR(50),
     lead_status deal_status NOT NULL DEFAULT 'new',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     ai_summary TEXT,
     received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -14,6 +14,7 @@ import {
   ExternalLink,
   PhoneCall,
   Mail,
+  MailCheck,
   ZoomIn,
   ShieldCheck,
   Zap,
@@ -132,6 +133,37 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
       ],
       proTip:
         'The Total Offer Value metric accumulates asking prices from sellers in real time as deals arrive in your inbox.',
+    },
+    {
+      id: 'emails',
+      title: 'Sent Emails Center',
+      badge: 'Audit & Analytics',
+      badgeColor: 'bg-blue-50 text-[#1A73E8] border-blue-200',
+      icon: <MailCheck className="w-4 h-4 text-[#1A73E8]" />,
+      headline: 'Dedicated Google-Style Outbound Audit & Filters',
+      description:
+        'A dedicated audit table showing all emails sent by Jimy. Search across contractors, filter by Swiss language, delivery status, and canton, and inspect full email transcripts in Gmail view.',
+      screenshot: '/assets/guide/dashboard-overview.png',
+      screenshotAlt: 'Emails Sent by Jimy Table & Search Filters',
+      features: [
+        {
+          title: 'Google-Style Live Search & Filters',
+          description:
+            'Search by recipient name, email, canton, or subject. Filter by Delivered, Simulated, or Bounced status, or isolate German, French, or Italian dispatches.',
+        },
+        {
+          title: 'Full Gmail-Style Email Inspector',
+          description:
+            'Click any email record to inspect the exact trilingual inquiry Jimmy dispatched, including recipient details, delivery headers, and commercial purchase hooks.',
+        },
+        {
+          title: 'CSV Export & Bulk Tools',
+          description:
+            'Download complete dispatch spreadsheets with one click or dispatch on-demand test inquiries directly from the action bar.',
+        },
+      ],
+      proTip:
+        'Click the "Emails Sent by Jimy" card directly on your Dashboard or tap the "Sent Emails" tab to jump straight into this audit center.',
     },
     {
       id: 'regions',
