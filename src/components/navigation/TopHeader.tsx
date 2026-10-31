@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass } from 'lucide-react';
+import { Compass, Bell } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton.tsx';
 import { TabId } from './BottomBar.tsx';
 
@@ -11,6 +11,8 @@ interface TopHeaderProps {
   onPrimaryAction?: () => void;
   isAgentActive?: boolean;
   onOpenGuide?: () => void;
+  notificationCount?: number;
+  onOpenNotifications?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -21,6 +23,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onPrimaryAction,
   isAgentActive = false,
   onOpenGuide,
+  notificationCount = 0,
+  onOpenNotifications,
 }) => {
   const navItems: Array<{ id: TabId; label: string }> = [
     { id: 'control', label: 'Dashboard' },
@@ -102,6 +106,22 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         {/* Zone 3: Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {onOpenNotifications && (
+            <button
+              type="button"
+              onClick={onOpenNotifications}
+              className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] flex items-center justify-center transition-colors cursor-pointer"
+              title="Activity & Notifications"
+            >
+              <Bell className="w-4 h-4 text-slate-700" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1 min-w-[17px] h-[17px] flex items-center justify-center bg-[#FF6B00] text-white text-[10px] font-mono font-bold rounded-full tabular-nums shadow-xs">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {onOpenGuide && (
             <button
               type="button"

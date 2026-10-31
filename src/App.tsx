@@ -8,6 +8,10 @@ import { PersonaScreen } from './components/persona/PersonaScreen.tsx';
 import { BusinessCardScannerScreen } from './components/scanner/BusinessCardScannerScreen.tsx';
 import { OutboundEmailsScreen } from './components/emails/OutboundEmailsScreen.tsx';
 import { GoogleAppGuideModal } from './components/guide/GoogleAppGuideModal.tsx';
+import {
+  NotificationCenterModal,
+  NotificationItem,
+} from './components/notifications/NotificationCenterModal.tsx';
 import { AgentSettings, Company, DealStatus, OutboundLog } from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
 import { WifiOff } from 'lucide-react';
@@ -31,9 +35,34 @@ export default function App() {
   });
   const [openInboundModal, setOpenInboundModal] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
+
+  // Persistent seen / unseen state for badges and notification center
+  const [seenState, setSeenState] = useState<{
+    seenLeadIds: string[];
+    lastSeenLogsCount: number;
+    readNotificationIds: string[];
+  }>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('jimiscout_seen_state');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+    }
+    return { seenLeadIds: [], lastSeenLogsCount: 0, readNotificationIds: [] };
+  });
+
+  // Sync seenState to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('jimiscout_seen_state', JSON.stringify(seenState));
+      } catch (e) {}
+    }
+  }, [seenState]);
 
   const [settings, setSettings] = useState<AgentSettings>({
     id: '00000000-0000-4000-8000-000000000001',
@@ -163,9 +192,114 @@ export default function App() {
     }
   };
 
-  const unreadHotLeadsCount = leads.filter(
-    (l) => l.lead_status === 'new' && !(l as any).is_deleted
+  // When visiting Deals tab, mark all current active leads as seen so Deals badge clears
+  useEffect(() => {
+    if (activeTab === 'leads' && leads.length > 0) {
+      const activeIds = leads
+        .filter((l) => l.lead_status !== 'deleted' && !(l as any).is_deleted)
+        .map((l) => l.id);
+      setSeenState((prev) => {
+        const merged = Array.from(new Set([...prev.seenLeadIds, ...activeIds]));
+        if (merged.length !== prev.seenLeadIds.length) {
+          return { ...prev, seenLeadIds: merged };
+        }
+        return prev;
+      });
+    }
+  }, [activeTab, leads]);
+
+  // When visiting Sent Emails tab, mark all logs as seen so Sent badge clears
+  useEffect(() => {
+    if (activeTab === 'emails' && logs.length > 0) {
+      setSeenState((prev) => {
+        if (prev.lastSeenLogsCount !== logs.length) {
+          return { ...prev, lastSeenLogsCount: logs.length };
+        }
+        return prev;
+      });
+    }
+  }, [activeTab, logs.length]);
+
+  // Active leads badge (only count leads the user hasn't seen yet)
+  const unseenLeadsCount = leads.filter(
+    (l) =>
+      l.lead_status !== 'deleted' &&
+      !(l as any).is_deleted &&
+      !seenState.seenLeadIds.includes(l.id)
   ).length;
+
+  // Sent logs badge (only count new logs since last visit to Sent tab)
+  const unseenLogsCount = Math.max(0, logs.length - (seenState.lastSeenLogsCount || 0));
+
+  // Build notifications feed from leads & logs
+  const notifications: NotificationItem[] = [
+    ...leads
+      .filter((l) => l.lead_status !== 'deleted' && !(l as any).is_deleted)
+      .map((lead) => ({
+        id: `lead-${lead.id}`,
+        type: 'offer' as const,
+        title: lead.contact_name || lead.company_name || 'Contractor Offer',
+        subtitle:
+          lead.ai_summary ||
+          lead.machinery_detected.map((m) => m.make_model || m.type).join(', ') ||
+          lead.raw_subject ||
+          'New machinery equipment inquiry reply',
+        timestamp: lead.received_at,
+        isRead: seenState.readNotificationIds.includes(`lead-${lead.id}`),
+        leadId: lead.id,
+        canton: lead.canton,
+        price: lead.machinery_detected[0]?.asking_price,
+        companyName: lead.company_name,
+      })),
+    ...logs.map((log) => ({
+      id: `log-${log.id}`,
+      type: 'email_sent' as const,
+      title: log.company_name ? `Inquiry sent to ${log.company_name}` : 'Inquiry Dispatched',
+      subtitle: `${log.subject} · Status: ${log.delivery_status}`,
+      timestamp: log.sent_at,
+      isRead: seenState.readNotificationIds.includes(`log-${log.id}`),
+      logId: log.id,
+      canton: log.canton,
+      companyName: log.company_name,
+    })),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleMarkAsRead = (id: string) => {
+    setSeenState((prev) => {
+      const nextRead = Array.from(new Set([...prev.readNotificationIds, id]));
+      let nextLeads = prev.seenLeadIds;
+      if (id.startsWith('lead-')) {
+        const leadId = id.replace('lead-', '');
+        nextLeads = Array.from(new Set([...nextLeads, leadId]));
+      }
+      return { ...prev, readNotificationIds: nextRead, seenLeadIds: nextLeads };
+    });
+  };
+
+  const handleMarkAsUnread = (id: string) => {
+    setSeenState((prev) => ({
+      ...prev,
+      readNotificationIds: prev.readNotificationIds.filter((item) => item !== id),
+    }));
+  };
+
+  const handleMarkAllAsRead = () => {
+    const activeLeadIds = leads
+      .filter((l) => l.lead_status !== 'deleted' && !(l as any).is_deleted)
+      .map((l) => l.id);
+    const allNotifIds = notifications.map((n) => n.id);
+    setSeenState({
+      seenLeadIds: activeLeadIds,
+      lastSeenLogsCount: logs.length,
+      readNotificationIds: allNotifIds,
+    });
+  };
+
+  const handleClearSeenCounters = () => {
+    handleMarkAllAsRead();
+  };
 
   const handlePrimaryTrigger = () => {
     setActiveTab('leads');
@@ -186,8 +320,10 @@ export default function App() {
       <TopHeader
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        unreadCount={unreadHotLeadsCount}
-        sentCount={logs.length}
+        unreadCount={unseenLeadsCount}
+        sentCount={unseenLogsCount}
+        notificationCount={unreadNotificationsCount}
+        onOpenNotifications={() => setIsNotificationOpen(true)}
         onPrimaryAction={handlePrimaryTrigger}
         isAgentActive={settings.is_active}
         onOpenGuide={() => setIsGuideOpen(true)}
@@ -289,14 +425,31 @@ export default function App() {
       <BottomBar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        leadsCount={unreadHotLeadsCount}
-        sentCount={logs.length}
+        leadsCount={unseenLeadsCount}
+        sentCount={unseenLogsCount}
       />
 
       {/* Google Style Interactive App Guide Modal */}
       <GoogleAppGuideModal
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
+      />
+
+      {/* Activity & Notifications Modal */}
+      <NotificationCenterModal
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAsUnread={handleMarkAsUnread}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onNavigateToDeals={(_leadId) => {
+          setActiveTab('leads');
+        }}
+        onNavigateToEmails={(_logId) => {
+          setActiveTab('emails');
+        }}
+        onClearSeenCounters={handleClearSeenCounters}
       />
     </div>
   );
