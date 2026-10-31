@@ -404,28 +404,30 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
 
         {/* Clean Language Filter Pills */}
-        <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 self-start md:self-auto shadow-2xs">
-          {(
-            [
-              { id: 'all', label: `All Regions (${SWISS_CANTONS.length})` },
-              { id: 'de', label: 'German (DE)' },
-              { id: 'fr', label: 'French (FR)' },
-              { id: 'it', label: 'Italian (IT)' },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setRegionFilter(tab.id)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                regionFilter === tab.id
-                  ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="w-full md:w-auto overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shrink-0 min-w-max shadow-2xs">
+            {(
+              [
+                { id: 'all', label: `All Regions (${SWISS_CANTONS.length})` },
+                { id: 'de', label: 'German (DE)' },
+                { id: 'fr', label: 'French (FR)' },
+                { id: 'it', label: 'Italian (IT)' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setRegionFilter(tab.id)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  regionFilter === tab.id
+                    ? 'bg-[#0B2240] text-white'
+                    : 'text-slate-600 hover:text-[#0B2240]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

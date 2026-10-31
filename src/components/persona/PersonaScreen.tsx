@@ -487,27 +487,29 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             </div>
 
             {/* Segmented Language Switcher */}
-            <div className="inline-flex items-center p-1 bg-slate-100 rounded-full self-start sm:self-auto">
-              {(
-                [
-                  { id: 'fr', label: 'FR · Romandie' },
-                  { id: 'de', label: 'DE · Deutschschweiz' },
-                  { id: 'it', label: 'IT · Ticino' },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveLang(tab.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                    activeLang === tab.id
-                      ? 'bg-white text-[#0B2240] shadow-2xs'
-                      : 'text-slate-600 hover:text-[#0B2240]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
+              <div className="inline-flex items-center p-1 bg-slate-100 rounded-full shrink-0 min-w-max">
+                {(
+                  [
+                    { id: 'fr', label: 'FR · Romandie' },
+                    { id: 'de', label: 'DE · Deutschschweiz' },
+                    { id: 'it', label: 'IT · Ticino' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveLang(tab.id)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      activeLang === tab.id
+                        ? 'bg-white text-[#0B2240] shadow-2xs'
+                        : 'text-slate-600 hover:text-[#0B2240]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

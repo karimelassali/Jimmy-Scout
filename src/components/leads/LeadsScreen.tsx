@@ -313,63 +313,65 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
 
         {/* Clean Segmented Filter Buttons */}
-        <div data-tour="leads-status-tabs" className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 overflow-x-auto no-scrollbar self-start md:self-auto">
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('all')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-              selectedFilter === 'all'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            All Deals ({leads.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('pelles')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-              selectedFilter === 'pelles'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            Excavators
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('camions')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-              selectedFilter === 'camions'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            Loaders &amp; Trucks
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('new')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-              selectedFilter === 'new'
-                ? 'bg-[#0B2240] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            Unread Only
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('saved')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-              selectedFilter === 'saved'
-                ? 'bg-[#FF6B00] text-white'
-                : 'text-slate-600 hover:text-[#0B2240]'
-            }`}
-          >
-            <Bookmark className="w-3.5 h-3.5 fill-current" />
-            <span>Saved ({savedCount})</span>
-          </button>
+        <div className="w-full md:w-auto overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div data-tour="leads-status-tabs" className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shadow-2xs shrink-0 min-w-max">
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('all')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                selectedFilter === 'all'
+                  ? 'bg-[#0B2240] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              All Deals ({leads.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('pelles')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                selectedFilter === 'pelles'
+                  ? 'bg-[#0B2240] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              Excavators
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('camions')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                selectedFilter === 'camions'
+                  ? 'bg-[#0B2240] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              Loaders &amp; Trucks
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('new')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                selectedFilter === 'new'
+                  ? 'bg-[#0B2240] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              Unread Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('saved')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'saved'
+                  ? 'bg-[#FF6B00] text-white'
+                  : 'text-slate-600 hover:text-[#0B2240]'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5 fill-current" />
+              <span>Saved ({savedCount})</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -172,7 +172,7 @@ export default function App() {
 
   return (
     <TourProvider activeTab={activeTab} onSelectTab={setActiveTab}>
-      <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative">
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative overflow-x-hidden w-full max-w-full">
         {/* Offline Banner */}
         {!isOnline && (
           <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
@@ -191,7 +191,7 @@ export default function App() {
         />
 
         {/* Responsive Workspace Container */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
           {isLoading ? (
             <div className="min-h-[70vh] flex flex-col items-center justify-center p-6">
               <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-lg flex flex-col items-center max-w-xs w-full space-y-4">
