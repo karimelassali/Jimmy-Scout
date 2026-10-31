@@ -1,6 +1,6 @@
 import React from 'react';
+import { Compass } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton.tsx';
-import { TourHelpButton } from '../guide/TourHelpButton.tsx';
 import { TabId } from './BottomBar.tsx';
 
 interface TopHeaderProps {
@@ -9,6 +9,7 @@ interface TopHeaderProps {
   unreadCount?: number;
   onPrimaryAction?: () => void;
   isAgentActive?: boolean;
+  onOpenGuide?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -17,6 +18,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   unreadCount = 0,
   onPrimaryAction,
   isAgentActive = false,
+  onOpenGuide,
 }) => {
   const navItems: Array<{ id: TabId; label: string }> = [
     { id: 'control', label: 'Dashboard' },
@@ -94,7 +96,17 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         {/* Zone 3: Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          <TourHelpButton />
+          {onOpenGuide && (
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Open JimiScout Guide"
+            >
+              <Compass className="w-4 h-4 text-[#FF6B00]" />
+              <span className="hidden sm:inline">Guide</span>
+            </button>
+          )}
           <PWAInstallButton />
           <button
             data-tour="process-inbound-btn"

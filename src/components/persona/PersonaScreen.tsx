@@ -3,7 +3,7 @@ import { AgentSettings, Company, ToneType } from '@/packages/types/src/database.
 import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
 import { generateDeTemplate } from '@/apps/worker/src/templates/de.template.ts';
 import { generateItTemplate } from '@/apps/worker/src/templates/it.template.ts';
-import { useTour } from '../guide/TourContext.tsx';
+import { GoogleAppGuideModal } from '../guide/GoogleAppGuideModal.tsx';
 import {
   Send,
   Mail,
@@ -12,20 +12,21 @@ import {
   AlertCircle,
   X,
   Compass,
-  BookOpen,
-  RotateCcw,
+  ArrowRight,
 } from 'lucide-react';
 
 interface PersonaScreenProps {
   settings: AgentSettings;
   companies: Company[];
   onUpdateSettings: (patch: Partial<AgentSettings>) => Promise<void>;
+  onOpenGuide?: () => void;
 }
 
 export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   settings,
   companies,
   onUpdateSettings,
+  onOpenGuide,
 }) => {
   const [activeLang, setActiveLang] = useState<'fr' | 'de' | 'it'>('fr');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -38,14 +39,15 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   const [testEmail, setTestEmail] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
+  const [isGuideOpenLocal, setIsGuideOpenLocal] = useState(false);
 
-  const {
-    startTour,
-    openCheatSheet,
-    autoLaunchOnVisit,
-    setAutoLaunchOnVisit,
-    resetTourHistory,
-  } = useTour();
+  const handleOpenGuide = () => {
+    if (onOpenGuide) {
+      onOpenGuide();
+    } else {
+      setIsGuideOpenLocal(true);
+    }
+  };
 
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
@@ -413,61 +415,61 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             </div>
           </section>
 
-          {/* App Tour & Beginner Guidance Section */}
-          <section className="bg-white rounded-3xl p-6 border border-slate-200/90 space-y-4">
-            <div className="flex items-center gap-2">
-              <Compass className="w-5 h-5 text-[#FF6B00]" />
-              <h2 className="font-heading font-bold text-base text-[#0B2240]">
-                4. App Tour &amp; Help Guide
-              </h2>
+          {/* Google Style Interactive App Guide Card */}
+          <section className="bg-gradient-to-br from-white via-white to-blue-50/40 rounded-3xl p-6 border border-blue-200/80 shadow-2xs space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#1A73E8] text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                  <Compass className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A73E8]">
+                      Interactive Manual
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Screenshots &amp; Workflows
+                    </span>
+                  </div>
+                  <h2 className="font-heading font-bold text-base text-[#0B2240] leading-snug">
+                    4. Visual App Guide
+                  </h2>
+                </div>
+              </div>
             </div>
+
             <p className="text-xs text-slate-600 leading-relaxed">
-              If you ever want a step-by-step walkthrough or need an explanation of any button, launch the guide anytime.
+              Explore step-by-step instructions, high-resolution interface screenshots, Swiss canton strategies, and equipment extraction workflows.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => startTour('full')}
-                className="h-10 px-4 rounded-2xl bg-[#0B2240] hover:bg-[#16365C] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <Compass className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span>Start App Tour</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={openCheatSheet}
-                className="h-10 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-[#0B2240] font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span>Open Quick Cheat Sheet</span>
-              </button>
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-1">
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Scouting &amp; Pacing</span>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Cantons (DE/FR/IT)</span>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Deals &amp; Extraction</span>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Card OCR &amp; Emails</span>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-              <label className="flex items-center justify-between text-xs text-slate-700 cursor-pointer py-1">
-                <span>Show guide tour automatically when opening app</span>
-                <input
-                  type="checkbox"
-                  checked={autoLaunchOnVisit}
-                  onChange={(e) => setAutoLaunchOnVisit(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#FF6B00] focus:ring-[#FF6B00] border-slate-300 cursor-pointer"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => {
-                  resetTourHistory();
-                  showToast('Tour reset — guide will show again on next page reload');
-                }}
-                className="text-left text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1.5 py-1 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3 text-slate-400" />
-                <span>Reset tour &amp; start over</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleOpenGuide}
+              className="w-full h-11 px-5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
+            >
+              <Compass className="w-4 h-4 text-white" />
+              <span>Open Visual App Guide with Screenshots</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
           </section>
         </div>
 
@@ -740,6 +742,13 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Google Style Interactive App Guide Modal */}
+      <GoogleAppGuideModal
+        isOpen={isGuideOpenLocal}
+        onClose={() => setIsGuideOpenLocal(false)}
+        initialTab="settings"
+      />
     </div>
   );
 };
