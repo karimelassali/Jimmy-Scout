@@ -13,6 +13,7 @@ import {
   X,
   Compass,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface PersonaScreenProps {
@@ -20,6 +21,7 @@ interface PersonaScreenProps {
   companies: Company[];
   onUpdateSettings: (patch: Partial<AgentSettings>) => Promise<void>;
   onOpenGuide?: () => void;
+  onOpenSetupWizard?: () => void;
 }
 
 export const PersonaScreen: React.FC<PersonaScreenProps> = ({
@@ -27,6 +29,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   companies,
   onUpdateSettings,
   onOpenGuide,
+  onOpenSetupWizard,
 }) => {
   const [activeLang, setActiveLang] = useState<'fr' | 'de' | 'it'>('fr');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -165,15 +168,28 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          data-tour="persona-test-email"
-          onClick={() => setShowTestModal(true)}
-          className="self-start sm:self-auto h-11 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-        >
-          <Send className="w-4 h-4" />
-          <span>See What Jimy Writes (Test Email)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {onOpenSetupWizard && (
+            <button
+              type="button"
+              onClick={onOpenSetupWizard}
+              className="h-11 px-4 rounded-full bg-white hover:bg-orange-50/60 text-[#0B2240] border border-slate-200 hover:border-[#FF6B00]/40 font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Sparkles className="w-4 h-4 text-[#FF6B00]" />
+              <span>Assistant Jimy (Configuration guidée)</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            data-tour="persona-test-email"
+            onClick={() => setShowTestModal(true)}
+            className="h-11 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+          >
+            <Send className="w-4 h-4" />
+            <span>See What Jimy Writes (Test Email)</span>
+          </button>
+        </div>
       </div>
 
       {/* 2-COLUMN WORKSPACE: Left Settings + Right Live Email Composer Preview */}

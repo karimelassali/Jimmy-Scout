@@ -8,6 +8,7 @@ import { PersonaScreen } from './components/persona/PersonaScreen.tsx';
 import { BusinessCardScannerScreen } from './components/scanner/BusinessCardScannerScreen.tsx';
 import { OutboundEmailsScreen } from './components/emails/OutboundEmailsScreen.tsx';
 import { GoogleAppGuideModal } from './components/guide/GoogleAppGuideModal.tsx';
+import { SetupWizardModal } from './components/onboarding/SetupWizardModal.tsx';
 import { SplashScreen } from './components/common/SplashScreen.tsx';
 import {
   NotificationCenterModal,
@@ -37,6 +38,12 @@ export default function App() {
   const [openInboundModal, setOpenInboundModal] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('jimiscout_setup_completed') !== 'true';
+    }
+    return false;
+  });
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
@@ -402,6 +409,7 @@ export default function App() {
                 companies={companies}
                 onUpdateSettings={handleUpdateSettings}
                 onOpenGuide={() => setIsGuideOpen(true)}
+                onOpenSetupWizard={() => setIsSetupWizardOpen(true)}
               />
             )}
           </>
@@ -414,6 +422,19 @@ export default function App() {
         onSelectTab={setActiveTab}
         leadsCount={unseenLeadsCount}
         sentCount={unseenLogsCount}
+      />
+
+      {/* Personalized First-Time Setup Wizard with Jimy */}
+      <SetupWizardModal
+        isOpen={!isLoading && isSetupWizardOpen}
+        settings={settings}
+        onSaveAndComplete={handleUpdateSettings}
+        onClose={() => {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('jimiscout_setup_completed', 'true');
+          }
+          setIsSetupWizardOpen(false);
+        }}
       />
 
       {/* Google Style Interactive App Guide Modal */}

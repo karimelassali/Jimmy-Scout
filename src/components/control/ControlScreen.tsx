@@ -197,7 +197,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   };
 
   const timeGreeting = getDynamicGreeting();
-  const adminName = 'Mokhtar';
+  const adminName = settings.sender_name?.trim() || 'Jamal';
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
