@@ -8,6 +8,7 @@ import { PersonaScreen } from './components/persona/PersonaScreen.tsx';
 import { BusinessCardScannerScreen } from './components/scanner/BusinessCardScannerScreen.tsx';
 import { OutboundEmailsScreen } from './components/emails/OutboundEmailsScreen.tsx';
 import { GoogleAppGuideModal } from './components/guide/GoogleAppGuideModal.tsx';
+import { SplashScreen } from './components/common/SplashScreen.tsx';
 import {
   NotificationCenterModal,
   NotificationItem,
@@ -332,21 +333,7 @@ export default function App() {
       {/* Responsive Workspace Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
         {isLoading ? (
-          <div className="min-h-[70vh] flex flex-col items-center justify-center p-6">
-            <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-lg flex flex-col items-center max-w-xs w-full space-y-4">
-              <img
-                src="/assets/jimiscout-logo.png"
-                alt="JimiScout"
-                className="w-44 h-auto object-contain"
-              />
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Swiss Heavy Machinery Agent
-              </div>
-              <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="w-2/3 h-full bg-[#FF6B00] rounded-full animate-pulse" />
-              </div>
-            </div>
-          </div>
+          <SplashScreen />
         ) : (
           <>
             {activeTab === 'control' && (
