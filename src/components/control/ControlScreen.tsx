@@ -89,6 +89,20 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     setTimeout(() => setToast(null), 4500);
   };
 
+  /**
+   * A remote mailbox can occasionally leave a request open indefinitely.  The
+   * UI must always recover, even when the provider does not answer.
+   */
+  const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 15_000) => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  };
+
   const toggleActiveScouting = async () => {
     const nextState = !settings.is_active;
     try {
@@ -146,23 +160,26 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const handlePollImap = async () => {
     setIsPollingImap(true);
     try {
-      const res = await fetch('/api/imap/poll', { method: 'POST' });
+      const res = await fetchWithTimeout('/api/imap/poll', { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.success) {
         showToast(
-          `Could not check mailbox: ${data.error || 'Please check your connection'}`,
+          `Impossible de vérifier la boîte mail : ${data.error || 'vérifiez votre connexion'}`,
           true
         );
       } else {
         await onRefreshAll();
         showToast(
           data.messagesProcessed > 0
-            ? `Jimy found ${data.messagesProcessed} new reply!`
-            : 'Jimy checked your mailbox — all replies are up to date'
+            ? `Jimy a trouvé ${data.messagesProcessed} nouvelle${data.messagesProcessed > 1 ? 's' : ''} réponse${data.messagesProcessed > 1 ? 's' : ''}.`
+            : 'Jimy a vérifié votre boîte mail : toutes les réponses sont à jour.'
         );
       }
     } catch (err: any) {
-      showToast(`Mailbox error: ${err?.message || 'Connection failed'}`, true);
+      const message = err?.name === 'AbortError'
+        ? 'La vérification prend trop de temps. Réessayez dans un instant.'
+        : `Erreur de boîte mail : ${err?.message || 'échec de connexion'}`;
+      showToast(message, true);
     } finally {
       setIsPollingImap(false);
     }
@@ -193,20 +210,23 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const handleTestTelegram = async () => {
     setIsTestingTelegram(true);
     try {
-      const res = await fetch('/api/test-telegram', { method: 'POST' });
+      const res = await fetchWithTimeout('/api/test-telegram', { method: 'POST' }, 10_000);
       const data = await res.json();
       if (res.ok && data.success) {
         showToast(
-          `Test phone alert sent to Telegram (@${data.botUsername || 'Jimy_scout_bot'})`
+          `Alerte de test envoyée sur Telegram (@${data.botUsername || 'Jimy_scout_bot'}).`
         );
       } else {
         showToast(
-          `Alert error: ${data.error || 'Could not send phone alert'}`,
+          `Erreur d’alerte : ${data.error || 'impossible d’envoyer l’alerte Telegram'}`,
           true
         );
       }
     } catch (err: any) {
-      showToast(`Alert error: ${err?.message}`, true);
+      const message = err?.name === 'AbortError'
+        ? 'L’alerte prend trop de temps. Vérifiez Telegram puis réessayez.'
+        : `Erreur d’alerte : ${err?.message || 'échec de connexion'}`;
+      showToast(message, true);
     } finally {
       setIsTestingTelegram(false);
     }
@@ -463,7 +483,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <p className="text-base leading-7 text-slate-600 max-w-xl mx-auto">
                 <span>
                   {settings.is_active
-                    ? `I’m looking across ${settings.selected_cantons.length} Swiss cantons and keeping an eye on the next good opportunity. I’ll let you know when something needs your attention.`
+                    ? `Je surveille ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.`
                     : `Vous avez ${activeContractorsCount} sociétés vérifiées. Activez-moi et je chercherai les prochaines bonnes occasions pour vous.`}
                 </span>
               </p>
@@ -472,7 +492,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 {schedulerStatus?.next_send_at && settings.is_active && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-orange-700">
                     <Clock className="w-3 h-3" />
-                    Next check {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Prochaine vérification {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
               </div>
@@ -549,6 +569,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <p className="text-xs text-slate-500 mt-1">
                   Recherche dans les cantons choisis toutes les {settings.discovery_interval_minutes} minutes.
                 </p>
+                {(!settings.is_active || !settings.discovery_active) && discoveryStatus?.provider_configured && (
+                  <p className="text-[11px] text-blue-700 mt-1.5">
+                    Jimy est en pause, mais vous pouvez lancer une recherche unique avec « Chercher maintenant ».
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
                   <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} trouvées aujourd’hui</span>
                   <span className="text-emerald-700">{discoveryStatus?.ready_today || 0} prêtes</span>
@@ -564,7 +589,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <button
                 type="button"
                 onClick={handleDiscoveryStep}
-                disabled={isDiscovering || !settings.is_active || !settings.discovery_active}
+                disabled={isDiscovering || !discoveryStatus?.provider_configured}
                 className="h-9 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Search className={`w-3.5 h-3.5 ${isDiscovering ? 'animate-spin' : ''}`} />
@@ -646,7 +671,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-blue-600 font-medium text-xs group-hover:text-blue-700">
-            <span>View company directory</span>
+            <span>Voir la liste des sociétés</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>

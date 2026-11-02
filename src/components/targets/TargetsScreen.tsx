@@ -340,6 +340,16 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     );
   });
 
+  // Keep the dossier aligned with the visible canton grid. Without this, a
+  // French/Italian filter could leave a German canton open in the side panel.
+  const filteredCantonCodes = filteredCantons.map((canton) => canton.code).join(',');
+  useEffect(() => {
+    const visibleCodes = filteredCantonCodes ? filteredCantonCodes.split(',') : [];
+    if (visibleCodes.length > 0 && !visibleCodes.includes(selectedCantonCode)) {
+      setSelectedCantonCode(visibleCodes[0]);
+    }
+  }, [filteredCantonCodes, selectedCantonCode]);
+
   return (
     <div className="space-y-5 pb-24 md:pb-12 pt-2">
       {/* Snackbar Toast */}
@@ -536,7 +546,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setRegionFilter(tab.id)}
+                onClick={() => {
+                  setRegionFilter(tab.id);
+                  const firstVisibleCanton = tab.id === 'all'
+                    ? ALL_SWISS_CANTONS[0]
+                    : ALL_SWISS_CANTONS.find((canton) => canton.language === tab.id);
+                  if (firstVisibleCanton) setSelectedCantonCode(firstVisibleCanton.code);
+                }}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   regionFilter === tab.id
                     ? 'bg-[#0B2240] text-white'
