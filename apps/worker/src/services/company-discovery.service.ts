@@ -200,8 +200,13 @@ export class CompanyDiscoveryService {
   private async searchFoursquare(query: string, cantonName: string): Promise<PlaceCandidate[]> {
     if (!config.foursquare.apiKey) return [];
     const params = new URLSearchParams({ query, near: `${cantonName}, Switzerland`, limit: '20', fields: 'fsq_id,name,location,tel,website,categories' });
-    const response = await fetch(`https://api.foursquare.com/v3/places/search?${params}`, {
-      signal: AbortSignal.timeout(15_000), headers: { Accept: 'application/json', Authorization: config.foursquare.apiKey },
+    const response = await fetch(`https://places-api.foursquare.com/places/search?${params}`, {
+      signal: AbortSignal.timeout(15_000),
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${config.foursquare.apiKey}`,
+        'X-Places-Api-Version': '2025-06-17',
+      },
     });
     if (!response.ok) throw new Error(`Foursquare search failed (${response.status})`);
     const payload = (await response.json()) as any;
