@@ -199,12 +199,18 @@ export class CompanyDiscoveryService {
 
   private async searchFoursquare(query: string, cantonName: string): Promise<PlaceCandidate[]> {
     if (!config.foursquare.apiKey) return [];
+    // Railway values are sometimes pasted as `Bearer <key>` or with quotes.
+    // Normalize both forms before constructing the Authorization header.
+    const serviceKey = config.foursquare.apiKey
+      .trim()
+      .replace(/^Bearer\s+/i, '')
+      .replace(/^['"]|['"]$/g, '');
     const params = new URLSearchParams({ query, near: `${cantonName}, Switzerland`, limit: '20', fields: 'fsq_id,name,location,tel,website,categories' });
     const response = await fetch(`https://places-api.foursquare.com/places/search?${params}`, {
       signal: AbortSignal.timeout(15_000),
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${config.foursquare.apiKey}`,
+        Authorization: `Bearer ${serviceKey}`,
         'X-Places-Api-Version': '2025-06-17',
       },
     });
