@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AgentSettings, Company, ToneType } from '@/packages/types/src/database.ts';
+import { localizeEquipmentFocus } from '@/packages/types/src/swiss.ts';
 import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
 import { generateDeTemplate } from '@/apps/worker/src/templates/de.template.ts';
 import { generateItTemplate } from '@/apps/worker/src/templates/it.template.ts';
@@ -129,7 +130,10 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     senderPhone: settings.sender_phone,
     tone: settings.tone,
     hooks: settings.hooks,
-    equipmentFocus: settings.equipment_focus,
+    // Localize the buyer's French default list before it reaches the preview.
+    // Templates also normalize it, but doing it here keeps the on-screen
+    // preview faithful to the message that will be sent.
+    equipmentFocus: localizeEquipmentFocus(settings.equipment_focus, activeLang),
   };
 
   const renderedTemplate =
