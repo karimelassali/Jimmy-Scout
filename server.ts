@@ -1473,6 +1473,21 @@ export async function startServer() {
   if (!process.env.VERCEL && process.env.JIMISCOUT_DISABLE_DAEMON !== 'true') {
     outboundScheduler.startDaemonLoop(60_000);
     companyDiscoveryService.startDaemonLoop(5 * 60_000);
+    imapService.startPolling(async (raw) => {
+      console.log(`[Server:IMAP] Incoming message detected from ${raw.senderEmail}`);
+      await inboundService.processInboundMessage({
+        senderEmail: raw.senderEmail,
+        companyName: raw.senderName,
+        rawSubject: raw.subject,
+        rawBody: raw.bodyText,
+        messageId: raw.messageId,
+        imapUid: raw.uid,
+        receivedAt: raw.receivedAt.toISOString(),
+        isBounceReport: raw.isBounceReport,
+        bouncedRecipient: raw.bouncedRecipient,
+        source: 'imap',
+      });
+    });
   }
 
   return app.listen(PORT, '0.0.0.0', () => {
