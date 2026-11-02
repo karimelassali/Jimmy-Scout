@@ -1,4 +1,5 @@
 import { PersonaHooks, ToneType } from '@/packages/types/src/database.ts';
+import { escapeHtml, localizeEquipmentFocus } from '@/packages/types/src/swiss.ts';
 
 export interface TemplateParams {
   companyName: string;
@@ -27,39 +28,67 @@ function isRealPersonName(name?: string, companyName?: string): boolean {
 
 export function generateDeTemplate(params: TemplateParams) {
   const hasPerson = isRealPersonName(params.recipientName, params.companyName);
+  const tone = params.tone || 'swiss_formal';
 
   const salutation = hasPerson
-    ? `Guten Tag ${params.recipientName},`
+    ? tone === 'approachable_trade'
+      ? `Grüezi ${params.recipientName},`
+      : `Guten Tag ${params.recipientName},`
+    : tone === 'approachable_trade'
+    ? `Grüezi miteinander,`
     : `Guten Tag,`;
 
-  let hookItems: string[] = [];
-  let hookHtmlList: string[] = [];
+  const hookItems: string[] = [];
+  const hookHtmlList: string[] = [];
 
   if (params.hooks.cash_settlement) {
-    hookItems.push('- Sofortige Banküberweisung oder Barzahlung vor Abholung');
-    hookHtmlList.push('<li style="margin-bottom: 4px;">Sofortige Banküberweisung oder Barzahlung vor Abholung</li>');
+    const text =
+      tone === 'fast_cash'
+        ? 'Sofortige Direktüberweisung / Barzahlung noch vor Verladung'
+        : 'Sofortige Banküberweisung oder Barzahlung vor Abholung';
+    hookItems.push(`- ${text}`);
+    hookHtmlList.push(`<li style="margin-bottom: 4px;">${escapeHtml(text)}</li>`);
   }
   if (params.hooks.transport_covered) {
-    hookItems.push('- Komplette Organisation und Übernahme des Transports ab Ihrem Werkhof');
-    hookHtmlList.push('<li style="margin-bottom: 4px;">Komplette Organisation und Übernahme des Transports ab Ihrem Werkhof</li>');
+    const text = 'Komplette Organisation und Übernahme des Transports ab Ihrem Werkhof';
+    hookItems.push(`- ${text}`);
+    hookHtmlList.push(`<li style="margin-bottom: 4px;">${escapeHtml(text)}</li>`);
   }
   if (params.hooks.as_is) {
-    hookItems.push('- Kauf im Ist-Zustand ab Platz, ohne Garantieansprüche');
-    hookHtmlList.push('<li style="margin-bottom: 4px;">Kauf im Ist-Zustand ab Platz, ohne Garantieansprüche</li>');
+    const text = 'Kauf im Ist-Zustand ab Platz, ohne Garantieansprüche';
+    hookItems.push(`- ${text}`);
+    hookHtmlList.push(`<li style="margin-bottom: 4px;">${escapeHtml(text)}</li>`);
   }
 
-  const focus = params.equipmentFocus || 'Raupenbagger 15–30t, 4-Achs Kipper, Radlader, Mobilbrecher';
+  const focus = localizeEquipmentFocus(params.equipmentFocus, 'de');
 
-  const subject = `Ankauf Baumaschinen & Nutzfahrzeuge — ${params.companyName}`;
+  const subject =
+    tone === 'fast_cash'
+      ? `Sofortankauf Baumaschinen & LKW — ${params.companyName}`
+      : tone === 'approachable_trade'
+      ? `Direktankauf ab Werkhof (${params.canton}) — ${params.companyName}`
+      : `Ankauf Baumaschinen & Nutzfahrzeuge — ${params.companyName}`;
+
+  const introParagraph =
+    tone === 'fast_cash'
+      ? `wir suchen per sofort gebrauchte Baumaschinen und Lastwagen zur direkten Übernahme gegen schnelle Abwicklung.`
+      : tone === 'approachable_trade'
+      ? `als direkter Einkäufer für Baustellen- und Exportmaschinen fragen wir unkompliziert bei Schweizer Betrieben im Kanton ${params.canton} an.`
+      : `wir kaufen laufend gebrauchte Baumaschinen und Lastwagen in der Schweiz für den Export und unsere Partnerbetriebe an.`;
+
+  const questionParagraph =
+    tone === 'fast_cash'
+      ? `Haben Sie aktuell eine Maschine auf dem Platz (${params.canton}), die Sie kurzfristig und ohne Aufwand verkaufen möchten?`
+      : `Planen Sie in nächster Zeit in Ihrem Betrieb (${params.canton}) den Verkauf oder Ersatz einzelner Maschinen?`;
 
   const body = `${salutation}
 
-wir kaufen laufend gebrauchte Baumaschinen und Lastwagen in der Schweiz für den Export und unsere Partnerbetriebe an.
+${introParagraph}
 
 Aktuell suchen wir insbesondere:
 ${focus}
 
-Planen Sie in nächster Zeit in Ihrem Betrieb (${params.canton}) den Verkauf oder Ersatz einzelner Maschinen?
+${questionParagraph}
 
 Unsere Konditionen:
 ${hookItems.join('\n')}
@@ -77,26 +106,36 @@ ${params.senderEmail}
 --
 Falls Sie keine weiteren Nachrichten wünschen, antworten Sie einfach mit STOP.`;
 
+  const safeCompany = escapeHtml(params.companyName);
+  const safeSalutation = escapeHtml(salutation);
+  const safeIntro = escapeHtml(introParagraph);
+  const safeFocus = escapeHtml(focus);
+  const safeQuestion = escapeHtml(questionParagraph);
+  const safePhone = escapeHtml(params.senderPhone);
+  const safeName = escapeHtml(params.senderName);
+  const safeEmail = escapeHtml(params.senderEmail);
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="x-company" content="${safeCompany}">
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #202124; line-height: 1.5;">
   <div style="max-width: 600px;">
-    <p style="margin: 0 0 14px 0;">${salutation}</p>
+    <p style="margin: 0 0 14px 0;">${safeSalutation}</p>
 
     <p style="margin: 0 0 14px 0;">
-      wir kaufen laufend gebrauchte Baumaschinen und Lastwagen in der Schweiz für den Export und unsere Partnerbetriebe an.
+      ${safeIntro}
     </p>
 
     <p style="margin: 0 0 6px 0;">Aktuell suchen wir insbesondere:</p>
     <p style="margin: 0 0 14px 0; color: #202124;">
-      ${focus}
+      ${safeFocus}
     </p>
 
     <p style="margin: 0 0 14px 0;">
-      Planen Sie in nächster Zeit in Ihrem Betrieb (${params.canton}) den Verkauf oder Ersatz einzelner Maschinen?
+      ${safeQuestion}
     </p>
 
     ${
@@ -109,7 +148,7 @@ Falls Sie keine weiteren Nachrichten wünschen, antworten Sie einfach mit STOP.`
     }
 
     <p style="margin: 0 0 14px 0;">
-      Bei Interesse oder verfügbaren Maschinen erreichen Sie mich direkt per E-Mail oder telefonisch unter <a href="tel:${params.senderPhone}" style="color: #1a73e8; text-decoration: none;">${params.senderPhone}</a>.
+      Bei Interesse oder verfügbaren Maschinen erreichen Sie mich direkt per E-Mail oder telefonisch unter <a href="tel:${safePhone}" style="color: #1a73e8; text-decoration: none;">${safePhone}</a>.
     </p>
 
     <p style="margin: 0 0 20px 0;">Freundliche Grüsse</p>
@@ -121,10 +160,10 @@ Falls Sie keine weiteren Nachrichten wünschen, antworten Sie einfach mit STOP.`
           <img src="cid:jimy_export_profile_pic" alt="JIMY EXPORT" width="48" height="48" style="width: 48px; height: 48px; border-radius: 50%; display: block; object-fit: cover;" />
         </td>
         <td style="vertical-align: top; border-left: 1px solid #dadce0; padding-left: 12px;">
-          <div style="font-weight: bold; color: #202124; font-size: 13px;">${params.senderName}</div>
+          <div style="font-weight: bold; color: #202124; font-size: 13px;">${safeName}</div>
           <div style="color: #5f6368; font-size: 12px;">JIMY EXPORT · Lastwagen &amp; Baumaschine Händler</div>
           <div style="color: #5f6368; font-size: 12px; margin-top: 2px;">
-            <a href="tel:${params.senderPhone}" style="color: #1a73e8; text-decoration: none;">${params.senderPhone}</a> · <a href="mailto:${params.senderEmail}" style="color: #1a73e8; text-decoration: none;">${params.senderEmail}</a>
+            <a href="tel:${safePhone}" style="color: #1a73e8; text-decoration: none;">${safePhone}</a> · <a href="mailto:${safeEmail}" style="color: #1a73e8; text-decoration: none;">${safeEmail}</a>
           </div>
         </td>
       </tr>

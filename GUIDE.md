@@ -178,7 +178,7 @@ sequenceDiagram
 
 ## 🧠 4. How Gemini AI Classifies Contractor Replies
 
-Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` (with automatic failover to `gemini-2.5-flash`) using a strict JSON schema:
+Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` (with automatic failover to `gemini-3-flash-preview`) using a strict JSON schema:
 
 <details>
 <summary><b>🔥 Click to view example JSON output produced by Gemini Triage</b></summary>
@@ -187,6 +187,7 @@ Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` 
 {
   "intent": "HOT_LEAD",
   "confidence": 0.98,
+  "equipment_fit_score": 95,
   "machinery_detected": [
     {
       "type": "Pelle sur chenilles",
@@ -213,7 +214,8 @@ Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` 
 | Intent Classification | Trigger Condition | Automated System Action |
 | :--- | :--- | :--- |
 | **`HOT_LEAD`** | Contractor offers equipment, asks for valuation, or invites an inspection. | Saves to **Incoming Deals**, extracts machine cards, translates summary to French, and sends **Telegram Alert**. |
-| **`NOT_INTERESTED`** | Contractor politely declines or has no machines available right now. | Marks prospect as `Replied - No Stock` so they are not spammed. |
+| **`NEEDS_REVIEW`** | Contractor replies with ambiguous details or asks a question. | Saves to **Incoming Deals** with a `Needs Review` badge for human follow-up. |
+| **`NOT_INTERESTED`** | Contractor politely declines or has no machines available right now. | Marks prospect as `no_stock_temporarily` with a 30-day cooldown (does not permanently blacklist). |
 | **`UNSUBSCRIBE`** | Contractor asks to be removed (`STOP`, `Abmelden`, `Désinscription`). | Permanently adds email to **Suppression Registry** and halts all future outreach. |
 | **`OUT_OF_OFFICE`** | Automated vacation or absence responder. | Logs notice without triggering false-positive Telegram alerts. |
 
@@ -227,9 +229,9 @@ All 5 external services are pre-configured and verified in your environment:
 | :--- | :--- | :--- | :--- |
 | **Outbound SMTP** | `mail.infomaniak.com:587` (STARTTLS) | `info@jimyexport.ch` | 🟢 **LIVE** |
 | **Inbound IMAP** | `mail.infomaniak.com:993` (SSL/TLS) | `info@jimyexport.ch` | 🟢 **LIVE** |
-| **AI Triage Engine** | Google GenAI SDK | `gemini-3.8-flash` + `gemini-2.5-flash` fallback | 🟢 **LIVE** |
-| **Mobile Alerts** | Telegram Bot API | `@Jimy_scout_bot` → Chat ID `6815209178` | 🟢 **LIVE** |
-| **Database & CRM** | Supabase Cloud + Local Sync | `orizmkybusaffoelrwzb.supabase.co` | 🟢 **LIVE** |
+| **AI Triage Engine** | Google GenAI SDK | `gemini-3.8-flash` + `gemini-3-flash-preview` fallback | 🟢 **LIVE** |
+| **Mobile Alerts** | Telegram Bot API | `@Jimy_scout_bot` | 🟢 **LIVE** |
+| **Database & CRM** | Supabase Cloud + Local Sync | PostgreSQL with RLS | 🟢 **LIVE** |
 
 ---
 

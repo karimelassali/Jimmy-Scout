@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { AgentSettings, Company, OutboundLog } from '@/packages/types/src/database.ts';
+import {
+  AgentSettings,
+  Company,
+  OutboundLog,
+  SchedulerStatus,
+} from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
+import {
+  CANTON_BY_CODE,
+  parsePriceString,
+  convertToChf,
+} from '@/packages/types/src/swiss.ts';
 import {
   Play,
   Pause,
@@ -21,6 +31,7 @@ import {
   Coins,
   MapPin,
   SlidersHorizontal,
+  Clock,
 } from 'lucide-react';
 
 interface ControlScreenProps {
@@ -30,13 +41,20 @@ interface ControlScreenProps {
   companies: Company[];
   logs: OutboundLog[];
   sqlReady: boolean;
+  schedulerStatus?: SchedulerStatus | null;
   onRefreshAll: () => Promise<void>;
-  onNavigateToLeads: () => void;
+  onNavigateToLeads: (leadId?: string) => void;
   onNavigateToTargets: () => void;
   onNavigateToPersona: () => void;
   onNavigateToScanner?: () => void;
-  onNavigateToEmails?: () => void;
+  onNavigateToEmails?: (logId?: string) => void;
   todaySentCount: number;
+}
+
+function safeCsvField(val: unknown): string {
+  const raw = val === null || val === undefined ? '' : String(val);
+  const neutralized = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return `"${neutralized.replace(/"/g, '""')}"`;
 }
 
 export const ControlScreen: React.FC<ControlScreenProps> = ({
@@ -45,6 +63,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   leads,
   companies,
   logs,
+  schedulerStatus,
   onRefreshAll,
   onNavigateToLeads,
   onNavigateToTargets,
@@ -65,12 +84,17 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
   const toggleActiveScouting = async () => {
     const nextState = !settings.is_active;
-    await onUpdateSettings({ is_active: nextState });
-    showToast(
-      nextState
-        ? 'Jimy is now working — outreach active during Swiss business hours'
-        : 'Jimy is now waiting on standby'
-    );
+    try {
+      await onUpdateSettings({ is_active: nextState });
+      await onRefreshAll();
+      showToast(
+        nextState
+          ? 'Jimy is now working — outreach active during Swiss business hours (08:30–17:00 Europe/Zurich)'
+          : 'Jimy is now waiting on standby'
+      );
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update automation status', true);
+    }
   };
 
   const handlePollImap = async () => {
@@ -79,7 +103,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       const res = await fetch('/api/imap/poll', { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        showToast(`Could not check mailbox: ${data.error || 'Please check your connection'}`, true);
+        showToast(
+          `Could not check mailbox: ${data.error || 'Please check your connection'}`,
+          true
+        );
       } else {
         await onRefreshAll();
         showToast(
@@ -98,7 +125,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const handleDispatchStep = async () => {
     setIsDispatching(true);
     try {
-      const res = await fetch('/api/worker/step', { method: 'POST' });
+      const res = await fetch('/api/worker/step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manualOverride: true }),
+      });
       const data = await res.json();
       await onRefreshAll();
       if (res.ok && data.status === 'dispatched') {
@@ -119,9 +150,14 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       const res = await fetch('/api/test-telegram', { method: 'POST' });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`Test phone alert sent to Telegram (@${data.botUsername || 'Jimy_scout_bot'})`);
+        showToast(
+          `Test phone alert sent to Telegram (@${data.botUsername || 'Jimy_scout_bot'})`
+        );
       } else {
-        showToast(`Alert error: ${data.error || 'Could not send phone alert'}`, true);
+        showToast(
+          `Alert error: ${data.error || 'Could not send phone alert'}`,
+          true
+        );
       }
     } catch (err: any) {
       showToast(`Alert error: ${err?.message}`, true);
@@ -135,18 +171,38 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       showToast('No deals available to export yet.', true);
       return;
     }
+    const headers = [
+      'ID',
+      'Company',
+      'Canton',
+      'Machinery',
+      'Asking_Price_Raw',
+      'Asking_Price_CHF',
+      'Contact_Phone',
+      'Status',
+      'Next_Action',
+    ];
+    const rows = leads.map((l) => {
+      const firstPrice = l.machinery_detected[0]?.asking_price || '';
+      const parsed = parsePriceString(firstPrice);
+      const chfVal =
+        l.machinery_detected[0]?.asking_price_chf ??
+        convertToChf(parsed.amount, parsed.currency) ??
+        '';
+      return [
+        safeCsvField(l.id),
+        safeCsvField(l.company_name || ''),
+        safeCsvField(l.canton || ''),
+        safeCsvField(l.machinery_detected.map((m) => m.make_model).join('; ')),
+        safeCsvField(firstPrice),
+        safeCsvField(chfVal),
+        safeCsvField(l.contact_phone || ''),
+        safeCsvField(l.lead_status),
+        safeCsvField(l.next_action || ''),
+      ].join(',');
+    });
     const csvContent =
-      'data:text/csv;charset=utf-8,ID,Company,Canton,Machinery,Asking_Price_CHF,Contact_Phone,Status\n' +
-      leads
-        .map(
-          (l) =>
-            `"${l.id}","${l.company_name || ''}","${l.canton || ''}","${l.machinery_detected
-              .map((m) => m.make_model)
-              .join('; ')}","${l.machinery_detected[0]?.asking_price || ''}","${
-              l.contact_phone || ''
-            }","${l.lead_status}"`
-        )
-        .join('\n');
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -154,21 +210,31 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Downloaded deals spreadsheet');
+    showToast('Downloaded formula-safe deals spreadsheet');
   };
 
   // Real metrics from database state
-  const activeContractorsCount = companies.filter((c) => !c.unsubscribed).length;
-  const deliveredLogsCount = logs.filter((l) => l.delivery_status === 'delivered').length;
+  const activeContractorsCount = companies.filter(
+    (c) => !c.unsubscribed && c.email && c.verified_email !== false
+  ).length;
+  const deliveredLogsCount = logs.filter(
+    (l) =>
+      l.delivery_status === 'delivered' ||
+      l.delivery_status === 'accepted' ||
+      l.delivery_status === 'simulated'
+  ).length;
   const newLeadsCount = leads.filter((l) => l.lead_status === 'new').length;
 
+  // Currency-aware CHF calculation (prevents decimal-stripping inflation and converts EUR/USD)
   const totalAskingValueChf = leads.reduce((sum, lead) => {
     for (const m of lead.machinery_detected || []) {
-      if (m.asking_price) {
-        const digits = m.asking_price.replace(/[^0-9]/g, '');
-        const parsed = parseInt(digits, 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          sum += parsed;
+      if (typeof m.asking_price_chf === 'number' && m.asking_price_chf > 0) {
+        sum += m.asking_price_chf;
+      } else if (m.asking_price) {
+        const parsed = parsePriceString(m.asking_price);
+        const chf = convertToChf(parsed.amount, parsed.currency);
+        if (chf && chf > 0) {
+          sum += chf;
         }
       }
     }
@@ -187,7 +253,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const topLead = leads[0];
   const companyById = new Map(companies.map((c) => [c.id, c]));
 
-  // Dynamic time-of-day greeting for admin Mokhtar
   const getDynamicGreeting = () => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'Good morning';
@@ -204,9 +269,33 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     day: 'numeric',
   });
 
+  const getSchedulerBadge = () => {
+    if (!settings.is_active) {
+      return { label: 'Paused by Owner', color: 'bg-slate-100 text-slate-700' };
+    }
+    if (schedulerStatus?.state === 'waiting_for_hours') {
+      return {
+        label: 'Standby until Swiss Business Hours (08:30 Zurich)',
+        color: 'bg-amber-50 text-amber-800 border border-amber-200',
+      };
+    }
+    if (schedulerStatus?.state === 'quota_reached') {
+      return {
+        label: 'Daily Quota Reached',
+        color: 'bg-blue-50 text-blue-800 border border-blue-200',
+      };
+    }
+    return {
+      label: 'Active in Swiss Business Window',
+      color: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    };
+  };
+
+  const schedulerBadge = getSchedulerBadge();
+
   return (
     <div className="space-y-6 pb-24 md:pb-12">
-      {/* Google-style Snackbar Toast */}
+      {/* Snackbar Toast */}
       {toast && (
         <div
           className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-white shadow-lg flex items-center gap-2.5 text-xs sm:text-sm font-medium max-w-xl ${
@@ -271,7 +360,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         />
 
         <div className="p-4 sm:px-5 sm:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Left: Illustration + Compact Status & Inline Quota */}
           <div className="flex items-center gap-4 min-w-0">
             <div
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl p-1.5 shrink-0 flex items-center justify-center border ${
@@ -302,6 +390,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span>{settings.is_active ? 'Jimy is working' : 'Jimy is waiting'}</span>
                 </h2>
 
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${schedulerBadge.color}`}
+                >
+                  {schedulerBadge.label}
+                </span>
+
                 {/* Compact Inline Quota Pill */}
                 <div
                   data-tour="daily-limit-slider"
@@ -310,7 +404,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className="font-mono font-semibold text-[#FF6B00] tabular-nums">
                     {todaySentCount}/{settings.daily_limit}
                   </span>
-                  <span className="text-slate-500 text-[11px]">today</span>
+                  <span className="text-slate-500 text-[11px]">today (Zurich)</span>
                   <div className="w-14 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                     <div
                       className="bg-[#FF6B00] h-full rounded-full transition-all duration-500"
@@ -320,15 +414,27 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
               </div>
 
-              <p className="text-xs text-slate-500 truncate">
-                {settings.is_active
-                  ? `Sending from ${settings.sender_email} · Regions: ${settings.selected_cantons.join(', ')} · Mon–Fri 08:30–17:00`
-                  : `Paused · ${activeContractorsCount} companies ready in ${settings.selected_cantons.join(', ')} · Mon–Fri 08:30–17:00`}
+              <p className="text-xs text-slate-500 truncate flex items-center gap-2">
+                <span>
+                  {settings.is_active
+                    ? `Sending from ${settings.sender_email} · ${settings.selected_cantons.length} Cantons · Mon–Fri 08:30–17:00 Europe/Zurich`
+                    : `Paused · ${activeContractorsCount} verified companies ready across ${settings.selected_cantons.length} Cantons`}
+                </span>
+                {schedulerStatus?.next_send_at && settings.is_active && (
+                  <span className="inline-flex items-center gap-1 text-slate-600 font-mono text-[11px]">
+                    <Clock className="w-3 h-3 text-[#FF6B00]" />
+                    Next slot:{' '}
+                    {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                )}
               </p>
             </div>
           </div>
 
-          {/* Right: Unified Single-Row Action Controls */}
+          {/* Right: Action Controls */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
@@ -337,7 +443,9 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               disabled={isPollingImap}
               className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`}
+              />
               <span>{isPollingImap ? 'Checking...' : 'Check Replies'}</span>
             </button>
 
@@ -380,8 +488,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       </section>
 
       {/* 4-COLUMN VIVID KPI STRIP */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-tour="pipeline-stats">
-        {/* Card 1: Companies */}
+      <section
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        data-tour="pipeline-stats"
+      >
         <div
           onClick={onNavigateToTargets}
           className="bg-white rounded-2xl p-5 border border-slate-200/90 hover:border-blue-300 shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
@@ -397,7 +507,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {companies.length}
             </div>
             <span className="text-xs text-slate-500 mt-1 block">
-              {activeContractorsCount} eligible for outreach
+              {activeContractorsCount} verified &amp; eligible
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-blue-600 font-medium text-xs group-hover:text-blue-700">
@@ -406,11 +516,9 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Emails Sent */}
         <div
-          onClick={onNavigateToEmails}
+          onClick={() => onNavigateToEmails && onNavigateToEmails()}
           className="bg-white rounded-2xl p-5 border border-slate-200/90 hover:border-blue-400 shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
-          title="Click to view all sent emails, full table and rich filters"
         >
           <div>
             <div className="flex items-center justify-between">
@@ -432,9 +540,8 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Machine Offers (Featured Orange Theme Card) */}
         <div
-          onClick={onNavigateToLeads}
+          onClick={() => onNavigateToLeads()}
           className="bg-gradient-to-b from-white to-orange-50/30 rounded-2xl p-5 border border-orange-200 hover:border-[#FF6B00] shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
         >
           <div>
@@ -457,7 +564,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Total Value */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
@@ -470,7 +576,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {formattedPipelineChf}
             </div>
             <span className="text-xs text-emerald-600 font-medium mt-1 block">
-              Combined asking prices
+              Normalized to CHF
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 text-xs">
@@ -481,7 +587,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
       {/* 2-COLUMN WORKSPACE: Outbound Activity + Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 7 Columns: Latest Offer & Outbound Activity */}
         <div className="lg:col-span-7 space-y-6">
           {topLead && (
             <div className="bg-gradient-to-br from-white via-white to-orange-50/40 rounded-2xl p-6 border border-orange-200/90 shadow-2xs space-y-4">
@@ -497,10 +602,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={onNavigateToLeads}
+                  onClick={() => onNavigateToLeads(topLead.id)}
                   className="text-xs font-semibold text-[#FF6B00] hover:text-[#E05E00] flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>View all {leads.length} deals</span>
+                  <span>Open Deal in CRM</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -557,7 +662,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           )}
 
           {/* Outbound Dispatch Stream */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden" data-tour="activity-log">
+          <div
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden"
+            data-tour="activity-log"
+          >
             <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-heading font-bold text-base text-[#0B2240]">
@@ -571,7 +679,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 {onNavigateToEmails && (
                   <button
                     type="button"
-                    onClick={onNavigateToEmails}
+                    onClick={() => onNavigateToEmails()}
                     className="h-8 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-[#1A73E8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <MailCheck className="w-3.5 h-3.5" />
@@ -605,33 +713,40 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   Jimy hasn&apos;t dispatched any emails yet
                 </p>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                  Put Jimy to work above to start scheduled outreach, or click &ldquo;Send 1 Email Now&rdquo; to dispatch an immediate inquiry.
+                  Put Jimy to work above to start scheduled outreach, or click &ldquo;Send 1 Now&rdquo; to dispatch an immediate inquiry.
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {logs.slice(0, 10).map((log) => {
-                  const comp = companyById.get(log.company_id);
+                  const comp = log.company_id ? companyById.get(log.company_id) : undefined;
                   const sentDate = new Date(log.sent_at);
                   const formattedTime = sentDate.toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
                   });
+                  const isOk =
+                    log.delivery_status === 'delivered' ||
+                    log.delivery_status === 'accepted' ||
+                    log.delivery_status === 'simulated';
 
                   return (
                     <div
                       key={log.id}
-                      className="p-4 sm:px-6 hover:bg-slate-50/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                      onClick={() => onNavigateToEmails && onNavigateToEmails(log.id)}
+                      className="p-4 sm:px-6 hover:bg-slate-50/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer"
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                           <span className="font-semibold text-[#0B2240]">
-                            {comp?.name || 'Company'}
+                            {log.company_name || comp?.name || 'Company'}
                           </span>
-                          {comp?.canton && (
+                          {(log.canton || comp?.canton) && (
                             <>
                               <span>·</span>
-                              <span className="font-mono text-slate-600">{comp.canton}</span>
+                              <span className="font-mono text-slate-600">
+                                {log.canton || comp?.canton}
+                              </span>
                             </>
                           )}
                           <span>·</span>
@@ -639,17 +754,21 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                           <span>·</span>
                           <span className="tabular-nums">{formattedTime}</span>
                         </div>
-                        <p className="text-xs font-medium text-slate-700 truncate">{log.subject}</p>
+                        <p className="text-xs font-medium text-slate-700 truncate">
+                          {log.subject}
+                        </p>
                       </div>
 
                       <span
-                        className={`self-start sm:self-center shrink-0 font-medium px-2 py-0.5 rounded-md text-[11px] ${
-                          log.delivery_status === 'delivered'
+                        className={`self-start sm:self-center shrink-0 font-medium px-2 py-0.5 rounded-md text-[11px] capitalize ${
+                          isOk
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                             : 'bg-red-50 text-red-600 border border-red-200/60'
                         }`}
                       >
-                        {log.delivery_status === 'delivered' ? 'Delivered' : 'Bounced'}
+                        {log.delivery_status === 'accepted'
+                          ? 'Accepted by SMTP'
+                          : log.delivery_status}
                       </span>
                     </div>
                   );
@@ -658,7 +777,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
                     <button
                       type="button"
-                      onClick={onNavigateToEmails}
+                      onClick={() => onNavigateToEmails()}
                       className="text-xs font-semibold text-[#1A73E8] hover:text-blue-700 flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
                     >
                       <span>Open Full Sent Emails Table &amp; Analytics</span>
@@ -673,7 +792,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
         {/* Right 5 Columns: Configuration Summary */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Active Swiss Regions */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -685,7 +803,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     Target Swiss Regions
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    {settings.selected_cantons.length} active regions selected
+                    {settings.selected_cantons.length} of 26 cantons active
                   </p>
                 </div>
               </div>
@@ -699,31 +817,16 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </button>
             </div>
 
-            {/* Structured Canton Mini-Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
               {settings.selected_cantons.map((canton) => {
-                const cantonNames: Record<string, { name: string; lang: string }> = {
-                  BE: { name: 'Bern', lang: 'DE/FR' },
-                  ZH: { name: 'Zürich', lang: 'DE' },
-                  VD: { name: 'Vaud', lang: 'FR' },
-                  TI: { name: 'Ticino', lang: 'IT' },
-                  GE: { name: 'Genève', lang: 'FR' },
-                  VS: { name: 'Valais', lang: 'FR/DE' },
-                  AG: { name: 'Aargau', lang: 'DE' },
-                  SG: { name: 'St. Gallen', lang: 'DE' },
-                  LU: { name: 'Luzern', lang: 'DE' },
-                  FR: { name: 'Fribourg', lang: 'FR/DE' },
-                  NE: { name: 'Neuchâtel', lang: 'FR' },
-                  BS: { name: 'Basel-Stadt', lang: 'DE' },
-                  BL: { name: 'Basel-Land', lang: 'DE' },
-                  GR: { name: 'Graubünden', lang: 'DE/IT' },
-                  SO: { name: 'Solothurn', lang: 'DE' },
-                  TG: { name: 'Thurgau', lang: 'DE' },
-                  ZG: { name: 'Zug', lang: 'DE' },
-                  JU: { name: 'Jura', lang: 'FR' },
-                };
-                const info = cantonNames[canton] || { name: `Canton ${canton}`, lang: 'CH' };
-                const countInCanton = companies.filter((c) => c.canton === canton && !c.unsubscribed).length;
+                const info = CANTON_BY_CODE.get(canton);
+                const countInCanton = companies.filter(
+                  (c) =>
+                    c.canton === canton &&
+                    !c.unsubscribed &&
+                    c.email &&
+                    c.verified_email !== false
+                ).length;
 
                 return (
                   <button
@@ -736,12 +839,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       <span className="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 group-hover:border-orange-200 font-mono font-bold text-[11px] text-[#0B2240]">
                         {canton}
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-400">
-                        {info.lang}
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase">
+                        {info?.language || 'DE'}
                       </span>
                     </div>
                     <div className="font-semibold text-xs text-[#0B2240] mt-1.5 truncate">
-                      {info.name}
+                      {info?.name || `Canton ${canton}`}
                     </div>
                     <div className="text-[11px] text-slate-500 truncate">
                       {countInCanton} {countInCanton === 1 ? 'company' : 'companies'}
@@ -751,7 +854,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               })}
             </div>
 
-            {/* Bottom Stat Boxes */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                 <span className="text-[11px] text-slate-500 block">Eligible companies</span>
@@ -768,7 +870,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </div>
           </div>
 
-          {/* Sender Persona & Buyer Terms */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -814,7 +915,9 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </div>
 
               <div className="pt-1 space-y-2">
-                <span className="font-semibold text-[#0B2240] block">Included purchase terms</span>
+                <span className="font-semibold text-[#0B2240] block">
+                  Included purchase terms
+                </span>
                 <div className="space-y-1.5 text-slate-700">
                   {settings.hooks.cash_settlement && (
                     <div className="flex items-center gap-2">

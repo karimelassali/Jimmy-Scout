@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { OutboundLog, Company, AgentSettings } from '@/packages/types/src/database.ts';
 import {
   Search,
@@ -36,6 +36,7 @@ interface OutboundEmailsScreenProps {
   companies: Company[];
   settings: AgentSettings;
   todaySentCount: number;
+  initialLogId?: string | null;
   onRefreshLogs: () => Promise<void>;
   onNavigateToTargets?: (searchQuery?: string) => void;
   onNavigateToPersona?: () => void;
@@ -43,7 +44,7 @@ interface OutboundEmailsScreenProps {
 
 type SortField = 'date' | 'company' | 'canton' | 'status' | 'language';
 type SortOrder = 'asc' | 'desc';
-type StatusFilter = 'all' | 'delivered' | 'simulated' | 'bounced';
+type StatusFilter = 'all' | 'delivered' | 'accepted' | 'simulated' | 'bounced' | 'failed';
 type LanguageFilter = 'all' | 'de' | 'fr' | 'it';
 type TimeFilter = 'all' | 'today' | '7days' | '30days';
 
@@ -52,6 +53,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
   companies,
   settings,
   todaySentCount,
+  initialLogId,
   onRefreshLogs,
   onNavigateToTargets,
   onNavigateToPersona,
@@ -93,6 +95,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
   const companyById = useMemo(() => {
     return new Map(companies.map((c) => [c.id, c]));
   }, [companies]);
+
+  useEffect(() => {
+    if (initialLogId && logs.length > 0) {
+      const found = logs.find((l) => l.id === initialLogId);
+      if (found) setActiveModalLog(found);
+    }
+  }, [initialLogId, logs]);
 
   // Available Cantons in logs for filter dropdown
   const availableCantons = useMemo(() => {
@@ -339,26 +348,32 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
       'Sender Email',
     ];
 
+    const safeCell = (val: unknown) => {
+      const raw = val === null || val === undefined ? '' : String(val).replace(/\n/g, ' ');
+      const neutralized = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+      return `"${neutralized.replace(/"/g, '""')}"`;
+    };
+
     const rows = listToExport.map((log) => {
-      const comp = companyById.get(log.company_id);
+      const comp = log.company_id ? companyById.get(log.company_id) : undefined;
       const compName = log.company_name || comp?.name || 'Unknown';
       const compEmail = log.recipient_email || comp?.email || '';
       const canton = log.canton || comp?.canton || '';
       const localTime = new Date(log.sent_at).toLocaleString();
 
       return [
-        `"${log.id}"`,
-        `"${log.sent_at}"`,
-        `"${localTime}"`,
-        `"${compName.replace(/"/g, '""')}"`,
-        `"${compEmail.replace(/"/g, '""')}"`,
-        `"${canton}"`,
-        `"${log.language.toUpperCase()}"`,
-        `"${(log.subject || '').replace(/"/g, '""')}"`,
-        `"${(log.body_snippet || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
-        `"${log.delivery_status}"`,
-        `"${settings.sender_name}"`,
-        `"${settings.sender_email}"`,
+        safeCell(log.id),
+        safeCell(log.sent_at),
+        safeCell(localTime),
+        safeCell(compName),
+        safeCell(compEmail),
+        safeCell(canton),
+        safeCell(log.language.toUpperCase()),
+        safeCell(log.subject || ''),
+        safeCell(log.body_snippet || ''),
+        safeCell(log.delivery_status),
+        safeCell(settings.sender_name),
+        safeCell(settings.sender_email),
       ].join(',');
     });
 
@@ -397,10 +412,17 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
   // Analytics aggregations
   const totalSentCount = logs.length;
-  const deliveredCount = logs.filter((l) => l.delivery_status === 'delivered').length;
+  const deliveredCount = logs.filter(
+    (l) => l.delivery_status === 'delivered' || l.delivery_status === 'accepted'
+  ).length;
   const simulatedCount = logs.filter((l) => l.delivery_status === 'simulated').length;
-  const bouncedCount = logs.filter((l) => l.delivery_status === 'bounced').length;
-  const successRate = totalSentCount > 0 ? Math.round((deliveredCount / totalSentCount) * 100) : 100;
+  const bouncedCount = logs.filter(
+    (l) => l.delivery_status === 'bounced' || l.delivery_status === 'failed'
+  ).length;
+  const successRate =
+    totalSentCount > 0
+      ? Math.round(((deliveredCount + simulatedCount) / totalSentCount) * 100)
+      : 100;
 
   // Language Breakdown
   const languageCounts = useMemo(() => {
@@ -1052,10 +1074,15 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
                       {/* Delivery Status */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        {log.delivery_status === 'delivered' && (
+                        {(log.delivery_status === 'delivered' ||
+                          log.delivery_status === 'accepted') && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[11px]">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Delivered</span>
+                            <span>
+                              {log.delivery_status === 'accepted'
+                                ? 'Accepted (SMTP)'
+                                : 'Delivered'}
+                            </span>
                           </span>
                         )}
                         {log.delivery_status === 'simulated' && (
@@ -1064,15 +1091,18 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                             <span>Simulated</span>
                           </span>
                         )}
-                        {log.delivery_status === 'bounced' && (
+                        {(log.delivery_status === 'bounced' ||
+                          log.delivery_status === 'failed') && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-[11px]">
                             <AlertCircle className="w-3 h-3 text-rose-600" />
-                            <span>Bounced</span>
+                            <span className="capitalize">{log.delivery_status}</span>
                           </span>
                         )}
-                        {log.delivery_status === 'deferred' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px]">
-                            <span>Deferred</span>
+                        {(log.delivery_status === 'deferred' ||
+                          log.delivery_status === 'sending' ||
+                          log.delivery_status === 'queued') && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px] capitalize">
+                            <span>{log.delivery_status}</span>
                           </span>
                         )}
                       </td>

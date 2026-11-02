@@ -173,10 +173,9 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             <button
               type="button"
               onClick={onOpenSetupWizard}
-              className="h-11 px-4 rounded-full bg-white hover:bg-orange-50/60 text-[#0B2240] border border-slate-200 hover:border-[#FF6B00]/40 font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
+              className="h-10 px-4 rounded-lg bg-white hover:bg-[#F8F9FA] text-[#3C4043] border border-[#DADCE0] font-medium text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-[#FF6B00]" />
-              <span>Assistant Jimy (Configuration guidée)</span>
+              <span>Quick Setup</span>
             </button>
           )}
 

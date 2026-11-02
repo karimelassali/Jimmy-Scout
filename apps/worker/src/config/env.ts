@@ -1,11 +1,31 @@
 import dotenv from 'dotenv';
-dotenv.config({ override: true });
+import path from 'path';
+import fs from 'fs';
+
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, override: true });
+}
 
 const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const smtpSecure =
   process.env.SMTP_SECURE !== undefined
     ? process.env.SMTP_SECURE === 'true'
     : smtpPort === 465;
+
+const rawSmtpPass = process.env.SMTP_PASS?.trim() || '';
+const rawImapPass = process.env.IMAP_PASS?.trim() || '';
+
+// Prefer IMAP_PASS when SMTP_PASS is missing or holds a stale placeholder
+const activeSmtpPass =
+  rawSmtpPass && rawSmtpPass !== 'Thisforinfomaniak@1'
+    ? rawSmtpPass
+    : rawImapPass;
+
+const activeImapPass =
+  rawImapPass && rawImapPass !== 'Thisforinfomaniak@1'
+    ? rawImapPass
+    : activeSmtpPass;
 
 export const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -14,13 +34,13 @@ export const config = {
     port: smtpPort,
     secure: smtpSecure,
     user: process.env.SMTP_USER || 'info@jimyexport.ch',
-    pass: process.env.SMTP_PASS || '',
+    pass: activeSmtpPass,
   },
   imap: {
     host: process.env.IMAP_HOST || 'mail.infomaniak.com',
     port: Number(process.env.IMAP_PORT) || 993,
     user: process.env.IMAP_USER || process.env.SMTP_USER || 'info@jimyexport.ch',
-    pass: process.env.IMAP_PASS || process.env.SMTP_PASS || '',
+    pass: activeImapPass,
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',

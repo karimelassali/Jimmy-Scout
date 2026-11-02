@@ -1,5 +1,5 @@
 // JimiScout PWA Service Worker
-const CACHE_NAME = 'jimiscout-v3';
+const CACHE_NAME = 'jimiscout-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -54,7 +54,9 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('/index.html') || caches.match('/'))
+        .catch(() =>
+          caches.match('/index.html').then((cachedIndex) => cachedIndex || caches.match('/'))
+        )
     );
     return;
   }
@@ -64,7 +66,11 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            networkResponse.type === 'basic'
+          ) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
           }

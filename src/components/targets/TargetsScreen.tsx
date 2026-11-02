@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { AgentSettings, Company } from '@/packages/types/src/database.ts';
+import React, { useState, useEffect } from 'react';
+import { AgentSettings, Company, SuppressionEntry } from '@/packages/types/src/database.ts';
+import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import {
   Search,
   Sliders,
@@ -12,6 +13,10 @@ import {
   Building2,
   Camera,
   MapPin,
+  Edit3,
+  Upload,
+  Download,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface TargetsScreenProps {
@@ -21,114 +26,6 @@ interface TargetsScreenProps {
   onRefreshCompanies: () => Promise<void>;
   onNavigateToScanner?: () => void;
 }
-
-interface CantonMeta {
-  code: string;
-  name: string;
-  region: 'Romandie (FR)' | 'Deutschschweiz (DE)' | 'Ticino (IT)';
-  language: 'fr' | 'de' | 'it';
-  plz: string;
-  primarySector: string;
-}
-
-const SWISS_CANTONS: CantonMeta[] = [
-  {
-    code: 'ZH',
-    name: 'Zürich',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '8000',
-    primarySector: 'Tiefbau & Heavy Earthworks',
-  },
-  {
-    code: 'VD',
-    name: 'Vaud',
-    region: 'Romandie (FR)',
-    language: 'fr',
-    plz: '1000',
-    primarySector: 'Demolition & Mobile Crushing',
-  },
-  {
-    code: 'BE',
-    name: 'Bern',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '3000',
-    primarySector: 'Kieswerk & Mineral Quarries',
-  },
-  {
-    code: 'GE',
-    name: 'Genève',
-    region: 'Romandie (FR)',
-    language: 'fr',
-    plz: '1200',
-    primarySector: 'Urban Civil Engineering',
-  },
-  {
-    code: 'TI',
-    name: 'Ticino',
-    region: 'Ticino (IT)',
-    language: 'it',
-    plz: '6900',
-    primarySector: 'Genio Civile & Stone Quarries',
-  },
-  {
-    code: 'VS',
-    name: 'Valais',
-    region: 'Romandie (FR)',
-    language: 'fr',
-    plz: '1950',
-    primarySector: 'Alpine Earthworks & Tunneling',
-  },
-  {
-    code: 'AG',
-    name: 'Aargau',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '5000',
-    primarySector: 'Kieswerk & Highway Grading',
-  },
-  {
-    code: 'SG',
-    name: 'St. Gallen',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '9000',
-    primarySector: 'Tiefbau Rheintal',
-  },
-  {
-    code: 'LU',
-    name: 'Luzern',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '6000',
-    primarySector: 'Road Construction & Civil Works',
-  },
-  {
-    code: 'FR',
-    name: 'Fribourg',
-    region: 'Romandie (FR)',
-    language: 'fr',
-    plz: '1700',
-    primarySector: 'Civil Engineering & Gravel Pits',
-  },
-  {
-    code: 'NE',
-    name: 'Neuchâtel',
-    region: 'Romandie (FR)',
-    language: 'fr',
-    plz: '2000',
-    primarySector: 'Jura Earthmoving & Trenching',
-  },
-  {
-    code: 'ZG',
-    name: 'Zug',
-    region: 'Deutschschweiz (DE)',
-    language: 'de',
-    plz: '6300',
-    primarySector: 'Commercial Infrastructure',
-  },
-];
 
 export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   settings,
@@ -148,17 +45,53 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const [newCompName, setNewCompName] = useState('');
   const [newCompEmail, setNewCompEmail] = useState('');
   const [newCompPhone, setNewCompPhone] = useState('');
+  const [newCompContactPerson, setNewCompContactPerson] = useState('');
+  const [newCompCity, setNewCompCity] = useState('');
+  const [newCompPostalCode, setNewCompPostalCode] = useState('');
   const [newCompCanton, setNewCompCanton] = useState('ZH');
   const [newCompIndustry, setNewCompIndustry] = useState('civil_engineering');
+  const [newCompNotes, setNewCompNotes] = useState('');
   const [isSavingComp, setIsSavingComp] = useState(false);
+
+  // Edit Contractor Modal State
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [isUpdatingComp, setIsUpdatingComp] = useState(false);
+
+  // CSV Import Modal State
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+
+  // Suppression Registry Modal State
+  const [showSuppressionModal, setShowSuppressionModal] = useState(false);
+  const [suppressions, setSuppressions] = useState<SuppressionEntry[]>([]);
+  const [newSuppEmail, setNewSuppEmail] = useState('');
+  const [newSuppDomain, setNewSuppDomain] = useState('');
+  const [newSuppReason, setNewSuppReason] = useState('manual_opt_out');
 
   // Delete Company Confirmation State
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [isDeletingComp, setIsDeletingComp] = useState(false);
 
+  useEffect(() => {
+    setDailyPace(settings.daily_limit);
+  }, [settings.daily_limit]);
+
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const loadSuppressions = async () => {
+    try {
+      const res = await fetch('/api/suppressions');
+      if (res.ok) {
+        const data = await res.json();
+        setSuppressions(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // ignore
+    }
   };
 
   const handleToggleCanton = async (code: string) => {
@@ -172,35 +105,58 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     } else {
       next = [...settings.selected_cantons, code];
     }
-    await onUpdateSettings({ selected_cantons: next });
-    showToast(
-      `Region ${code} ${next.includes(code) ? 'turned on' : 'turned off'}`
-    );
+    try {
+      await onUpdateSettings({ selected_cantons: next });
+      showToast(`Region ${code} ${next.includes(code) ? 'turned on' : 'turned off'}`);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update cantons', true);
+    }
+  };
+
+  const handleSelectAllCantons = async () => {
+    const allCodes = ALL_SWISS_CANTONS.map((c) => c.code);
+    try {
+      await onUpdateSettings({ selected_cantons: allCodes });
+      showToast('All 26 Swiss cantons enabled');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to enable all cantons', true);
+    }
   };
 
   const handlePaceChange = async (newVal: number) => {
     setDailyPace(newVal);
-    await onUpdateSettings({ daily_limit: newVal });
+    try {
+      await onUpdateSettings({ daily_limit: newVal });
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update daily pace', true);
+    }
   };
 
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCompName.trim() || !newCompEmail.trim()) {
-      showToast('Company name and email are required.', true);
+    if (!newCompName.trim()) {
+      showToast('Company name is required.', true);
       return;
     }
 
     setIsSavingComp(true);
     try {
+      const cleanEmail = newCompEmail.trim().toLowerCase();
       const res = await fetch('/api/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newCompName.trim(),
-          email: newCompEmail.trim(),
+          email: cleanEmail,
+          verified_email: Boolean(cleanEmail && cleanEmail.includes('@')),
           phone: newCompPhone.trim() || null,
+          contact_person: newCompContactPerson.trim() || null,
+          city: newCompCity.trim() || null,
+          postal_code: newCompPostalCode.trim() || null,
           canton: newCompCanton,
           industry: newCompIndustry,
+          notes: newCompNotes.trim() || null,
+          source: 'manual',
         }),
       });
       const data = await res.json();
@@ -212,6 +168,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         setNewCompName('');
         setNewCompEmail('');
         setNewCompPhone('');
+        setNewCompContactPerson('');
+        setNewCompCity('');
+        setNewCompPostalCode('');
+        setNewCompNotes('');
         setShowAddModal(false);
         showToast(`Saved ${data.name} (${data.canton}) to your company list`);
       }
@@ -219,6 +179,114 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       showToast(`Error: ${err?.message}`, true);
     } finally {
       setIsSavingComp(false);
+    }
+  };
+
+  const handleSaveEditedCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCompany) return;
+    setIsUpdatingComp(true);
+    try {
+      const res = await fetch(`/api/companies/${editingCompany.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editingCompany.name,
+          email: editingCompany.email,
+          verified_email: editingCompany.verified_email,
+          canton: editingCompany.canton,
+          language: editingCompany.language,
+          phone: editingCompany.phone,
+          contact_person: editingCompany.contact_person,
+          city: editingCompany.city,
+          postal_code: editingCompany.postal_code,
+          address: editingCompany.address,
+          notes: editingCompany.notes,
+          unsubscribed: editingCompany.unsubscribed,
+          stock_status: editingCompany.stock_status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to update company', true);
+      } else {
+        await onRefreshCompanies();
+        setEditingCompany(null);
+        showToast(`Updated ${data.name}`);
+      }
+    } catch (err: any) {
+      showToast(`Error: ${err?.message}`, true);
+    } finally {
+      setIsUpdatingComp(false);
+    }
+  };
+
+  const handleImportCsv = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvText.trim()) {
+      showToast('Paste CSV content or upload a CSV file first.', true);
+      return;
+    }
+    setIsImportingCsv(true);
+    try {
+      const res = await fetch('/api/companies/import-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csvText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'CSV import failed', true);
+      } else {
+        await onRefreshCompanies();
+        setShowCsvModal(false);
+        setCsvText('');
+        showToast(
+          `CSV Import complete: ${data.added} added, ${data.updated} updated (${data.skipped} skipped)`
+        );
+      }
+    } catch (err: any) {
+      showToast(`Error: ${err?.message}`, true);
+    } finally {
+      setIsImportingCsv(false);
+    }
+  };
+
+  const handleAddSuppression = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSuppEmail.trim() && !newSuppDomain.trim()) {
+      showToast('Enter an email address or domain to block.', true);
+      return;
+    }
+    try {
+      const res = await fetch('/api/suppressions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newSuppEmail.trim() || null,
+          domain: newSuppDomain.trim() || null,
+          reason: newSuppReason,
+        }),
+      });
+      if (res.ok) {
+        setNewSuppEmail('');
+        setNewSuppDomain('');
+        await loadSuppressions();
+        await onRefreshCompanies();
+        showToast('Added to permanent suppression list');
+      }
+    } catch {
+      showToast('Failed to add suppression', true);
+    }
+  };
+
+  const handleRemoveSuppression = async (id: string) => {
+    try {
+      await fetch(`/api/suppressions/${id}`, { method: 'DELETE' });
+      await loadSuppressions();
+      showToast('Removed from suppression list');
+    } catch {
+      showToast('Failed to remove suppression', true);
     }
   };
 
@@ -238,25 +306,37 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   };
 
   const selectedCantonMeta =
-    SWISS_CANTONS.find((c) => c.code === selectedCantonCode) || SWISS_CANTONS[0];
+    ALL_SWISS_CANTONS.find((c) => c.code === selectedCantonCode) || ALL_SWISS_CANTONS[0];
 
   const contractorsInSelectedCanton = companies.filter(
     (c) => c.canton.toUpperCase() === selectedCantonMeta.code
   );
 
   const activeContractorsTotal = companies.filter(
-    (c) => settings.selected_cantons.includes(c.canton) && !c.unsubscribed
+    (c) =>
+      settings.selected_cantons.includes(c.canton) &&
+      !c.unsubscribed &&
+      c.email &&
+      c.verified_email !== false
   ).length;
 
-  const filteredCantons = SWISS_CANTONS.filter((c) => {
+  const filteredCantons = ALL_SWISS_CANTONS.filter((c) => {
     if (regionFilter !== 'all' && c.language !== regionFilter) return false;
     const q = searchTerm.toLowerCase().trim();
     if (!q) return true;
+    const cantonCompanyMatch = companies.some(
+      (comp) =>
+        comp.canton === c.code &&
+        (comp.name.toLowerCase().includes(q) ||
+          (comp.email && comp.email.toLowerCase().includes(q)) ||
+          (comp.city && comp.city.toLowerCase().includes(q)))
+    );
     return (
       c.code.toLowerCase().includes(q) ||
       c.name.toLowerCase().includes(q) ||
       c.plz.includes(q) ||
-      c.primarySector.toLowerCase().includes(q)
+      c.primarySector.toLowerCase().includes(q) ||
+      cantonCompanyMatch
     );
   });
 
@@ -278,33 +358,56 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       )}
 
-      {/* Clean Single-Row Orange-Themed Header */}
+      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Swiss Regions &amp; Company List
+            Swiss Cantons (26) &amp; Contractor Directory
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Select active cantons, manage construction companies, and adjust your daily email speed.
+            Select active cantons across all 26 Swiss regions, manage verified contractors, import CSVs, and enforce opt-out suppressions.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-full border border-slate-200 text-xs font-medium shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
-            <strong className="text-[#0B2240]">{settings.selected_cantons.length} regions active</strong>
+            <strong className="text-[#0B2240]">
+              {settings.selected_cantons.length}/26 cantons
+            </strong>
             <span className="text-slate-300">·</span>
-            <strong className="text-[#FF6B00]">{activeContractorsTotal} companies ready</strong>
+            <strong className="text-[#FF6B00]">{activeContractorsTotal} verified ready</strong>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              loadSuppressions();
+              setShowSuppressionModal(true);
+            }}
+            className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+            <span>Opt-Outs</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowCsvModal(true)}
+            className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+          >
+            <Upload className="w-3.5 h-3.5 text-[#FF6B00]" />
+            <span>CSV Import/Export</span>
+          </button>
 
           {onNavigateToScanner && (
             <button
               type="button"
               onClick={onNavigateToScanner}
-              className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#0B2240] text-[#0B2240] font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+              className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#0B2240] text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
             >
               <Camera className="w-4 h-4 text-[#FF6B00]" />
-              <span>Scan Business Cards</span>
+              <span>Scan Cards</span>
             </button>
           )}
 
@@ -322,7 +425,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       </div>
 
-      {/* COMPACT ORANGE-THEMED DAILY SPEED LIMIT BAR */}
+      {/* DAILY SPEED LIMIT BAR */}
       <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -339,7 +442,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Sent automatically Monday–Friday (8:30 AM – 5:00 PM Swiss time)
+                Sent automatically Monday–Friday (08:30 – 17:00 Europe/Zurich time with 8–18 min jitter)
               </p>
             </div>
           </div>
@@ -390,7 +493,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search canton (Zürich, Vaud, Bern, TI) or postal code..."
+            placeholder="Search canton (ZH, VD, GR, Jura) or contractor..."
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
           />
           {searchTerm && (
@@ -403,22 +506,38 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           )}
         </div>
 
-        {/* Clean Language Filter Pills */}
-        <div className="w-full md:w-auto overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={handleSelectAllCantons}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer shrink-0"
+          >
+            Enable All 26 Cantons
+          </button>
+
           <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shrink-0 min-w-max shadow-2xs">
             {(
               [
-                { id: 'all', label: `All Regions (${SWISS_CANTONS.length})` },
-                { id: 'de', label: 'German (DE)' },
-                { id: 'fr', label: 'French (FR)' },
-                { id: 'it', label: 'Italian (IT)' },
+                { id: 'all', label: `All (${ALL_SWISS_CANTONS.length})` },
+                {
+                  id: 'de',
+                  label: `DE (${ALL_SWISS_CANTONS.filter((c) => c.language === 'de').length})`,
+                },
+                {
+                  id: 'fr',
+                  label: `FR (${ALL_SWISS_CANTONS.filter((c) => c.language === 'fr').length})`,
+                },
+                {
+                  id: 'it',
+                  label: `IT (${ALL_SWISS_CANTONS.filter((c) => c.language === 'it').length})`,
+                },
               ] as const
             ).map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setRegionFilter(tab.id)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   regionFilter === tab.id
                     ? 'bg-[#0B2240] text-white'
                     : 'text-slate-600 hover:text-[#0B2240]'
@@ -431,15 +550,19 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       </div>
 
-      {/* 2-COLUMN WORKSPACE: Cantons Grid + Regional Contractor Dossier */}
+      {/* 2-COLUMN WORKSPACE: 26 Cantons Grid + Regional Contractor Dossier */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 8 Columns: Clean Orange-Themed Canton Cards (No fake avatar circles) */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5" data-tour="canton-selection">
+        <div
+          className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5"
+          data-tour="canton-selection"
+        >
           {filteredCantons.map((canton) => {
             const isSelected = settings.selected_cantons.includes(canton.code);
             const isFocused = selectedCantonCode === canton.code;
             const cantonCompanies = companies.filter((c) => c.canton === canton.code);
-            const cantonEligible = cantonCompanies.filter((c) => !c.unsubscribed).length;
+            const cantonEligible = cantonCompanies.filter(
+              (c) => !c.unsubscribed && c.email && c.verified_email !== false
+            ).length;
 
             return (
               <div
@@ -453,14 +576,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     : 'bg-slate-50/70 border border-slate-200/70 opacity-75 hover:opacity-100 hover:bg-white'
                 }`}
               >
-                {/* Top Row: Full Canton Name + Code Pill + Orange Active Checkbox */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-heading font-bold text-lg text-[#0B2240] leading-tight">
+                      <span className="font-heading font-bold text-base text-[#0B2240] leading-tight truncate">
                         {canton.name}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[11px]">
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[11px] shrink-0">
                         {canton.code}
                       </span>
                     </div>
@@ -473,7 +595,6 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     </div>
                   </div>
 
-                  {/* Orange Toggle Pill */}
                   <button
                     type="button"
                     aria-label={`Toggle Canton ${canton.name}`}
@@ -498,7 +619,6 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   </button>
                 </div>
 
-                {/* Bottom Row: Sector & Company Count Badge */}
                 <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
                   <div className="text-xs font-medium text-slate-700 truncate">
                     {canton.primarySector}
@@ -514,7 +634,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           cantonEligible > 0 ? 'bg-[#FF6B00]' : 'bg-slate-300'
                         }`}
                       />
-                      {cantonEligible} {cantonEligible === 1 ? 'company ready' : 'companies ready'}
+                      {cantonEligible} verified ({cantonCompanies.length} total)
                     </span>
                   </div>
                 </div>
@@ -523,9 +643,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           })}
         </div>
 
-        {/* Right 4 Columns: Clean Orange-Themed Canton Dossier & Companies List */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden sticky top-24" data-tour="company-database">
-          {/* Regional Header */}
+        {/* Right 4 Columns: Regional Contractor Dossier */}
+        <div
+          className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden sticky top-24"
+          data-tour="company-database"
+        >
           <div className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-white border-b border-slate-100 space-y-4">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -552,7 +674,6 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </button>
             </div>
 
-            {/* Stat Mini-Cards */}
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
                 <span className="text-[11px] text-slate-500 block">Companies on List</span>
@@ -561,20 +682,25 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </span>
               </div>
               <div className="bg-orange-50/60 rounded-xl p-3 border border-orange-200/80">
-                <span className="text-[11px] text-slate-600 font-medium block">Ready to Email</span>
+                <span className="text-[11px] text-slate-600 font-medium block">
+                  Verified &amp; Eligible
+                </span>
                 <span className="font-heading font-bold text-xl text-[#FF6B00] tabular-nums mt-0.5 block">
-                  {contractorsInSelectedCanton.filter((c) => !c.unsubscribed).length}
+                  {
+                    contractorsInSelectedCanton.filter(
+                      (c) => !c.unsubscribed && c.email && c.verified_email !== false
+                    ).length
+                  }
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Live Contractors List for this Canton */}
           <div className="p-5 space-y-3">
             <div className="text-xs font-semibold text-[#0B2240] flex items-center justify-between">
               <span>Companies in {selectedCantonMeta.name}</span>
               <span className="font-mono text-[11px] text-slate-400">
-                {selectedCantonMeta.language.toUpperCase()} language
+                Default: {selectedCantonMeta.language.toUpperCase()}
               </span>
             </div>
 
@@ -597,36 +723,74 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {contractorsInSelectedCanton.map((comp) => (
-                  <div
-                    key={comp.id}
-                    className="p-3 rounded-xl bg-slate-50 hover:bg-orange-50/30 border border-slate-200/80 hover:border-orange-200 flex items-center justify-between gap-2.5 text-xs transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#0B2240] truncate">
-                        {comp.name}
-                      </div>
-                      <div className="font-mono text-[11px] text-slate-500 truncate mt-0.5">
-                        {comp.email}
-                      </div>
-                      {comp.unsubscribed && (
-                        <span className="text-[10px] text-red-600 font-semibold">
-                          Unsubscribed (STOP)
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCompanyToDelete(comp)}
-                      aria-label={`Remove ${comp.name}`}
-                      title="Delete company"
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {contractorsInSelectedCanton.map((comp) => {
+                  const hasVerifiedEmail = Boolean(
+                    comp.email && comp.verified_email !== false
+                  );
+                  return (
+                    <div
+                      key={comp.id}
+                      className="p-3 rounded-xl bg-slate-50 hover:bg-orange-50/30 border border-slate-200/80 hover:border-orange-200 flex items-center justify-between gap-2 text-xs transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-[#0B2240] truncate">
+                            {comp.name}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded bg-slate-200/70 text-[10px] font-mono uppercase text-slate-700">
+                            {comp.language || selectedCantonMeta.language}
+                          </span>
+                        </div>
+                        <div className="font-mono text-[11px] text-slate-500 truncate mt-0.5">
+                          {comp.email || 'No email (phone only)'}
+                        </div>
+                        {comp.contact_person && (
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {comp.contact_person} {comp.phone ? `· ${comp.phone}` : ''}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {comp.unsubscribed && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
+                              Opted Out (STOP)
+                            </span>
+                          )}
+                          {!hasVerifiedEmail && !comp.unsubscribed && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">
+                              Needs Verified Email
+                            </span>
+                          )}
+                          {comp.stock_status === 'no_stock_temporarily' && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
+                              No Stock (30d cooldown)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingCompany({ ...comp })}
+                          title="Edit company"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-[#0B2240] transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompanyToDelete(comp)}
+                          aria-label={`Remove ${comp.name}`}
+                          title="Delete company"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -655,14 +819,14 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* ADD CONTRACTOR MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Add a New Company
+                  Add Construction Company
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Language (German, French, or Italian) will match the region automatically.
+                  Leave email blank if you only have a phone number; Jimy will only email verified addresses.
                 </p>
               </div>
               <button
@@ -673,55 +837,50 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleAddCompany} className="space-y-4 text-xs">
-              <div>
-                <label className="font-semibold text-slate-600 block mb-1.5">
-                  Company Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newCompName}
-                  onChange={(e) => setNewCompName(e.target.value)}
-                  placeholder="e.g. Kibag Bauleistungen AG"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-600 block mb-1.5">
-                  Company Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={newCompEmail}
-                  onChange={(e) => setNewCompEmail(e.target.value)}
-                  placeholder="werkstatt@contractor.ch"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleAddCompany} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-600 block mb-1.5">
-                    Swiss Region / Canton *
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Company Name *
                   </label>
-                  <select
-                    value={newCompCanton}
-                    onChange={(e) => setNewCompCanton(e.target.value)}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
-                  >
-                    {SWISS_CANTONS.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} — {c.name} ({c.language.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    required
+                    value={newCompName}
+                    onChange={(e) => setNewCompName(e.target.value)}
+                    placeholder="e.g. Kibag Bauleistungen AG"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
                 </div>
-
                 <div>
-                  <label className="font-semibold text-slate-600 block mb-1.5">
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompContactPerson}
+                    onChange={(e) => setNewCompContactPerson(e.target.value)}
+                    placeholder="e.g. Thomas Müller, Werkhof"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Company Email (Verified)
+                  </label>
+                  <input
+                    type="email"
+                    value={newCompEmail}
+                    onChange={(e) => setNewCompEmail(e.target.value)}
+                    placeholder="werkstatt@contractor.ch"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
                     Phone Number
                   </label>
                   <input
@@ -729,25 +888,82 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     value={newCompPhone}
                     onChange={(e) => setNewCompPhone(e.target.value)}
                     placeholder="+41 44 123 45 67"
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="font-semibold text-slate-600 block mb-1.5">
-                  Type of Work
-                </label>
-                <select
-                  value={newCompIndustry}
-                  onChange={(e) => setNewCompIndustry(e.target.value)}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
-                >
-                  <option value="civil_engineering">Civil Engineering / Génie Civil</option>
-                  <option value="tiefbau">Tiefbau &amp; Earthworks</option>
-                  <option value="demolition">Demolition &amp; Recycling</option>
-                  <option value="quarry">Kieswerk / Quarry</option>
-                </select>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Swiss Canton *
+                  </label>
+                  <select
+                    value={newCompCanton}
+                    onChange={(e) => setNewCompCanton(e.target.value)}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  >
+                    {ALL_SWISS_CANTONS.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} — {c.name} ({c.language.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Postal Code
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompPostalCode}
+                    onChange={(e) => setNewCompPostalCode(e.target.value)}
+                    placeholder="8000"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompCity}
+                    onChange={(e) => setNewCompCity(e.target.value)}
+                    placeholder="Zürich"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Type of Work
+                  </label>
+                  <select
+                    value={newCompIndustry}
+                    onChange={(e) => setNewCompIndustry(e.target.value)}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  >
+                    <option value="civil_engineering">Civil Engineering / Génie Civil</option>
+                    <option value="tiefbau">Tiefbau &amp; Earthworks</option>
+                    <option value="demolition">Demolition &amp; Recycling</option>
+                    <option value="quarry">Kieswerk / Quarry</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompNotes}
+                    onChange={(e) => setNewCompNotes(e.target.value)}
+                    placeholder="Fleet size, preferred machines..."
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                  />
+                </div>
               </div>
 
               <button
@@ -759,6 +975,379 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 <span>{isSavingComp ? 'Saving...' : 'Save Company'}</span>
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT CONTRACTOR MODAL */}
+      {editingCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                  Edit Company Record
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update contractor details, language override, or stock status.
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingCompany(null)}
+                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedCompany} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Company Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingCompany.name}
+                    onChange={(e) =>
+                      setEditingCompany({ ...editingCompany, name: e.target.value })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240]"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    value={editingCompany.contact_person || ''}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        contact_person: e.target.value,
+                      })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editingCompany.email || ''}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        email: e.target.value,
+                        verified_email: Boolean(
+                          e.target.value && e.target.value.includes('@')
+                        ),
+                      })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240]"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editingCompany.phone || ''}
+                    onChange={(e) =>
+                      setEditingCompany({ ...editingCompany, phone: e.target.value })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 font-mono text-sm text-[#0B2240]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Canton
+                  </label>
+                  <select
+                    value={editingCompany.canton}
+                    onChange={(e) =>
+                      setEditingCompany({ ...editingCompany, canton: e.target.value })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240]"
+                  >
+                    {ALL_SWISS_CANTONS.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} — {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Outreach Language
+                  </label>
+                  <select
+                    value={editingCompany.language || 'de'}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        language: e.target.value as 'de' | 'fr' | 'it',
+                      })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240]"
+                  >
+                    <option value="de">German (DE)</option>
+                    <option value="fr">French (FR)</option>
+                    <option value="it">Italian (IT)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Stock Status
+                  </label>
+                  <select
+                    value={editingCompany.stock_status || 'unknown'}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        stock_status: e.target.value as any,
+                      })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240]"
+                  >
+                    <option value="unknown">Unknown</option>
+                    <option value="has_stock">Has Stock</option>
+                    <option value="no_stock_temporarily">No Stock Temporarily</option>
+                    <option value="opted_out">Opted Out</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-1">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingCompany.verified_email !== false}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        verified_email: e.target.checked,
+                      })
+                    }
+                    className="rounded border-slate-300 text-[#FF6B00]"
+                  />
+                  <span className="font-medium text-slate-700">
+                    Email verified for automated outreach
+                  </span>
+                </label>
+
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingCompany.unsubscribed)}
+                    onChange={(e) =>
+                      setEditingCompany({
+                        ...editingCompany,
+                        unsubscribed: e.target.checked,
+                      })
+                    }
+                    className="rounded border-slate-300 text-red-600"
+                  />
+                  <span className="font-medium text-red-700">Unsubscribed (STOP)</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-600 block mb-1">Notes</label>
+                <textarea
+                  rows={2}
+                  value={editingCompany.notes || ''}
+                  onChange={(e) =>
+                    setEditingCompany({ ...editingCompany, notes: e.target.value })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-[#0B2240]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isUpdatingComp}
+                className="w-full h-11 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{isUpdatingComp ? 'Saving...' : 'Save Changes'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV IMPORT / EXPORT MODAL */}
+      {showCsvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                  Verified Contractor CSV Import &amp; Export
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Import contractors from CSV (preserves existing opt-outs and 30-day cooldowns) or download your directory.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCsvModal(false)}
+                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs">
+              <div>
+                <strong className="text-[#0B2240] block">Export Current Directory</strong>
+                <span className="text-slate-500">
+                  Formula-safe CSV with {companies.length} contractor records
+                </span>
+              </div>
+              <a
+                href="/api/companies/export-csv"
+                download
+                className="h-9 px-4 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-xs inline-flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download CSV</span>
+              </a>
+            </div>
+
+            <form onSubmit={handleImportCsv} className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-600">
+                  Paste CSV Rows or Upload .csv File
+                </label>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setCsvText(String(reader.result || ''));
+                    reader.readAsText(file);
+                  }}
+                  className="text-xs text-slate-500"
+                />
+              </div>
+
+              <textarea
+                rows={6}
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                placeholder={
+                  'name,email,canton,phone,contact_person,city,language\nKibag AG,werkstatt@kibag.ch,ZH,+41 44 987 65 43,Hans Meier,Zürich,de'
+                }
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 font-mono text-xs text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+              />
+
+              <button
+                type="submit"
+                disabled={isImportingCsv}
+                className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{isImportingCsv ? 'Importing...' : 'Import Contractors'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUPPRESSION & OPT-OUT REGISTRY MODAL */}
+      {showSuppressionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                  Permanent Suppression &amp; Opt-Out Registry
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Emails and domains listed here are never contacted, even if re-imported via CSV or business card scan.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSuppressionModal(false)}
+                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleAddSuppression}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs"
+            >
+              <input
+                type="email"
+                value={newSuppEmail}
+                onChange={(e) => setNewSuppEmail(e.target.value)}
+                placeholder="email@contractor.ch"
+                className="h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-xs text-[#0B2240]"
+              />
+              <input
+                type="text"
+                value={newSuppDomain}
+                onChange={(e) => setNewSuppDomain(e.target.value)}
+                placeholder="or domain.ch"
+                className="h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-xs text-[#0B2240]"
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs cursor-pointer"
+              >
+                Block Email / Domain
+              </button>
+            </form>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {suppressions.filter((s) => s.unsubscribed).length === 0 ? (
+                <div className="text-xs text-slate-500 text-center py-6 bg-slate-50 rounded-2xl">
+                  No active email/domain suppressions recorded.
+                </div>
+              ) : (
+                suppressions
+                  .filter((s) => s.unsubscribed)
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-mono font-semibold text-[#0B2240]">
+                          {s.email || `@${s.domain}`}
+                        </span>
+                        <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-semibold">
+                          {s.reason}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSuppression(s.id)}
+                        className="text-slate-400 hover:text-red-600 cursor-pointer"
+                        title="Remove suppression"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -777,7 +1366,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     Remove this company?
                   </h3>
                   <p className="text-xs text-slate-500">
-                    This company will be removed from your outreach list.
+                    Prior contact cooldowns and opt-out suppressions are preserved in the registry.
                   </p>
                 </div>
               </div>
@@ -795,7 +1384,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 {companyToDelete.name}
               </div>
               <div className="text-slate-600 font-mono">
-                {companyToDelete.email} · Canton {companyToDelete.canton}
+                {companyToDelete.email || 'Phone only'} · Canton {companyToDelete.canton}
               </div>
             </div>
 

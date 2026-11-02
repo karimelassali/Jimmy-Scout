@@ -1,7 +1,9 @@
 import { config } from '../config/env.ts';
 import { DetectedMachinery } from '@/packages/types/src/lead.ts';
+import { escapeHtml } from '@/packages/types/src/swiss.ts';
 
 export interface TelegramDealAlert {
+  leadId?: string;
   companyName: string;
   canton: string;
   machinery: DetectedMachinery[];
@@ -12,23 +14,23 @@ export interface TelegramDealAlert {
   summary: string;
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
 export class TelegramService {
-  /**
-   * Dispatches a real mobile push notification via Telegram Bot API
-   */
   async sendDealNotification(deal: TelegramDealAlert): Promise<{
     success: boolean;
     messageId?: number;
     botUsername?: string;
+    simulated?: boolean;
     error?: string;
   }> {
+    if (process.env.JIMISCOUT_STUB_EXTERNAL === 'true') {
+      return {
+        success: true,
+        messageId: Math.floor(10000 + Math.random() * 90000),
+        botUsername: 'Jimy_scout_bot',
+        simulated: true,
+      };
+    }
+
     const token = config.telegram.botToken?.trim();
     const chatId = config.telegram.chatId?.trim();
 
@@ -42,22 +44,26 @@ export class TelegramService {
     const machineryLine =
       deal.machinery.length > 0
         ? deal.machinery
-            .map(
-              (m) =>
-                `${m.make_model}${m.year ? ` (${m.year})` : ''}${
-                  m.hours ? ` • ${m.hours.toLocaleString()} hrs` : ''
-                }`
-            )
-            .join(', ')
+             .map(
+               (m) =>
+                 `${m.make_model}${m.year ? ` (${m.year})` : ''}${
+                   m.hours ? ` • ${m.hours.toLocaleString()} hrs` : ''
+                 }`
+             )
+             .join(', ')
         : 'Matériel BTP';
 
     const price = deal.askingPrice || deal.machinery[0]?.asking_price || 'À négocier';
     const seller = deal.sellerName || 'Responsable Matériel';
     const phone = deal.sellerPhone || 'Non communiqué';
-    const appUrl =
+    const baseAppUrl = (
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.APP_URL ||
-      'https://app.jimiexport.ch';
+      'https://jimy-scout.vercel.app'
+    ).replace(/\/$/, '');
+    const deepLink = deal.leadId
+      ? `${baseAppUrl}/?tab=leads&leadId=${encodeURIComponent(deal.leadId)}`
+      : `${baseAppUrl}/?tab=leads`;
 
     const messageText = `🚨 <b>NOUVELLE OFFRE DE MACHINE DISPONIBLE</b>
 
@@ -70,7 +76,7 @@ export class TelegramService {
 
 📝 <b>Résumé:</b> "${escapeHtml(deal.summary)}"
 
-🔗 <a href="${appUrl}">Ouvrir dans JimiScout CRM</a>`;
+🔗 <a href="${escapeHtml(deepLink)}">Ouvrir l'offre dans JimiScout CRM</a>`;
 
     try {
       const url = `https://api.telegram.org/bot${token}/sendMessage`;
@@ -87,7 +93,6 @@ export class TelegramService {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        console.error('[Telegram] API error:', data?.description);
         return {
           success: false,
           error: data?.description || 'Telegram API rejected message',
@@ -99,7 +104,6 @@ export class TelegramService {
         messageId: data?.result?.message_id,
       };
     } catch (err: any) {
-      console.error('[Telegram] Dispatch failed:', err?.message);
       return {
         success: false,
         error: err?.message || 'Network failure contacting Telegram API',
@@ -113,6 +117,10 @@ export class TelegramService {
     chatId?: string;
     error?: string;
   }> {
+    if (process.env.JIMISCOUT_STUB_EXTERNAL === 'true') {
+      return { connected: true, username: 'Jimy_scout_bot', chatId: 'stub-chat' };
+    }
+
     const token = config.telegram.botToken?.trim();
     const chatId = config.telegram.chatId?.trim();
     if (!token) {

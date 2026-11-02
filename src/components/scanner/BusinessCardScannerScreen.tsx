@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Company } from '@/packages/types/src/database.ts';
+import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import {
   Camera,
   Upload,
@@ -9,14 +10,13 @@ import {
   Building2,
   Phone,
   Mail,
-  MapPin,
   Trash2,
   Check,
   Plus,
-  RefreshCw,
   X,
   ArrowRight,
-  ExternalLink,
+  MapPin,
+  User,
 } from 'lucide-react';
 
 interface ExtractedCard {
@@ -24,6 +24,7 @@ interface ExtractedCard {
   name: string;
   contact_person?: string;
   email: string;
+  verified_email: boolean;
   phone?: string;
   address?: string;
   city?: string;
@@ -43,35 +44,6 @@ interface BusinessCardScannerScreenProps {
   onNavigateToTargets: () => void;
   existingCompanies: Company[];
 }
-
-const SWISS_CANTON_OPTIONS = [
-  { code: 'ZH', name: 'Zürich', lang: 'de' },
-  { code: 'BE', name: 'Bern', lang: 'de' },
-  { code: 'VD', name: 'Vaud', lang: 'fr' },
-  { code: 'GE', name: 'Genève', lang: 'fr' },
-  { code: 'TI', name: 'Ticino', lang: 'it' },
-  { code: 'VS', name: 'Valais', lang: 'fr' },
-  { code: 'AG', name: 'Aargau', lang: 'de' },
-  { code: 'SG', name: 'St. Gallen', lang: 'de' },
-  { code: 'LU', name: 'Luzern', lang: 'de' },
-  { code: 'FR', name: 'Fribourg', lang: 'fr' },
-  { code: 'NE', name: 'Neuchâtel', lang: 'fr' },
-  { code: 'ZG', name: 'Zug', lang: 'de' },
-  { code: 'SO', name: 'Solothurn', lang: 'de' },
-  { code: 'BL', name: 'Basel-Landschaft', lang: 'de' },
-  { code: 'BS', name: 'Basel-Stadt', lang: 'de' },
-  { code: 'TG', name: 'Thurgau', lang: 'de' },
-  { code: 'GR', name: 'Graubünden', lang: 'de' },
-  { code: 'SZ', name: 'Schwyz', lang: 'de' },
-  { code: 'SH', name: 'Schaffhausen', lang: 'de' },
-  { code: 'JU', name: 'Jura', lang: 'fr' },
-  { code: 'AR', name: 'Appenzell Ausserrhoden', lang: 'de' },
-  { code: 'AI', name: 'Appenzell Innerrhoden', lang: 'de' },
-  { code: 'GL', name: 'Glarus', lang: 'de' },
-  { code: 'NW', name: 'Nidwalden', lang: 'de' },
-  { code: 'OW', name: 'Obwalden', lang: 'de' },
-  { code: 'UR', name: 'Uri', lang: 'de' },
-];
 
 export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps> = ({
   onRefreshCompanies,
@@ -152,29 +124,42 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
       if (!res.ok) {
         showToast(data.error || 'Failed to read business cards', true);
       } else if (!data.cards || data.cards.length === 0) {
-        showToast('No company business cards found in the photo. Please try a clearer picture.', true);
+        showToast(
+          'No company business cards found in the photo. Please try a clearer picture.',
+          true
+        );
       } else {
-        const mapped: ExtractedCard[] = data.cards.map((c: any) => ({
-          tempId: Math.random().toString(36).substring(2, 9),
-          name: c.name || 'Unknown Company',
-          contact_person: c.contact_person || '',
-          email: c.email || '',
-          phone: c.phone || '',
-          address: c.address || '',
-          city: c.city || '',
-          postal_code: c.postal_code || '',
-          canton: (c.canton || 'ZH').toUpperCase(),
-          domain: c.domain || '',
-          industry: c.industry || 'civil_engineering',
-          language: c.language || 'de',
-          notes: c.notes || '',
-          confidence: c.confidence || 0.85,
-          selected: true,
-          saved: false,
-        }));
+        const mapped: ExtractedCard[] = data.cards.map((c: any) => {
+          const cleanEmail = (c.email || '').trim().toLowerCase();
+          const hasValidEmail = Boolean(cleanEmail && cleanEmail.includes('@'));
+          return {
+            tempId: Math.random().toString(36).substring(2, 9),
+            name: c.name || 'Unknown Company',
+            contact_person: c.contact_person || '',
+            email: cleanEmail,
+            verified_email:
+              typeof c.verified_email === 'boolean'
+                ? c.verified_email && hasValidEmail
+                : hasValidEmail,
+            phone: c.phone || '',
+            address: c.address || '',
+            city: c.city || '',
+            postal_code: c.postal_code || '',
+            canton: (c.canton || 'ZH').toUpperCase(),
+            domain: c.domain || '',
+            industry: c.industry || 'civil_engineering',
+            language: c.language || 'de',
+            notes: c.notes || '',
+            confidence: typeof c.confidence === 'number' ? c.confidence : 0.85,
+            selected: true,
+            saved: false,
+          };
+        });
 
         setExtractedCards(mapped);
-        showToast(`AI extracted ${mapped.length} company card${mapped.length === 1 ? '' : 's'}!`);
+        showToast(
+          `AI extracted ${mapped.length} company card${mapped.length === 1 ? '' : 's'}!`
+        );
       }
     } catch (err: any) {
       showToast(`Error scanning cards: ${err?.message || 'Network error'}`, true);
@@ -193,10 +178,14 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
         if (card.tempId === tempId) {
           const updated = { ...card, [field]: value };
           if (field === 'canton') {
-            const match = SWISS_CANTON_OPTIONS.find((c) => c.code === value);
+            const match = ALL_SWISS_CANTONS.find((c) => c.code === value);
             if (match) {
-              updated.language = match.lang as any;
+              updated.language = match.language;
             }
+          }
+          if (field === 'email') {
+            const clean = String(value || '').trim();
+            updated.verified_email = Boolean(clean && clean.includes('@'));
           }
           return updated;
         }
@@ -222,16 +211,28 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
   const handleSaveSingleCard = async (card: ExtractedCard) => {
     try {
+      const cleanEmail = (card.email || '').trim().toLowerCase();
+      const hasValidEmail = Boolean(cleanEmail && cleanEmail.includes('@'));
+
       const res = await fetch('/api/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: card.name,
-          email: card.email || `info@${card.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.ch`,
+          email: cleanEmail,
+          verified_email: hasValidEmail,
           canton: card.canton,
+          language: card.language,
           phone: card.phone || null,
           domain: card.domain || null,
           industry: card.industry,
+          contact_person: card.contact_person || null,
+          address: card.address || null,
+          postal_code: card.postal_code || null,
+          city: card.city || null,
+          notes: card.notes || null,
+          source: 'ocr',
+          confidence: card.confidence,
         }),
       });
 
@@ -245,7 +246,11 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
       setExtractedCards((prev) =>
         prev.map((c) => (c.tempId === card.tempId ? { ...c, saved: true } : c))
       );
-      showToast(`Saved ${card.name} (${card.canton}) to your company list!`);
+      showToast(
+        hasValidEmail
+          ? `Saved ${card.name} (${card.canton}) with verified email!`
+          : `Saved ${card.name} (${card.canton}) as phone-only record (email needs verification before outreach).`
+      );
     } catch (err: any) {
       showToast(`Error: ${err?.message}`, true);
     }
@@ -260,18 +265,27 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
     setIsSavingAll(true);
     try {
-      const payload = selectedCards.map((c) => ({
-        name: c.name,
-        email: c.email || `contact@${c.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.ch`,
-        canton: c.canton,
-        phone: c.phone || null,
-        domain: c.domain || null,
-        industry: c.industry,
-        language: c.language,
-        notes: c.contact_person
-          ? `Contact: ${c.contact_person}${c.notes ? ' · ' + c.notes : ''}`
-          : c.notes || null,
-      }));
+      const payload = selectedCards.map((c) => {
+        const cleanEmail = (c.email || '').trim().toLowerCase();
+        const hasValidEmail = Boolean(cleanEmail && cleanEmail.includes('@'));
+        return {
+          name: c.name,
+          email: cleanEmail,
+          verified_email: hasValidEmail,
+          canton: c.canton,
+          phone: c.phone || null,
+          domain: c.domain || null,
+          industry: c.industry,
+          language: c.language,
+          contact_person: c.contact_person || null,
+          address: c.address || null,
+          postal_code: c.postal_code || null,
+          city: c.city || null,
+          notes: c.notes || null,
+          source: 'ocr',
+          confidence: c.confidence,
+        };
+      });
 
       const res = await fetch('/api/companies/bulk', {
         method: 'POST',
@@ -289,7 +303,9 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
             selectedCards.some((sc) => sc.tempId === c.tempId) ? { ...c, saved: true } : c
           )
         );
-        showToast(`Successfully saved ${data.added || selectedCards.length} companies to your list!`);
+        showToast(
+          `Saved ${data.added || 0} new and updated ${data.updated || 0} existing contractor records!`
+        );
       }
     } catch (err: any) {
       showToast(`Error saving companies: ${err?.message}`, true);
@@ -330,7 +346,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
             Scan Business Cards &amp; Add in Bulk
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Take a photo or upload pictures of contractor visit cards. The AI extracts the company name, phone, email, and Swiss region to add to Jimy's scouting targets.
+            Take a photo or upload pictures of contractor visit cards. The AI extracts the company name, contact person, address, phone, email, and Swiss canton without fabricating missing emails.
           </p>
         </div>
 
@@ -430,7 +446,10 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
         {selectedImages.length > 0 && (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between text-xs font-bold text-[#0B2240]">
-              <span>Ready to Scan ({selectedImages.length} photo{selectedImages.length === 1 ? '' : 's'} selected):</span>
+              <span>
+                Ready to Scan ({selectedImages.length} photo
+                {selectedImages.length === 1 ? '' : 's'} selected):
+              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
@@ -463,8 +482,14 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 disabled={isScanning}
                 className="h-13 px-8 rounded-2xl bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-bold text-sm sm:text-base flex items-center gap-3 shadow-lg hover:shadow-xl active:scale-95 transition-all cursor-pointer disabled:opacity-50"
               >
-                <Sparkles className={`w-5 h-5 text-[#FF6B00] ${isScanning ? 'animate-spin' : ''}`} />
-                <span>{isScanning ? 'Reading Business Cards with AI...' : 'Scan Business Cards with AI'}</span>
+                <Sparkles
+                  className={`w-5 h-5 text-[#FF6B00] ${isScanning ? 'animate-spin' : ''}`}
+                />
+                <span>
+                  {isScanning
+                    ? 'Reading Business Cards with AI...'
+                    : 'Scan Business Cards with AI'}
+                </span>
               </button>
             </div>
           </div>
@@ -485,7 +510,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Verify the extracted company details below. You can edit any field before adding them to your system.
+                Verify the extracted details below. Cards without an email are saved as phone-only records until an email is verified.
               </p>
             </div>
 
@@ -519,9 +544,12 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
             {extractedCards.map((card, idx) => {
               const isAlreadyInSystem = existingCompanies.some(
                 (ec) =>
-                  ec.email.toLowerCase() === card.email?.toLowerCase() ||
+                  (card.email &&
+                    ec.email &&
+                    ec.email.toLowerCase() === card.email.toLowerCase()) ||
                   ec.name.toLowerCase() === card.name.toLowerCase()
               );
+              const hasEmail = Boolean(card.email && card.email.includes('@'));
 
               return (
                 <div
@@ -554,7 +582,12 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {!hasEmail && (
+                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-semibold text-[11px] border border-amber-200">
+                          No Email (Phone Only)
+                        </span>
+                      )}
                       {card.saved ? (
                         <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1 border border-emerald-300">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -566,7 +599,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                         </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-mono font-bold text-xs border border-blue-200">
-                          {((card.confidence || 0.85) * 100).toFixed(0)}% Match
+                          {((card.confidence || 0.85) * 100).toFixed(0)}% OCR
                         </span>
                       )}
 
@@ -583,31 +616,55 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                   {/* Editable Fields Form */}
                   <div className="space-y-3 text-xs pt-1">
-                    <div>
-                      <label className="font-semibold text-slate-600 block mb-1">
-                        Company Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={card.name}
-                        onChange={(e) =>
-                          handleCardFieldChange(card.tempId, 'name', e.target.value)
-                        }
-                        className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-semibold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">
+                          Company Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={card.name}
+                          onChange={(e) =>
+                            handleCardFieldChange(card.tempId, 'name', e.target.value)
+                          }
+                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-semibold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">
+                          Contact Person &amp; Role
+                        </label>
+                        <div className="relative">
+                          <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                          <input
+                            type="text"
+                            value={card.contact_person || ''}
+                            placeholder="e.g. Marc Blanc, Werkhofleiter"
+                            onChange={(e) =>
+                              handleCardFieldChange(
+                                card.tempId,
+                                'contact_person',
+                                e.target.value
+                              )
+                            }
+                            className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Email Address *
+                          Verified Email (leave blank if not on card)
                         </label>
                         <div className="relative">
-                          <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                          <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                           <input
                             type="email"
                             value={card.email}
-                            placeholder="company@domain.ch"
+                            placeholder="Leave blank if not printed on card"
                             onChange={(e) =>
                               handleCardFieldChange(card.tempId, 'email', e.target.value)
                             }
@@ -621,10 +678,10 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                           Phone Number
                         </label>
                         <div className="relative">
-                          <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                          <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                           <input
                             type="text"
-                            value={card.phone}
+                            value={card.phone || ''}
                             placeholder="+41 44 ..."
                             onChange={(e) =>
                               handleCardFieldChange(card.tempId, 'phone', e.target.value)
@@ -635,19 +692,19 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Swiss Region / Canton
+                          Canton
                         </label>
                         <select
                           value={card.canton}
                           onChange={(e) =>
                             handleCardFieldChange(card.tempId, 'canton', e.target.value)
                           }
-                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-2.5 font-bold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-2 font-bold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                         >
-                          {SWISS_CANTON_OPTIONS.map((c) => (
+                          {ALL_SWISS_CANTONS.map((c) => (
                             <option key={c.code} value={c.code}>
                               {c.code} — {c.name}
                             </option>
@@ -657,12 +714,27 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
+                          Postal Code
+                        </label>
+                        <input
+                          type="text"
+                          value={card.postal_code || ''}
+                          placeholder="1000"
+                          onChange={(e) =>
+                            handleCardFieldChange(card.tempId, 'postal_code', e.target.value)
+                          }
+                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">
                           City / Town
                         </label>
                         <input
                           type="text"
                           value={card.city || ''}
-                          placeholder="e.g. Lausanne"
+                          placeholder="Lausanne"
                           onChange={(e) =>
                             handleCardFieldChange(card.tempId, 'city', e.target.value)
                           }
@@ -672,44 +744,71 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Type of Work
+                          Language
                         </label>
                         <select
-                          value={card.industry}
+                          value={card.language}
                           onChange={(e) =>
-                            handleCardFieldChange(card.tempId, 'industry', e.target.value)
+                            handleCardFieldChange(card.tempId, 'language', e.target.value)
                           }
-                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-2 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-2 font-bold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                         >
-                          <option value="civil_engineering">Civil Engineering</option>
-                          <option value="tiefbau">Earthworks / Tiefbau</option>
-                          <option value="demolition">Demolition</option>
-                          <option value="quarry">Quarry / Kieswerk</option>
+                          <option value="de">DE (German)</option>
+                          <option value="fr">FR (French)</option>
+                          <option value="it">IT (Italian)</option>
                         </select>
                       </div>
                     </div>
 
-                    {card.contact_person && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Contact Person &amp; Title
+                          Street Address
+                        </label>
+                        <div className="relative">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                          <input
+                            type="text"
+                            value={card.address || ''}
+                            placeholder="Rue de l'Industrie 12"
+                            onChange={(e) =>
+                              handleCardFieldChange(card.tempId, 'address', e.target.value)
+                            }
+                            className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">
+                          Sector / Notes
                         </label>
                         <input
                           type="text"
-                          value={card.contact_person}
+                          value={card.notes || ''}
+                          placeholder="Earthworks, excavators, fleet notes..."
                           onChange={(e) =>
-                            handleCardFieldChange(card.tempId, 'contact_person', e.target.value)
+                            handleCardFieldChange(card.tempId, 'notes', e.target.value)
                           }
                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Card Bottom Actions */}
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
                     <span className="text-[11px] text-slate-500">
-                      Language: <strong>{card.language.toUpperCase()}</strong>
+                      Outreach Language: <strong>{card.language.toUpperCase()}</strong> ·{' '}
+                      {hasEmail ? (
+                        <span className="text-emerald-700 font-semibold">
+                          Ready for email outreach
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 font-semibold">
+                          Saved for phone/manual email verification
+                        </span>
+                      )}
                     </span>
 
                     {!card.saved && (
