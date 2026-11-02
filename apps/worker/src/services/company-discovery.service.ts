@@ -205,7 +205,7 @@ export class CompanyDiscoveryService {
       .trim()
       .replace(/^Bearer\s+/i, '')
       .replace(/^['"]|['"]$/g, '');
-    const params = new URLSearchParams({ query, near: `${cantonName}, Switzerland`, limit: '20', fields: 'fsq_id,name,location,tel,website,categories' });
+    const params = new URLSearchParams({ query, near: `${cantonName}, Switzerland`, limit: '20', fields: 'fsq_place_id,name,location,tel,website,categories' });
     const response = await fetch(`https://places-api.foursquare.com/places/search?${params}`, {
       signal: AbortSignal.timeout(15_000),
       headers: {
@@ -217,7 +217,7 @@ export class CompanyDiscoveryService {
     if (!response.ok) throw new Error(`Foursquare search failed (${response.status})`);
     const payload = (await response.json()) as any;
     return (Array.isArray(payload.results) ? payload.results : []).map((place: any) => ({
-      id: `fsq:${place.fsq_id}`, name: String(place.name || '').trim(), website: place.website || null,
+      id: `fsq:${place.fsq_place_id}`, name: String(place.name || '').trim(), website: place.website || null,
       phone: place.tel || null, address: place.location?.formatted_address || null,
       businessStatus: null, types: (place.categories || []).map((c: any) => c.name),
     })).filter((place: PlaceCandidate) => place.id && place.name);
