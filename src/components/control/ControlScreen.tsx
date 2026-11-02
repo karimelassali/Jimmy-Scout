@@ -301,15 +301,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
   const getDynamicGreeting = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'Good morning';
-    if (hour >= 12 && hour < 17) return 'Good afternoon';
-    if (hour >= 17 && hour < 22) return 'Good evening';
-    return 'Good night';
+    if (hour >= 5 && hour < 12) return 'Bonjour';
+    if (hour >= 12 && hour < 17) return 'Bon après-midi';
+    if (hour >= 17 && hour < 22) return 'Bonsoir';
+    return 'Bonne nuit';
   };
 
   const timeGreeting = getDynamicGreeting();
   const adminName = settings.sender_name?.trim() || 'Jamal';
-  const formattedDate = new Date().toLocaleDateString('en-US', {
+  const formattedDate = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -321,7 +321,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     }
     if (schedulerStatus?.state === 'waiting_for_hours') {
       return {
-        label: 'Standby until Swiss Business Hours (08:30 Zurich)',
+        label: 'En attente jusqu’à 08 h 30 (Zurich)',
         color: 'bg-amber-50 text-amber-800 border border-amber-200',
       };
     }
@@ -332,7 +332,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       };
     }
     return {
-      label: 'Active in Swiss Business Window',
+      label: 'Actif pendant les heures suisses',
       color: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     };
   };
@@ -362,7 +362,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
-            <span>{formattedDate} · Swiss Procurement Workspace</span>
+            <span>{formattedDate} · Espace d’achat suisse</span>
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
             {timeGreeting}, {adminName}
@@ -539,17 +539,17 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {settings.discovery_active ? discoveryStatus?.state || 'enabled' : 'paused'}
+                    {settings.discovery_active ? discoveryStatus?.state || 'activée' : 'en pause'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Recherche dans les cantons choisis toutes les {settings.discovery_interval_minutes} minutes.
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
-                  <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} found today</span>
-                  <span className="text-emerald-700">{discoveryStatus?.ready_today || 0} ready</span>
-                  <span className="text-amber-700">{discoveryStatus?.missing_email_today || 0} need email</span>
-                  <span className="text-slate-500">{discoveryStatus?.duplicates_today || 0} duplicates</span>
+                  <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} trouvées aujourd’hui</span>
+                  <span className="text-emerald-700">{discoveryStatus?.ready_today || 0} prêtes</span>
+                  <span className="text-amber-700">{discoveryStatus?.missing_email_today || 0} sans courriel</span>
+                  <span className="text-slate-500">{discoveryStatus?.duplicates_today || 0} doublons</span>
                 </div>
                 {!discoveryStatus?.provider_configured && (
                   <p className="text-[11px] text-amber-700 mt-2">Ajoutez une source de recherche pour commencer.</p>
@@ -570,10 +570,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 type="button"
                 role="switch"
                 aria-checked={settings.discovery_active}
-                aria-label="Automatic company discovery"
+                aria-label="Recherche automatique de sociétés"
                 onClick={() => toggleEngine('discovery_active')}
                 className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${settings.discovery_active ? 'bg-blue-600' : 'bg-slate-300'}`}
-                title="Toggle automatic company discovery"
+                title="Activer ou arrêter la recherche automatique"
               >
                 <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.discovery_active ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
@@ -591,15 +591,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {settings.outreach_active ? schedulerStatus?.state || 'enabled' : 'paused'}
+                    {settings.outreach_active ? schedulerStatus?.state || 'activé' : 'en pause'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Emails verified companies during Swiss business hours only.
+                  Envoie des courriels aux sociétés vérifiées pendant les heures suisses.
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
-                  <span className="font-semibold text-[#0B2240]">{todaySentCount}/{settings.daily_limit} sent today</span>
-                  <span className="text-emerald-700">{activeContractorsCount} verified ready</span>
+                  <span className="font-semibold text-[#0B2240]">{todaySentCount}/{settings.daily_limit} envoyés aujourd’hui</span>
+                  <span className="text-emerald-700">{activeContractorsCount} prêtes</span>
                 </div>
               </div>
             </div>
@@ -607,10 +607,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               type="button"
               role="switch"
               aria-checked={settings.outreach_active}
-              aria-label="Automatic outreach"
+              aria-label="Envoi automatique"
               onClick={() => toggleEngine('outreach_active')}
               className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${settings.outreach_active ? 'bg-emerald-600' : 'bg-slate-300'}`}
-              title="Toggle automatic outreach"
+              title="Activer ou arrêter l’envoi automatique"
             >
               <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.outreach_active ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -629,7 +629,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         >
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">Target Companies</span>
+              <span className="text-xs font-medium text-slate-500">Sociétés cibles</span>
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
                 <Building2 className="w-4 h-4" />
               </div>
@@ -638,7 +638,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {companies.length}
             </div>
             <span className="text-xs text-slate-500 mt-1 block">
-              {activeContractorsCount} verified &amp; eligible
+              {activeContractorsCount} vérifiées et prêtes
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-blue-600 font-medium text-xs group-hover:text-blue-700">
@@ -653,7 +653,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         >
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">Emails Sent by Jimy</span>
+              <span className="text-xs font-medium text-slate-500">Courriels envoyés par Jimy</span>
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <MailCheck className="w-4 h-4" />
               </div>
@@ -662,7 +662,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {deliveredLogsCount}
             </div>
             <span className="text-xs text-slate-500 mt-1 block">
-              {todaySentCount} sent today
+              {todaySentCount} envoyés aujourd’hui
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[#1A73E8] font-medium text-xs group-hover:text-blue-700">
@@ -677,7 +677,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         >
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#FF6B00]">Machines Offered</span>
+              <span className="text-xs font-semibold text-[#FF6B00]">Machines proposées</span>
               <div className="w-9 h-9 rounded-xl bg-orange-100/80 text-[#FF6B00] border border-orange-200/80 flex items-center justify-center">
                 <Flame className="w-4 h-4" />
               </div>
@@ -686,11 +686,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {leads.length}
             </div>
             <span className="text-xs text-slate-600 mt-1 block">
-              {newLeadsCount} unread seller {newLeadsCount === 1 ? 'reply' : 'replies'}
+              {newLeadsCount} {newLeadsCount === 1 ? 'réponse non lue' : 'réponses non lues'}
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-orange-100 flex items-center justify-between text-[#FF6B00] font-semibold text-xs group-hover:text-[#E05E00]">
-            <span>Review machine deals</span>
+            <span>Voir les dossiers machines</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
@@ -698,7 +698,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">Total Offer Value</span>
+              <span className="text-xs font-medium text-slate-500">Valeur totale des offres</span>
               <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
                 <Coins className="w-4 h-4" />
               </div>
@@ -707,11 +707,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {formattedPipelineChf}
             </div>
             <span className="text-xs text-emerald-600 font-medium mt-1 block">
-              Normalized to CHF
+              Convertie en CHF
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 text-xs">
-            <span>Direct seller quotes</span>
+            <span>Prix donnés par les vendeurs</span>
           </div>
         </div>
       </section>
@@ -725,7 +725,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full bg-orange-100/80 text-[#FF6B00] font-semibold text-xs border border-orange-200 flex items-center gap-1.5">
                     <Flame className="w-3 h-3 fill-[#FF6B00]" />
-                    <span>Latest Seller Offer</span>
+                    <span>Dernière offre du vendeur</span>
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-medium text-xs">
                     Canton {topLead.canton || 'CH'}
@@ -736,7 +736,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   onClick={() => onNavigateToLeads(topLead.id)}
                   className="text-xs font-semibold text-[#FF6B00] hover:text-[#E05E00] flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>Open Deal in CRM</span>
+                  <span>Ouvrir le dossier</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -744,7 +744,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <div className="p-4 rounded-xl bg-white border border-orange-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="font-heading font-bold text-base sm:text-lg text-[#0B2240]">
-                    {topLead.machinery_detected[0]?.make_model || 'Heavy Machinery'}
+                    {topLead.machinery_detected[0]?.make_model || 'Machine de chantier'}
                   </h3>
                   <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-slate-700">{topLead.company_name}</span>
@@ -780,7 +780,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       className="h-9 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-medium text-xs flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-2xs"
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
-                      <span>Call Seller</span>
+                      <span>Appeler le vendeur</span>
                     </a>
                   )}
                 </div>
@@ -800,10 +800,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-heading font-bold text-base text-[#0B2240]">
-                  Jimy&apos;s Outbound Activity
+                  Activité d’envoi de Jimy
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Recent inquiries sent from {settings.sender_email}
+                  Dernières demandes envoyées depuis {settings.sender_email}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -814,7 +814,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     className="h-8 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-[#1A73E8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <MailCheck className="w-3.5 h-3.5" />
-                    <span>View All ({logs.length}) in Table</span>
+                    <span>Voir tout ({logs.length})</span>
                   </button>
                 )}
                 {onNavigateToScanner && (
@@ -841,10 +841,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             {logs.length === 0 ? (
               <div className="p-8 text-center space-y-1.5">
                 <p className="text-sm font-semibold text-[#0B2240]">
-                  Jimy hasn&apos;t dispatched any emails yet
+                  Jimy n’a encore envoyé aucun courriel
                 </p>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                  Put Jimy to work above to start scheduled outreach, or click &ldquo;Send 1 Now&rdquo; to dispatch an immediate inquiry.
+                  Activez Jimy pour commencer les envois, ou cliquez sur « Envoyer 1 maintenant ».
                 </p>
               </div>
             ) : (
@@ -898,7 +898,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                         }`}
                       >
                         {log.delivery_status === 'accepted'
-                          ? 'Accepted by SMTP'
+                            ? 'Accepté par le serveur'
                           : log.delivery_status}
                       </span>
                     </div>
@@ -911,7 +911,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       onClick={() => onNavigateToEmails()}
                       className="text-xs font-semibold text-[#1A73E8] hover:text-blue-700 flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
                     >
-                      <span>Open Full Sent Emails Table &amp; Analytics</span>
+                      <span>Ouvrir tous les courriels et les statistiques</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -931,10 +931,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-base text-[#0B2240] leading-tight">
-                    Target Swiss Regions
+                    Régions suisses ciblées
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    {settings.selected_cantons.length} of 26 cantons active
+                    {settings.selected_cantons.length} sur 26 cantons actifs
                   </p>
                 </div>
               </div>
@@ -978,7 +978,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       {info?.name || `Canton ${canton}`}
                     </div>
                     <div className="text-[11px] text-slate-500 truncate">
-                      {countInCanton} {countInCanton === 1 ? 'company' : 'companies'}
+                      {countInCanton} {countInCanton === 1 ? 'société' : 'sociétés'}
                     </div>
                   </button>
                 );
@@ -989,13 +989,13 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                 <span className="text-[11px] text-slate-500 block">Sociétés prêtes</span>
                 <span className="font-mono font-bold text-sm text-[#0B2240] tabular-nums mt-0.5 block">
-                  {activeContractorsCount} of {companies.length}
+                  {activeContractorsCount} sur {companies.length}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-orange-50/50 border border-orange-200/70">
                 <span className="text-[11px] text-slate-600 block">Limite par jour</span>
                 <span className="font-mono font-bold text-sm text-[#FF6B00] tabular-nums mt-0.5 block">
-                  {settings.daily_limit} emails / day
+                  {settings.daily_limit} courriels / jour
                 </span>
               </div>
             </div>
@@ -1008,7 +1008,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <SlidersHorizontal className="w-4 h-4" />
                 </div>
                 <h3 className="font-heading font-bold text-base text-[#0B2240]">
-                  Jimy&apos;s Outreach Persona
+                  Profil de Jimy
                 </h3>
               </div>
               <button
@@ -1039,7 +1039,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                <span className="text-slate-500 block">Target equipment</span>
+                <span className="text-slate-500 block">Machines recherchées</span>
                 <span className="font-medium text-[#0B2240] leading-relaxed block mt-0.5">
                   {settings.equipment_focus}
                 </span>
@@ -1047,25 +1047,25 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
               <div className="pt-1 space-y-2">
                 <span className="font-semibold text-[#0B2240] block">
-                  Included purchase terms
+                  Conditions d’achat
                 </span>
                 <div className="space-y-1.5 text-slate-700">
                   {settings.hooks.cash_settlement && (
                     <div className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-[#FF6B00] stroke-[2.5] shrink-0" />
-                      <span>Immediate wire settlement prior to pickup</span>
+                      <span>Paiement immédiat avant l’enlèvement</span>
                     </div>
                   )}
                   {settings.hooks.transport_covered && (
                     <div className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-[#FF6B00] stroke-[2.5] shrink-0" />
-                      <span>Heavy transport organized and covered</span>
+                      <span>Transport lourd organisé et payé</span>
                     </div>
                   )}
                   {settings.hooks.as_is && (
                     <div className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-[#FF6B00] stroke-[2.5] shrink-0" />
-                      <span>Purchased as-is without warranty obligation</span>
+                      <span>Achat en l’état, sans garantie demandée</span>
                     </div>
                   )}
                 </div>
