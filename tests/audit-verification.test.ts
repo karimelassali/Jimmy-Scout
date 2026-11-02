@@ -30,6 +30,7 @@ import { validateReplyAnalysis } from '../apps/worker/src/services/gemini.servic
 import { supabaseDataService } from '../apps/worker/src/services/supabase.service.ts';
 import { inboundService } from '../apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from '../apps/worker/src/services/outbound-scheduler.service.ts';
+import { companyDiscoveryService } from '../apps/worker/src/services/company-discovery.service.ts';
 import { app, sanitizeCsvCell, parseCsvContent } from '../server.ts';
 
 test('1. All 26 Swiss cantons and language routing work accurately', () => {
@@ -311,7 +312,32 @@ test('8. Outbound scheduler enforces quota, verified email requirement, and cool
   assert.strictEqual(repeatRes.status, 'idle');
 });
 
-test('9. Express API authentication, webhook HMAC verification, and CSV formula protection', async () => {
+test('9. Autonomous discovery saves an evidenced company and reports daily metrics', async () => {
+  await supabaseDataService.updateSettings({
+    is_active: true,
+    discovery_active: true,
+    outreach_active: false,
+    discovery_daily_limit: 25,
+    discovery_interval_minutes: 120,
+    selected_cantons: ['ZH'],
+    discovery_keywords: ['Tiefbauunternehmen'],
+  });
+
+  const result = await companyDiscoveryService.executeStep({ manualOverride: true });
+  assert.strictEqual(result.status, 'completed');
+  assert.strictEqual(result.ready, 1);
+
+  const discovered = await supabaseDataService.findCompanyByEmail('info@stub-tiefbau.example');
+  assert.ok(discovered, 'Ready discovery must enter the contractor directory');
+  assert.strictEqual(discovered?.source, 'stub');
+  assert.ok(discovered?.email_source_url, 'Public email provenance must be retained');
+
+  const status = await companyDiscoveryService.getStatus();
+  assert.ok(status.found_today >= 1);
+  assert.ok(status.ready_today >= 1);
+});
+
+test('10. Express API authentication, webhook HMAC verification, and CSV formula protection', async () => {
   // CSV formula injection protection
   assert.strictEqual(sanitizeCsvCell('=CMD|" /C calc"!A0'), `"'=CMD|"" /C calc""!A0"`);
   assert.strictEqual(sanitizeCsvCell('+41 79 123 45 67'), `"'+41 79 123 45 67"`);

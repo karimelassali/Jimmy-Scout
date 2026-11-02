@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   AgentSettings,
   Company,
+  DiscoverySchedulerStatus,
   OutboundLog,
   SchedulerStatus,
 } from '@/packages/types/src/database.ts';
@@ -32,6 +33,9 @@ import {
   MapPin,
   SlidersHorizontal,
   Clock,
+  Search,
+  Globe2,
+  Database,
 } from 'lucide-react';
 
 interface ControlScreenProps {
@@ -42,6 +46,7 @@ interface ControlScreenProps {
   logs: OutboundLog[];
   sqlReady: boolean;
   schedulerStatus?: SchedulerStatus | null;
+  discoveryStatus?: DiscoverySchedulerStatus | null;
   onRefreshAll: () => Promise<void>;
   onNavigateToLeads: (leadId?: string) => void;
   onNavigateToTargets: () => void;
@@ -64,6 +69,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   companies,
   logs,
   schedulerStatus,
+  discoveryStatus,
   onRefreshAll,
   onNavigateToLeads,
   onNavigateToTargets,
@@ -75,6 +81,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const [isPollingImap, setIsPollingImap] = useState(false);
   const [isDispatching, setIsDispatching] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
 
   const showToast = (msg: string, isError = false) => {
@@ -89,11 +96,50 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       await onRefreshAll();
       showToast(
         nextState
-          ? 'Jimy is now working — outreach active during Swiss business hours (08:30–17:00 Europe/Zurich)'
+          ? 'Jimy is now working — company discovery and enabled outreach are running automatically'
           : 'Jimy is now waiting on standby'
       );
     } catch (err: any) {
       showToast(err?.message || 'Failed to update automation status', true);
+    }
+  };
+
+  const toggleEngine = async (key: 'discovery_active' | 'outreach_active') => {
+    const nextState = !settings[key];
+    try {
+      await onUpdateSettings({ [key]: nextState });
+      await onRefreshAll();
+      showToast(
+        `${key === 'discovery_active' ? 'Company Discovery' : 'Automatic Outreach'} ${
+          nextState ? 'enabled' : 'paused'
+        }`
+      );
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update Jimy engine', true);
+    }
+  };
+
+  const handleDiscoveryStep = async () => {
+    setIsDiscovering(true);
+    try {
+      const res = await fetch('/api/discovery/step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manualOverride: true }),
+      });
+      const data = await res.json();
+      await onRefreshAll();
+      if (res.ok && data.status === 'completed') {
+        showToast(
+          `Search complete: ${data.ready || 0} ready, ${data.missingEmail || 0} missing email, ${data.duplicates || 0} duplicates`
+        );
+      } else {
+        showToast(data.message || data.error || 'Company search could not run', true);
+      }
+    } catch (err: any) {
+      showToast(`Company search failed: ${err?.message || 'Connection error'}`, true);
+    } finally {
+      setIsDiscovering(false);
     }
   };
 
@@ -270,7 +316,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   });
 
   const getSchedulerBadge = () => {
-    if (!settings.is_active) {
+    if (!settings.is_active || !settings.outreach_active) {
       return { label: 'Paused by Owner', color: 'bg-slate-100 text-slate-700' };
     }
     if (schedulerStatus?.state === 'waiting_for_hours') {
@@ -345,9 +391,9 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         </div>
       </div>
 
-      {/* COMPACT AGENT JIMY CONTROL BAR */}
+      {/* CONVERSATIONAL AGENT JIMY PANEL */}
       <section
-        className={`bg-white rounded-2xl border shadow-2xs overflow-hidden transition-colors ${
+        className={`bg-white rounded-[28px] border shadow-sm overflow-hidden transition-colors ${
           settings.is_active ? 'border-emerald-300/90' : 'border-orange-200/90'
         }`}
       >
@@ -359,35 +405,31 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           }`}
         />
 
-        <div className="p-4 sm:px-5 sm:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="p-6 sm:p-10 flex flex-col items-center gap-7 text-center">
+          <div className="flex flex-col items-center gap-5 min-w-0 w-full">
             <div
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl p-1.5 shrink-0 flex items-center justify-center border ${
-                settings.is_active
-                  ? 'bg-emerald-50/50 border-emerald-200/70'
-                  : 'bg-orange-50/50 border-orange-200/70'
-              }`}
+              className="w-56 h-56 sm:w-72 sm:h-72 shrink-0 flex items-center justify-center overflow-visible"
             >
-              <img
-                src={
-                  settings.is_active
-                    ? '/assets/illustrations/Working%20late.gif'
-                    : '/assets/illustrations/Mindfulness.gif'
-                }
-                alt={settings.is_active ? 'Jimy is working' : 'Jimy is waiting'}
+              <video
+                src="/assets/illustrations/jimmymascut.webm"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label="Jimy mascot"
                 className="w-full h-full object-contain select-none"
               />
             </div>
 
-            <div className="min-w-0 space-y-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="font-heading font-bold text-base sm:text-lg text-[#0B2240] flex items-center gap-2">
+            <div className="min-w-0 space-y-3 max-w-2xl">
+              <div className="flex items-center justify-center gap-2.5 flex-wrap">
+                <h2 className="font-heading font-bold text-xl sm:text-2xl text-[#0B2240] flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${
                       settings.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF6B00]'
                     }`}
                   />
-                  <span>{settings.is_active ? 'Jimy is working' : 'Jimy is waiting'}</span>
+                  <span>{settings.is_active ? 'I’m on it' : 'I’m here when you’re ready'}</span>
                 </h2>
 
                 <span
@@ -414,28 +456,27 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
               </div>
 
-              <p className="text-xs text-slate-500 truncate flex items-center gap-2">
+              <p className="text-base leading-7 text-slate-600 max-w-xl mx-auto">
                 <span>
                   {settings.is_active
-                    ? `Sending from ${settings.sender_email} · ${settings.selected_cantons.length} Cantons · Mon–Fri 08:30–17:00 Europe/Zurich`
-                    : `Paused · ${activeContractorsCount} verified companies ready across ${settings.selected_cantons.length} Cantons`}
+                    ? `I’m looking across ${settings.selected_cantons.length} Swiss cantons and keeping an eye on the next good opportunity. I’ll let you know when something needs your attention.`
+                    : `You have ${activeContractorsCount} verified companies ready. Turn me on and I’ll quietly search, sort, and prepare the next opportunities for you.`}
                 </span>
+              </p>
+              <div className="flex flex-wrap justify-center items-center gap-2 text-[11px] text-slate-500">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1">{todaySentCount} conversations today</span>
                 {schedulerStatus?.next_send_at && settings.is_active && (
-                  <span className="inline-flex items-center gap-1 text-slate-600 font-mono text-[11px]">
-                    <Clock className="w-3 h-3 text-[#FF6B00]" />
-                    Next slot:{' '}
-                    {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-orange-700">
+                    <Clock className="w-3 h-3" />
+                    Next check {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
-              </p>
+              </div>
             </div>
           </div>
 
           {/* Right: Action Controls */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-center gap-2 shrink-0">
             <button
               type="button"
               data-tour="poll-imap-btn"
@@ -483,6 +524,96 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 bg-slate-50/70 p-4 sm:px-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-blue-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                <Globe2 className={`w-5 h-5 ${discoveryStatus?.state === 'running' ? 'animate-pulse' : ''}`} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Company Discovery</h3>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                    settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {settings.discovery_active ? discoveryStatus?.state || 'enabled' : 'paused'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Searches selected cantons every {settings.discovery_interval_minutes} minutes.
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
+                  <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} found today</span>
+                  <span className="text-emerald-700">{discoveryStatus?.ready_today || 0} ready</span>
+                  <span className="text-amber-700">{discoveryStatus?.missing_email_today || 0} need email</span>
+                  <span className="text-slate-500">{discoveryStatus?.duplicates_today || 0} duplicates</span>
+                </div>
+                {!discoveryStatus?.provider_configured && (
+                  <p className="text-[11px] text-amber-700 mt-2">Configure Google, Foursquare, or a managed OpenStreetMap provider to start live discovery.</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleDiscoveryStep}
+                disabled={isDiscovering || !settings.is_active || !settings.discovery_active}
+                className="h-9 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <Search className={`w-3.5 h-3.5 ${isDiscovering ? 'animate-spin' : ''}`} />
+                <span>{isDiscovering ? 'Searching...' : 'Find Now'}</span>
+              </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.discovery_active}
+                aria-label="Automatic company discovery"
+                onClick={() => toggleEngine('discovery_active')}
+                className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${settings.discovery_active ? 'bg-blue-600' : 'bg-slate-300'}`}
+                title="Toggle automatic company discovery"
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.discovery_active ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Automatic Outreach</h3>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                    settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {settings.outreach_active ? schedulerStatus?.state || 'enabled' : 'paused'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Emails verified companies during Swiss business hours only.
+                </p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
+                  <span className="font-semibold text-[#0B2240]">{todaySentCount}/{settings.daily_limit} sent today</span>
+                  <span className="text-emerald-700">{activeContractorsCount} verified ready</span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.outreach_active}
+              aria-label="Automatic outreach"
+              onClick={() => toggleEngine('outreach_active')}
+              className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${settings.outreach_active ? 'bg-emerald-600' : 'bg-slate-300'}`}
+              title="Toggle automatic outreach"
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.outreach_active ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
           </div>
         </div>
       </section>

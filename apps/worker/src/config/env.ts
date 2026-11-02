@@ -45,6 +45,15 @@ export const config = {
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
   },
+  googlePlaces: {
+    apiKey: process.env.GOOGLE_PLACES_API_KEY || '',
+  },
+  foursquare: { apiKey: process.env.FOURSQUARE_API_KEY || '' },
+  openStreetMap: { overpassUrl: process.env.OSM_OVERPASS_URL || '' },
+  zefix: {
+    username: process.env.ZEFIX_USERNAME || '',
+    password: process.env.ZEFIX_PASSWORD || '',
+  },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     chatId: process.env.TELEGRAM_CLIENT_CHAT_ID || '',

@@ -77,7 +77,7 @@ export class OutboundSchedulerService {
     let state: SchedulerStatus['state'] = 'paused';
     let nextSendAt = meta.next_send_at || null;
 
-    if (!settings.is_active) {
+    if (!settings.is_active || !settings.outreach_active) {
       state = 'paused';
       nextSendAt = null;
     } else if (meta.last_error) {
@@ -133,10 +133,10 @@ export class OutboundSchedulerService {
     const bypassHours = Boolean(options?.bypassBusinessHours || options?.manualOverride);
     const settings = await supabaseDataService.getSettings();
 
-    if (!settings.is_active) {
+    if (!settings.is_active || !settings.outreach_active) {
       return {
         status: 'paused',
-        message: 'Outreach engine is paused. Enable the master switch first.',
+        message: 'Outreach engine is paused. Enable Jimy and Automatic Outreach first.',
       };
     }
 

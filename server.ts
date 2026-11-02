@@ -19,6 +19,7 @@ import { geminiService } from './apps/worker/src/services/gemini.service.ts';
 import { supabaseDataService } from './apps/worker/src/services/supabase.service.ts';
 import { inboundService } from './apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from './apps/worker/src/services/outbound-scheduler.service.ts';
+import { companyDiscoveryService } from './apps/worker/src/services/company-discovery.service.ts';
 import { normalizeCantonCode } from './packages/types/src/swiss.ts';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
@@ -33,6 +34,7 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const safePreview = process.env.JIMISCOUT_SAFE_PREVIEW === 'true';
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ limit: '25mb', extended: true }));
@@ -295,7 +297,7 @@ app.post('/api/auth/logout', (_req, res) => {
 // ----------------------------------------------------
 app.get('/api/health', async (_req, res) => {
   try {
-    const [settings, leads, companies, logs, todaySent, schemaCheck, schedulerStatus] =
+    const [settings, leads, companies, logs, todaySent, schemaCheck, schedulerStatus, discoveryStatus] =
       await Promise.all([
         supabaseDataService.getSettings(),
         supabaseDataService.getLeads(),
@@ -304,6 +306,7 @@ app.get('/api/health', async (_req, res) => {
         supabaseDataService.getTodaySentCount(),
         supabaseDataService.checkSqlSchema(),
         outboundScheduler.getStatus(),
+        companyDiscoveryService.getStatus(),
       ]);
 
     res.json({
@@ -320,11 +323,16 @@ app.get('/api/health', async (_req, res) => {
       sql_ready: schemaCheck.sqlReady,
       storage_mode: supabaseDataService.getStorageMode(),
       scheduler: schedulerStatus,
+      discovery: discoveryStatus,
       integrations: {
         supabase_configured: Boolean(
           process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
         ),
         gemini_configured: Boolean(process.env.GEMINI_API_KEY),
+        google_places_configured: Boolean(process.env.GOOGLE_PLACES_API_KEY),
+        foursquare_configured: Boolean(process.env.FOURSQUARE_API_KEY),
+        openstreetmap_configured: Boolean(process.env.OSM_OVERPASS_URL),
+        zefix_configured: Boolean(process.env.ZEFIX_USERNAME && process.env.ZEFIX_PASSWORD),
         telegram_configured: Boolean(
           process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CLIENT_CHAT_ID
         ),
@@ -342,6 +350,16 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // Protect all sensitive /api/* routes below (except /api/webhooks/imap which uses verifyWebhookAuth)
+app.use('/api', (req, res, next) => {
+  if (safePreview && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return res.status(409).json({
+      status: 'preview_only',
+      message: 'This local preview is read-only. Production actions run on Railway.',
+    });
+  }
+  return next();
+});
+
 app.use('/api', (req, res, next) => {
   if (
     req.path === '/health' ||
@@ -408,6 +426,20 @@ app.patch('/api/settings', async (req, res) => {
     const body = req.body || {};
 
     if (typeof body.is_active === 'boolean') allowed.is_active = body.is_active;
+    if (typeof body.discovery_active === 'boolean') allowed.discovery_active = body.discovery_active;
+    if (typeof body.outreach_active === 'boolean') allowed.outreach_active = body.outreach_active;
+    if (typeof body.discovery_daily_limit === 'number' && Number.isFinite(body.discovery_daily_limit)) {
+      allowed.discovery_daily_limit = Math.max(1, Math.min(200, Math.round(body.discovery_daily_limit)));
+    }
+    if (typeof body.discovery_interval_minutes === 'number' && Number.isFinite(body.discovery_interval_minutes)) {
+      allowed.discovery_interval_minutes = Math.max(30, Math.min(1440, Math.round(body.discovery_interval_minutes)));
+    }
+    if (Array.isArray(body.discovery_keywords)) {
+      allowed.discovery_keywords = body.discovery_keywords
+        .map((value: unknown) => String(value).trim())
+        .filter(Boolean)
+        .slice(0, 20);
+    }
     if (typeof body.daily_limit === 'number' && Number.isFinite(body.daily_limit)) {
       allowed.daily_limit = Math.max(1, Math.min(200, Math.round(body.daily_limit)));
     }
@@ -1342,6 +1374,12 @@ app.get('/api/scheduler/status', async (_req, res) => {
 
 app.post('/api/worker/step', rateLimit(20, 60_000), async (req, res) => {
   try {
+    if (safePreview) {
+      return res.status(409).json({
+        status: 'preview_only',
+        message: 'Outbound dispatch is disabled in the local preview.',
+      });
+    }
     const manualOverride = Boolean(req.body?.manualOverride);
     const companyId = req.body?.companyId ? String(req.body.companyId) : undefined;
 
@@ -1360,6 +1398,40 @@ app.post('/api/worker/step', rateLimit(20, 60_000), async (req, res) => {
       status: 'error',
       message: err?.message || 'Outbound step failed',
     });
+  }
+});
+
+app.get('/api/discovery/status', async (_req, res) => {
+  try {
+    res.json(await companyDiscoveryService.getStatus());
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to load discovery status' });
+  }
+});
+
+app.get('/api/discovery/records', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(500, Number(req.query.limit) || 100));
+    res.json(await supabaseDataService.getDiscoveryRecords(limit));
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to load discovery records' });
+  }
+});
+
+app.post('/api/discovery/step', rateLimit(10, 60_000), async (req, res) => {
+  try {
+    if (safePreview) {
+      return res.status(409).json({
+        status: 'preview_only',
+        message: 'Company discovery is disabled in the local preview.',
+      });
+    }
+    const outcome = await companyDiscoveryService.executeStep({
+      manualOverride: Boolean(req.body?.manualOverride),
+    });
+    res.status(outcome.status === 'completed' ? 200 : 400).json(outcome);
+  } catch (err: any) {
+    res.status(500).json({ status: 'error', message: err?.message || 'Discovery run failed' });
   }
 });
 
@@ -1400,6 +1472,7 @@ export async function startServer() {
   // Start background scheduler loop when running as a persistent server process
   if (!process.env.VERCEL && process.env.JIMISCOUT_DISABLE_DAEMON !== 'true') {
     outboundScheduler.startDaemonLoop(60_000);
+    companyDiscoveryService.startDaemonLoop(5 * 60_000);
   }
 
   return app.listen(PORT, '0.0.0.0', () => {

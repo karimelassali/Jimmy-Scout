@@ -7,6 +7,7 @@ import { processInboundJob } from './jobs/process-inbound.job.ts';
 import { imapService } from './services/imap.service.ts';
 import { inboundService } from './services/inbound.service.ts';
 import { outboundScheduler } from './services/outbound-scheduler.service.ts';
+import { companyDiscoveryService } from './services/company-discovery.service.ts';
 import { isSwissBusinessHours } from './scheduler.ts';
 
 console.log('========================================================');
@@ -22,6 +23,9 @@ console.log('========================================================');
 export function startWorker() {
   // 1. Start the autonomous outbound scheduler loop (checks Swiss hours, jitter & quota)
   outboundScheduler.startDaemonLoop(60_000);
+
+  // 1b. Search one canton/keyword slice at a time and respect the persisted interval/limit.
+  companyDiscoveryService.startDaemonLoop(5 * 60_000);
 
   // 2. Start IMAP inbox polling with post-processing \Seen guarantees
   imapService.startPolling(async (raw) => {

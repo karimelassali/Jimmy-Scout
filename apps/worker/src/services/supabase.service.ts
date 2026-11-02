@@ -8,6 +8,8 @@ import {
   AuditLogEntry,
   Company,
   DealStatus,
+  DiscoveryRecord,
+  DiscoveryStats,
   OutboundLog,
   SuppressionEntry,
 } from '@/packages/types/src/database.ts';
@@ -42,6 +44,15 @@ export interface PersistedSchedulerMeta {
   last_error?: string | null;
 }
 
+export interface PersistedDiscoveryMeta {
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+  last_error?: string | null;
+  last_canton?: string | null;
+  canton_cursor?: number;
+  keyword_cursor?: number;
+}
+
 export interface PersistedState {
   settings: AgentSettings;
   companies: Company[];
@@ -54,12 +65,15 @@ export interface PersistedState {
   contact_history_by_email?: Record<string, string>;
   audit_logs: AuditLogEntry[];
   scheduler: PersistedSchedulerMeta;
+  discovery_records: DiscoveryRecord[];
+  discovery: PersistedDiscoveryMeta;
 }
 
 export class SupabaseDataService {
   private client: SupabaseClient | null = null;
   private sqlTablesAvailable: boolean | null = null;
   private extendedSqlColumnsAvailable: boolean | null = null;
+  private discoverySqlAvailable: boolean | null = null;
   private cachedState: PersistedState | null = null;
   private stateLoadPromise: Promise<PersistedState> | null = null;
 
@@ -67,8 +81,19 @@ export class SupabaseDataService {
   private activeInboundClaims = new Set<string>();
   private activeCompanyClaims = new Set<string>();
   private isClaimingOutbound = false;
+  private readonly requireCloudStorage =
+    process.env.JIMISCOUT_REQUIRE_CLOUD_STORAGE === 'true' ||
+    Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
 
   constructor() {
+    if (
+      this.requireCloudStorage &&
+      (!config.supabase.url || !config.supabase.serviceKey)
+    ) {
+      throw new Error(
+        'Cloud persistence is required on Railway. Configure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'
+      );
+    }
     if (
       config.supabase.url &&
       config.supabase.serviceKey &&
@@ -93,6 +118,7 @@ export class SupabaseDataService {
     this.client = null;
     this.sqlTablesAvailable = false;
     this.extendedSqlColumnsAvailable = false;
+    this.discoverySqlAvailable = false;
     this.cachedState = {
       settings: this.getDefaultSettings(),
       companies: [],
@@ -105,6 +131,8 @@ export class SupabaseDataService {
       contact_history_by_email: {},
       audit_logs: [],
       scheduler: {},
+      discovery_records: [],
+      discovery: {},
     };
     this.stateLoadPromise = null;
     this.activeInboundClaims.clear();
@@ -116,6 +144,17 @@ export class SupabaseDataService {
     return {
       id: '00000000-0000-4000-8000-000000000001',
       is_active: false,
+      discovery_active: true,
+      outreach_active: true,
+      discovery_daily_limit: 25,
+      discovery_interval_minutes: 120,
+      discovery_keywords: [
+        'entreprise de terrassement',
+        'Tiefbauunternehmen',
+        'entreprise de démolition',
+        'Baumaschinen Vermietung',
+        'genio civile',
+      ],
       daily_limit: 25,
       selected_cantons: ['BE', 'ZH', 'VD', 'TI', 'GE', 'VS'],
       sender_name: 'Jamal',
@@ -139,31 +178,37 @@ export class SupabaseDataService {
   async checkSqlSchema(): Promise<{
     sqlReady: boolean;
     extendedSqlReady: boolean;
+    discoverySqlReady: boolean;
     tables: Record<string, boolean>;
     error?: string;
   }> {
     if (!this.client) {
       this.sqlTablesAvailable = false;
       this.extendedSqlColumnsAvailable = false;
+      this.discoverySqlAvailable = false;
       return {
         sqlReady: false,
         extendedSqlReady: false,
+        discoverySqlReady: false,
         tables: {
           agent_settings: false,
           companies: false,
           outbound_logs: false,
           inbound_leads: false,
+          discovery_records: false,
         },
         error: 'Missing Supabase URL or Service Role Key',
       };
     }
 
-    const [settingsRes, companiesRes, logsRes, leadsRes, extRes] = await Promise.all([
+    const [settingsRes, companiesRes, logsRes, leadsRes, extRes, discoveryRes, discoverySettingsRes] = await Promise.all([
       this.client.from('agent_settings').select('id').limit(1),
       this.client.from('companies').select('id').limit(1),
       this.client.from('outbound_logs').select('id').limit(1),
       this.client.from('inbound_leads').select('id').limit(1),
       this.client.from('outbound_logs').select('id, full_body, recipient_email').limit(1),
+      this.client.from('discovery_records').select('id').limit(1),
+      this.client.from('agent_settings').select('id, discovery_active, outreach_active').limit(1),
     ]);
 
     const tables = {
@@ -171,6 +216,7 @@ export class SupabaseDataService {
       companies: !companiesRes.error,
       outbound_logs: !logsRes.error,
       inbound_leads: !leadsRes.error,
+      discovery_records: !discoveryRes.error,
     };
 
     const sqlReady =
@@ -179,9 +225,11 @@ export class SupabaseDataService {
       tables.outbound_logs &&
       tables.inbound_leads;
     const extendedSqlReady = sqlReady && !extRes.error;
+    const discoverySqlReady = sqlReady && !discoveryRes.error && !discoverySettingsRes.error;
 
     this.sqlTablesAvailable = sqlReady;
     this.extendedSqlColumnsAvailable = extendedSqlReady;
+    this.discoverySqlAvailable = discoverySqlReady;
 
     const firstError =
       settingsRes.error?.message ||
@@ -192,6 +240,7 @@ export class SupabaseDataService {
     return {
       sqlReady,
       extendedSqlReady,
+      discoverySqlReady,
       tables,
       error: firstError,
     };
@@ -225,6 +274,9 @@ export class SupabaseDataService {
       audit_logs: Array.isArray(parsed.audit_logs) ? parsed.audit_logs : [],
       scheduler:
         parsed.scheduler && typeof parsed.scheduler === 'object' ? parsed.scheduler : {},
+      discovery_records: Array.isArray(parsed.discovery_records) ? parsed.discovery_records : [],
+      discovery:
+        parsed.discovery && typeof parsed.discovery === 'object' ? parsed.discovery : {},
     };
   }
 
@@ -245,6 +297,8 @@ export class SupabaseDataService {
         contact_history_by_email: {},
         audit_logs: [],
         scheduler: {},
+        discovery_records: [],
+        discovery: {},
       };
 
       if (!this.client) {
@@ -298,6 +352,9 @@ export class SupabaseDataService {
   private async saveStorageState(state: PersistedState): Promise<void> {
     this.cachedState = state;
     if (!this.client) {
+      if (this.requireCloudStorage) {
+        throw new Error('Refusing local-file persistence in a cloud production runtime.');
+      }
       if (process.env.JIMISCOUT_USE_MEMORY_ONLY !== 'true') {
         try {
           fs.writeFileSync(LOCAL_FALLBACK_FILE, JSON.stringify(state, null, 2), 'utf-8');
@@ -375,15 +432,30 @@ export class SupabaseDataService {
         ? Math.max(5, Math.min(100, Number(patch.daily_limit) || 25))
         : current.daily_limit;
 
+    const discoveryDailyLimit =
+      patch.discovery_daily_limit !== undefined
+        ? Math.max(1, Math.min(200, Number(patch.discovery_daily_limit) || 25))
+        : current.discovery_daily_limit;
+    const discoveryIntervalMinutes =
+      patch.discovery_interval_minutes !== undefined
+        ? Math.max(30, Math.min(1440, Number(patch.discovery_interval_minutes) || 120))
+        : current.discovery_interval_minutes;
+    const discoveryKeywords = Array.isArray(patch.discovery_keywords)
+      ? patch.discovery_keywords.map((item) => String(item).trim()).filter(Boolean).slice(0, 20)
+      : current.discovery_keywords;
+
     const updated: AgentSettings = {
       ...current,
       ...patch,
       daily_limit: dailyLimit,
+      discovery_daily_limit: discoveryDailyLimit,
+      discovery_interval_minutes: discoveryIntervalMinutes,
+      discovery_keywords: discoveryKeywords,
       updated_at: new Date().toISOString(),
     };
 
     if (this.client && (await this.isSqlReady())) {
-      const sqlPayload = {
+      const sqlPayload: Record<string, unknown> = {
         id: updated.id,
         is_active: updated.is_active,
         daily_limit: Math.max(10, Math.min(50, updated.daily_limit)),
@@ -396,6 +468,15 @@ export class SupabaseDataService {
         equipment_focus: updated.equipment_focus,
         updated_at: updated.updated_at,
       };
+      if (this.discoverySqlAvailable) {
+        Object.assign(sqlPayload, {
+          discovery_active: updated.discovery_active,
+          outreach_active: updated.outreach_active,
+          discovery_daily_limit: updated.discovery_daily_limit,
+          discovery_interval_minutes: updated.discovery_interval_minutes,
+          discovery_keywords: updated.discovery_keywords,
+        });
+      }
       const { error } = await this.client.from('agent_settings').upsert(sqlPayload);
       if (error) {
         console.warn('[Supabase] SQL agent_settings upsert warning:', error.message);
@@ -407,7 +488,7 @@ export class SupabaseDataService {
     await this.recordAuditLog(
       'settings_updated',
       'settings',
-      `Active: ${updated.is_active}, Limit: ${updated.daily_limit}/d, Tone: ${updated.tone}, Cantons: ${updated.selected_cantons.join(',')}`,
+      `Active: ${updated.is_active}, Discovery: ${updated.discovery_active}, Outreach: ${updated.outreach_active}, Limit: ${updated.daily_limit}/d, Tone: ${updated.tone}, Cantons: ${updated.selected_cantons.join(',')}`,
       updated.id
     );
     return updated;
@@ -600,6 +681,11 @@ export class SupabaseDataService {
             city: sqlComp.city ?? localComp?.city ?? null,
             notes: sqlComp.notes ?? localComp?.notes ?? null,
             source: sqlComp.source ?? localComp?.source ?? 'manual',
+            source_id: sqlComp.source_id ?? localComp?.source_id ?? null,
+            website: sqlComp.website ?? localComp?.website ?? null,
+            email_source_url:
+              sqlComp.email_source_url ?? localComp?.email_source_url ?? null,
+            discovered_at: sqlComp.discovered_at ?? localComp?.discovered_at ?? null,
             confidence: sqlComp.confidence ?? localComp?.confidence ?? null,
             verified_email: sqlComp.verified_email ?? localComp?.verified_email ?? true,
             language_override:
@@ -722,6 +808,11 @@ export class SupabaseDataService {
       industry: company.industry || existing?.industry || 'civil_engineering',
       notes: company.notes?.trim() ?? existing?.notes ?? null,
       source: company.source || existing?.source || 'manual',
+      source_id: company.source_id?.trim() ?? existing?.source_id ?? null,
+      website: company.website?.trim() ?? existing?.website ?? null,
+      email_source_url:
+        company.email_source_url?.trim() ?? existing?.email_source_url ?? null,
+      discovered_at: company.discovered_at ?? existing?.discovered_at ?? null,
       confidence: company.confidence ?? existing?.confidence ?? null,
       stock_status: company.stock_status ?? existing?.stock_status ?? 'unknown',
       unsubscribed: preservedUnsubscribed,
@@ -751,6 +842,15 @@ export class SupabaseDataService {
         last_contacted_at: record.last_contacted_at,
         created_at: record.created_at,
       };
+      if (this.discoverySqlAvailable) {
+        Object.assign(sqlRow, {
+          source: record.source,
+          source_id: record.source_id,
+          website: record.website,
+          email_source_url: record.email_source_url,
+          discovered_at: record.discovered_at,
+        });
+      }
       const { error } = await this.client
         .from('companies')
         .upsert(sqlRow, { onConflict: 'email' });
@@ -1606,7 +1706,7 @@ export class SupabaseDataService {
         this.getTodaySentCount(refDate),
       ]);
 
-      if (!settings.is_active) {
+      if (!settings.is_active || !settings.outreach_active) {
         return { claimed: false, reason: 'paused', settings, todaySentCount };
       }
 
@@ -1676,6 +1776,96 @@ export class SupabaseDataService {
     };
     await this.saveStorageState(state);
     return state.scheduler;
+  }
+
+  // =========================================================
+  // 9. AUTONOMOUS COMPANY DISCOVERY
+  // =========================================================
+  async getDiscoveryRecords(limit = 250): Promise<DiscoveryRecord[]> {
+    const state = await this.ensureStorageState();
+    const safeLimit = Math.max(1, Math.min(2000, limit));
+    if (this.client && (await this.isSqlReady()) && this.discoverySqlAvailable) {
+      const { data, error } = await this.client
+        .from('discovery_records')
+        .select('*')
+        .order('discovered_at', { ascending: false })
+        .limit(safeLimit);
+      if (!error && data) {
+        const merged = new Map<string, DiscoveryRecord>();
+        for (const record of [...(data as DiscoveryRecord[]), ...state.discovery_records]) {
+          if (!merged.has(record.id)) merged.set(record.id, record);
+        }
+        state.discovery_records = Array.from(merged.values())
+          .sort((a, b) => b.discovered_at.localeCompare(a.discovered_at))
+          .slice(0, 2000);
+      }
+    }
+    return state.discovery_records.slice(0, safeLimit);
+  }
+
+  async hasDiscoverySource(source: DiscoveryRecord['source'], sourceId: string): Promise<boolean> {
+    const state = await this.ensureStorageState();
+    return state.discovery_records.some(
+      (record) => record.source === source && record.source_id === sourceId
+    );
+  }
+
+  async addDiscoveryRecord(
+    record: Omit<DiscoveryRecord, 'id' | 'discovered_at'> & {
+      id?: string;
+      discovered_at?: string;
+    }
+  ): Promise<DiscoveryRecord> {
+    const state = await this.ensureStorageState();
+    const existing = state.discovery_records.find(
+      (item) => item.source === record.source && item.source_id === record.source_id
+    );
+    if (existing) return existing;
+
+    const saved: DiscoveryRecord = {
+      ...record,
+      id: record.id || crypto.randomUUID(),
+      discovered_at: record.discovered_at || new Date().toISOString(),
+    };
+    state.discovery_records.unshift(saved);
+    if (state.discovery_records.length > 2000) {
+      state.discovery_records = state.discovery_records.slice(0, 2000);
+    }
+    if (this.client && (await this.isSqlReady()) && this.discoverySqlAvailable) {
+      const { error } = await this.client.from('discovery_records').insert(saved);
+      if (error) console.warn('[Supabase] SQL discovery record insert warning:', error.message);
+    }
+    await this.saveStorageState(state);
+    return saved;
+  }
+
+  async getDiscoveryStats(referenceDate = new Date()): Promise<DiscoveryStats> {
+    const records = await this.getDiscoveryRecords(2000);
+    const today = records.filter((record) =>
+      isSameSwissDay(record.discovered_at, referenceDate)
+    );
+    return {
+      found_today: today.length,
+      ready_today: today.filter((r) => r.status === 'ready').length,
+      missing_email_today: today.filter((r) => r.status === 'missing_email').length,
+      duplicates_today: today.filter((r) => r.status === 'duplicate').length,
+      rejected_today: today.filter((r) => r.status === 'rejected').length,
+      total_discovered: records.length,
+    };
+  }
+
+  async getDiscoveryMeta(): Promise<PersistedDiscoveryMeta> {
+    const state = await this.ensureStorageState();
+    return state.discovery || {};
+  }
+
+  async updateDiscoveryMeta(
+    patch: Partial<PersistedDiscoveryMeta>
+  ): Promise<PersistedDiscoveryMeta> {
+    const state = await this.ensureStorageState();
+    state.discovery = { ...(state.discovery || {}), ...patch };
+    await this.saveStorageState(state);
+    return state.discovery;
   }
 
   /**

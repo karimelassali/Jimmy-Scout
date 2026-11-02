@@ -58,6 +58,10 @@ export interface Company {
   industry?: string;
   notes?: string | null;
   source?: string | null;
+  source_id?: string | null;
+  website?: string | null;
+  email_source_url?: string | null;
+  discovered_at?: string | null;
   confidence?: number | null;
   stock_status?: CompanyStockStatus;
   unsubscribed: boolean;
@@ -94,6 +98,11 @@ export interface PersonaHooks {
 export interface AgentSettings {
   id: string;
   is_active: boolean;
+  discovery_active: boolean;
+  outreach_active: boolean;
+  discovery_daily_limit: number;
+  discovery_interval_minutes: number;
+  discovery_keywords: string[];
   daily_limit: number;
   selected_cantons: string[];
   sender_name: string;
@@ -103,6 +112,59 @@ export interface AgentSettings {
   hooks: PersonaHooks;
   equipment_focus: string;
   updated_at: string;
+}
+
+export type DiscoveryRecordStatus =
+  | 'ready'
+  | 'missing_email'
+  | 'duplicate'
+  | 'rejected'
+  | 'error';
+
+export interface DiscoveryRecord {
+  id: string;
+  source: 'google_places' | 'foursquare' | 'openstreetmap' | 'zefix' | 'stub';
+  source_id: string;
+  company_id?: string | null;
+  company_name: string;
+  canton: string;
+  website?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  status: DiscoveryRecordStatus;
+  confidence: number;
+  reason: string;
+  evidence_url?: string | null;
+  query: string;
+  discovered_at: string;
+}
+
+export interface DiscoveryStats {
+  found_today: number;
+  ready_today: number;
+  missing_email_today: number;
+  duplicates_today: number;
+  rejected_today: number;
+  total_discovered: number;
+}
+
+export type DiscoveryStateType =
+  | 'paused'
+  | 'enabled'
+  | 'running'
+  | 'waiting'
+  | 'quota_reached'
+  | 'blocked'
+  | 'failed';
+
+export interface DiscoverySchedulerStatus extends DiscoveryStats {
+  state: DiscoveryStateType;
+  provider_configured: boolean;
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+  last_error?: string | null;
+  last_canton?: string | null;
 }
 
 export interface OutboundLog {

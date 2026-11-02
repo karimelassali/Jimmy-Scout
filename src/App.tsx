@@ -7,6 +7,7 @@ import {
   AgentSettings,
   Company,
   DealStatus,
+  DiscoverySchedulerStatus,
   OutboundLog,
   SchedulerStatus,
 } from '@/packages/types/src/database.ts';
@@ -141,6 +142,17 @@ export default function App() {
   const [settings, setSettings] = useState<AgentSettings>({
     id: '00000000-0000-4000-8000-000000000001',
     is_active: false,
+    discovery_active: true,
+    outreach_active: true,
+    discovery_daily_limit: 25,
+    discovery_interval_minutes: 120,
+    discovery_keywords: [
+      'entreprise de terrassement',
+      'Tiefbauunternehmen',
+      'entreprise de démolition',
+      'Baumaschinen Vermietung',
+      'genio civile',
+    ],
     daily_limit: 25,
     selected_cantons: ['BE', 'ZH', 'VD', 'TI', 'GE', 'VS'],
     sender_name: 'Jamal',
@@ -163,6 +175,7 @@ export default function App() {
   const [todaySentCount, setTodaySentCount] = useState(0);
   const [sqlReady, setSqlReady] = useState(true);
   const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null);
+  const [discoveryStatus, setDiscoveryStatus] = useState<DiscoverySchedulerStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -234,6 +247,9 @@ export default function App() {
         setSqlReady(Boolean(hData.sql_ready));
         if (hData.scheduler) {
           setSchedulerStatus(hData.scheduler);
+        }
+        if (hData.discovery) {
+          setDiscoveryStatus(hData.discovery);
         }
       }
     } catch (err) {
@@ -540,6 +556,7 @@ export default function App() {
                 logs={logs}
                 sqlReady={sqlReady}
                 schedulerStatus={schedulerStatus}
+                discoveryStatus={discoveryStatus}
                 onRefreshAll={fetchData}
                 onNavigateToLeads={(leadId?: string) => {
                   if (leadId) setFocusedLeadId(leadId);
