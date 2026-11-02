@@ -450,7 +450,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 loop
                 muted
                 playsInline
-                aria-label="Jimy mascot"
+                aria-label="Mascotte Jimy"
                 className="w-full h-full object-contain select-none"
               />
             </div>
@@ -502,7 +502,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 {schedulerStatus?.next_send_at && settings.is_active && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-orange-700">
                     <Clock className="w-3 h-3" />
-                    Prochaine vérification {new Date(schedulerStatus.next_send_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Prochaine vérification {new Date(schedulerStatus.next_send_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
               </div>
@@ -892,7 +892,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 {logs.slice(0, 10).map((log) => {
                   const comp = log.company_id ? companyById.get(log.company_id) : undefined;
                   const sentDate = new Date(log.sent_at);
-                  const formattedTime = sentDate.toLocaleTimeString([], {
+                  const formattedTime = sentDate.toLocaleTimeString('fr-CH', {
                     hour: '2-digit',
                     minute: '2-digit',
                   });
