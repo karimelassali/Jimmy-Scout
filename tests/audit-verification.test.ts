@@ -254,6 +254,15 @@ test('7. Inbound idempotency, UNSUBSCRIBE vs NOT_INTERESTED, and HOT_LEAD creati
   assert.strictEqual(firstHot.isDuplicate, false);
   assert.strictEqual(firstHot.analysis.intent, 'HOT_LEAD');
   assert.ok(firstHot.lead?.id);
+  const storedLead = (await supabaseDataService.getLeads()).find(
+    (lead) => lead.id === firstHot.lead?.id
+  );
+  assert.ok(storedLead, 'A seller offer must persist in the Dossiers data source');
+  const storedEquipment = await supabaseDataService.getEquipmentRecords(firstHot.lead!.id);
+  assert.ok(
+    storedEquipment.some((item) => item.make_model?.includes('Cat 323')),
+    'Detected machinery must persist as a structured Dossier equipment record'
+  );
 
   const duplicateHot = await inboundService.processInboundMessage(hotLeadPayload);
   assert.strictEqual(
@@ -296,8 +305,19 @@ test('8. Outbound scheduler enforces quota, verified email requirement, and cool
     last_contacted_at: null,
   });
 
-  const stepRes = await outboundScheduler.executeStep({
+  const outsideHours = await outboundScheduler.executeStep({
     manualOverride: true,
+    companyId: eligibleComp.id,
+    referenceDate: new Date('2026-07-18T10:00:00Z'),
+  });
+  assert.strictEqual(
+    outsideHours.status,
+    'waiting_for_hours',
+    'A manual dashboard send must not bypass Swiss business hours'
+  );
+
+  const stepRes = await outboundScheduler.executeStep({
+    referenceDate: new Date('2026-07-15T08:00:00Z'),
     companyId: eligibleComp.id,
   });
 
@@ -306,15 +326,15 @@ test('8. Outbound scheduler enforces quota, verified email requirement, and cool
 
   // Trying to dispatch again to the same company immediately must fail eligibility (30-day cooldown)
   const repeatRes = await outboundScheduler.executeStep({
-    manualOverride: true,
+    referenceDate: new Date('2026-07-15T08:05:00Z'),
     companyId: eligibleComp.id,
   });
   assert.strictEqual(repeatRes.status, 'idle');
 });
 
-test('9. Autonomous discovery saves an evidenced company and reports daily metrics', async () => {
+test('9. Manual discovery while paused saves an evidenced company and reports daily metrics', async () => {
   await supabaseDataService.updateSettings({
-    is_active: true,
+    is_active: false,
     discovery_active: true,
     outreach_active: false,
     discovery_daily_limit: 25,

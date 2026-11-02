@@ -130,7 +130,10 @@ export class OutboundSchedulerService {
 
   async executeDispatchStep(options?: OutboundStepOptions): Promise<OutboundStepResult> {
     const refDate = options?.referenceDate || new Date();
-    const bypassHours = Boolean(options?.bypassBusinessHours || options?.manualOverride);
+    // A dashboard/manual run may skip the randomized delay, but it must never
+    // bypass the legal/safety delivery window. Only explicit internal test or
+    // maintenance calls may opt out of the business-hours guard.
+    const bypassHours = Boolean(options?.bypassBusinessHours);
     const settings = await supabaseDataService.getSettings();
 
     if (!settings.is_active || !settings.outreach_active) {

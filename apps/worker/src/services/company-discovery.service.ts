@@ -342,7 +342,9 @@ export class CompanyDiscoveryService {
         supabaseDataService.getDiscoveryMeta(),
         supabaseDataService.getDiscoveryStats(now),
       ]);
-      if (!settings.is_active || !settings.discovery_active) {
+      // A deliberate one-off dashboard search is useful while the autonomous
+      // agent is paused. Scheduled discovery still requires both switches.
+      if ((!settings.is_active || !settings.discovery_active) && !options?.manualOverride) {
         return { status: 'paused', message: 'Enable Jimy and Company Discovery first.' };
       }
       if (!this.providerConfigured()) {

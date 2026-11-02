@@ -316,6 +316,16 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     100,
     Math.round((todaySentCount / Math.max(1, settings.daily_limit)) * 100)
   );
+  const canDispatchNow = Boolean(
+    settings.is_active &&
+      settings.outreach_active &&
+      schedulerStatus?.is_swiss_business_hours
+  );
+  const dispatchTitle = !settings.is_active || !settings.outreach_active
+    ? 'Activez Jimy et l’envoi automatique pour envoyer un courriel.'
+    : !schedulerStatus?.is_swiss_business_hours
+      ? 'Les envois sont disponibles du lundi au vendredi, de 08:30 à 17:00 (Zurich).'
+      : 'Envoyer le prochain courriel de la file maintenant.';
   const topLead = leads[0];
   const companyById = new Map(companies.map((c) => [c.id, c]));
 
@@ -518,7 +528,8 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               type="button"
               data-tour="manual-dispatch-btn"
               onClick={handleDispatchStep}
-              disabled={isDispatching}
+              disabled={isDispatching || !canDispatchNow}
+              title={dispatchTitle}
               className="h-9 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B00] border border-orange-200/90 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
