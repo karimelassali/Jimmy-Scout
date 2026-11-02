@@ -70,7 +70,7 @@ export const SplashScreen: React.FC = () => {
         <div className="pt-4 border-t border-slate-100 w-full flex items-center justify-center gap-3 text-[11px] text-slate-400 font-medium">
           <span className="flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Swiss B2B Protocol</span>
+            <span>Assistant suisse pour entreprises</span>
           </span>
           <span>·</span>
           <span>Bern · Zürich · Genève</span>

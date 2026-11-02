@@ -175,7 +175,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               onClick={onOpenSetupWizard}
               className="h-10 px-4 rounded-lg bg-white hover:bg-[#F8F9FA] text-[#3C4043] border border-[#DADCE0] font-medium text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
             >
-              <span>Quick Setup</span>
+              <span>Réglage rapide</span>
             </button>
           )}
 
@@ -186,7 +186,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             className="h-11 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
           >
             <Send className="w-4 h-4" />
-            <span>See What Jimy Writes (Test Email)</span>
+            <span>Voir un exemple de courriel de Jimy</span>
           </button>
         </div>
       </div>
@@ -214,7 +214,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 }}
                 className="px-3 py-1 rounded-full text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-[#0B2240] transition-colors cursor-pointer"
               >
-                {isEditingProfile ? 'Cancel' : 'Edit'}
+                {isEditingProfile ? 'Annuler' : 'Modifier'}
               </button>
             </div>
 
@@ -236,7 +236,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   </div>
                 </div>
                 <div className="px-1 text-slate-600">
-                  <span className="font-semibold text-[#0B2240]">Buying: </span>
+                  <span className="font-semibold text-[#0B2240]">Recherche : </span>
                   <span className="line-clamp-2">{settings.equipment_focus}</span>
                 </div>
               </div>
@@ -304,7 +304,14 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                         equipment_focus: draftFocus.trim() || settings.equipment_focus,
                       });
                       setIsEditingProfile(false);
-                      showToast('Profile and machinery preferences saved');
+                      showToast('Profil et préférences enregistrés');
+                    } catch (err: any) {
+                      showToast(
+                        err?.message?.includes('preview_only')
+                          ? 'Aperçu local en lecture seule : ouvrez la version Railway pour enregistrer.'
+                          : err?.message || 'Impossible d’enregistrer les changements.',
+                        true
+                      );
                     } finally {
                       setIsSavingProfile(false);
                     }
@@ -312,7 +319,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   className="w-full h-9 rounded-xl bg-[#0B2240] hover:bg-[#16365C] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Check className="w-3.5 h-3.5 text-[#FF6B00]" />
-                  <span>{isSavingProfile ? 'Saving...' : 'Save Changes'}</span>
+                <span>{isSavingProfile ? 'Enregistrement...' : 'Enregistrer'}</span>
                 </button>
               </div>
             )}
@@ -751,7 +758,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                <span>{isSendingTest ? 'Sending...' : 'Send Test Email'}</span>
+                <span>{isSendingTest ? 'Envoi...' : 'Envoyer un test'}</span>
               </button>
             </form>
           </div>

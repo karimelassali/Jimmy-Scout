@@ -27,18 +27,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenNotifications,
 }) => {
   const navItems: Array<{ id: TabId; label: string }> = [
-    { id: 'control', label: 'Dashboard' },
+    { id: 'control', label: 'Accueil' },
     {
       id: 'leads',
-      label: unreadCount > 0 ? `Deals (${unreadCount})` : 'Deals',
+      label: unreadCount > 0 ? `Dossiers (${unreadCount})` : 'Dossiers',
     },
     {
       id: 'emails',
-      label: sentCount > 0 ? `Sent Emails (${sentCount})` : 'Sent Emails',
+      label: sentCount > 0 ? `Courriels (${sentCount})` : 'Courriels',
     },
-    { id: 'targets', label: 'Regions' },
-    { id: 'scanner', label: 'Scan Cards' },
-    { id: 'persona', label: 'Settings' },
+    { id: 'targets', label: 'Régions' },
+    { id: 'scanner', label: 'Scanner' },
+    { id: 'persona', label: 'Réglages' },
   ];
 
   return (
@@ -127,10 +127,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               type="button"
               onClick={onOpenGuide}
               className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Open JimiScout Guide"
+              title="Ouvrir l’aide de Jimy"
             >
               <Compass className="w-4 h-4 text-[#FF6B00]" />
-              <span className="hidden sm:inline">Guide</span>
+              <span className="hidden sm:inline">Aide</span>
             </button>
           )}
           <PWAInstallButton />
@@ -139,7 +139,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             onClick={onPrimaryAction}
             className="h-9 px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
           >
-            Paste Seller Reply
+            Coller une réponse
           </button>
         </div>
       </div>

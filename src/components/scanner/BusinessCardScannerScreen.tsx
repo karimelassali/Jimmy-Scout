@@ -340,7 +340,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-[#FF6B00] text-xs font-bold uppercase tracking-wider mb-2 border border-orange-200">
             <Camera className="w-3.5 h-3.5" />
-            <span>AI Business Card Scanner</span>
+              <span>Scanner de cartes de visite</span>
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
             Scan Business Cards &amp; Add in Bulk
@@ -403,7 +403,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
               className="text-xs font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear photos</span>
+              <span>Effacer les photos</span>
             </button>
           )}
         </div>
@@ -424,7 +424,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
               className="h-12 px-6 rounded-2xl bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-bold text-sm flex items-center gap-2.5 shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer"
             >
               <Camera className="w-5 h-5" />
-              <span>Take Photo with Camera</span>
+              <span>Prendre une photo</span>
             </button>
 
             <button
@@ -433,7 +433,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
               className="h-12 px-6 rounded-2xl bg-white hover:bg-slate-50 text-[#0B2240] border-2 border-slate-300 hover:border-[#0B2240] font-heading font-bold text-sm flex items-center gap-2.5 shadow-xs hover:shadow active:scale-95 transition-all cursor-pointer"
             >
               <Upload className="w-5 h-5 text-[#0B2240]" />
-              <span>Choose Photos from Device</span>
+              <span>Choisir des photos</span>
             </button>
           </div>
 
@@ -591,7 +591,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                       {card.saved ? (
                         <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1 border border-emerald-300">
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Saved</span>
+                          <span>Enregistré</span>
                         </span>
                       ) : isAlreadyInSystem ? (
                         <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold text-xs border border-amber-300">
@@ -818,7 +818,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                         className="h-8 px-4 rounded-xl bg-white hover:bg-slate-50 border-2 border-slate-300 hover:border-[#0B2240] font-heading font-bold text-xs text-[#0B2240] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Save This Company</span>
+                        <span>Enregistrer cette société</span>
                       </button>
                     )}
                   </div>
@@ -838,7 +838,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 onClick={onNavigateToTargets}
                 className="h-9 px-4 rounded-xl bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer shrink-0"
               >
-                <span>Go to Company List</span>
+                <span>Voir la liste des sociétés</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#FF6B00]" />
               </button>
             </div>

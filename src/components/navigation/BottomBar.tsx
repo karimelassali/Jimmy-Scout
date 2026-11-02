@@ -19,24 +19,24 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const tabs: Array<{ id: TabId; label: string; icon: React.ReactNode; badge?: number }> = [
     {
       id: 'control',
-      label: 'Dashboard',
+      label: 'Accueil',
       icon: <Gauge className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
     {
       id: 'leads',
-      label: 'Deals',
+      label: 'Dossiers',
       icon: <Inbox className="w-4 h-4 sm:w-5 sm:h-5" />,
       badge: leadsCount,
     },
     {
       id: 'emails',
-      label: 'Sent',
+      label: 'Envoyés',
       icon: <MailCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
       badge: sentCount,
     },
     {
       id: 'targets',
-      label: 'Regions',
+      label: 'Régions',
       icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
     {
@@ -46,7 +46,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     },
     {
       id: 'persona',
-      label: 'Settings',
+      label: 'Réglages',
       icon: <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
   ];

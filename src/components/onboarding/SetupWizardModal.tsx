@@ -233,7 +233,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <label className="text-xs font-medium text-[#3C4043]">
                     Target machinery
                   </label>
-                  <span className="text-[11px] text-[#5F6368]">Click to toggle</span>
+                  <span className="text-[11px] text-[#5F6368]">Cliquer pour changer</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -429,7 +429,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               className="h-9 px-3 rounded-lg text-xs font-medium text-[#5F6368] hover:text-[#202124] hover:bg-[#F1F3F4] flex items-center gap-1 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
+              <span>Retour</span>
             </button>
           )}
 
@@ -439,7 +439,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               onClick={() => setStep(1)}
               className="h-9 px-4 rounded-lg bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>Next</span>
+              <span>Suivant</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (
@@ -449,7 +449,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               disabled={isSaving}
               className="h-9 px-5 rounded-lg bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <span>{isSaving ? 'Saving...' : 'Save configuration'}</span>
+              <span>{isSaving ? 'Enregistrement...' : 'Enregistrer la configuration'}</span>
             </button>
           )}
         </div>

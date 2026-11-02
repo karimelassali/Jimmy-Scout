@@ -524,7 +524,7 @@ export default function App() {
       {!isOnline && (
         <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
           <WifiOff className="w-3.5 h-3.5" />
-          <span>Offline Mode — Showing cached Swiss procurement data</span>
+          <span>Mode hors ligne — données suisses en cache</span>
         </div>
       )}
 

@@ -212,7 +212,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               title="Mark all notifications as read and reset counters"
             >
               <CheckCheck className="w-3.5 h-3.5" />
-              <span>Mark all seen</span>
+              <span>Tout marquer comme lu</span>
             </button>
           )}
         </div>
@@ -304,7 +304,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                       </span>
                       <span>·</span>
                       <span className="text-[#FF6B00] group-hover:underline font-medium inline-flex items-center gap-0.5">
-                        <span>{item.type === 'offer' ? 'View offer' : 'View email'}</span>
+                        <span>{item.type === 'offer' ? 'Voir l’offre' : 'Voir le courriel'}</span>
                         <ArrowRight className="w-2.5 h-2.5" />
                       </span>
                     </div>
@@ -345,7 +345,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             title="Reset all tab badges and seen counters"
           >
             <CheckCheck className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>Reset seen tab badges</span>
+            <span>Réinitialiser les alertes</span>
           </button>
 
           <span className="text-[11px] text-slate-400">JimiScout Live Feed</span>

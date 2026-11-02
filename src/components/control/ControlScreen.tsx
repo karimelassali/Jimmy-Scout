@@ -110,8 +110,8 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       await onUpdateSettings({ [key]: nextState });
       await onRefreshAll();
       showToast(
-        `${key === 'discovery_active' ? 'Company Discovery' : 'Automatic Outreach'} ${
-          nextState ? 'enabled' : 'paused'
+        `${key === 'discovery_active' ? 'Recherche de sociétés' : 'Envoi automatique'} ${
+          nextState ? 'activé' : 'en pause'
         }`
       );
     } catch (err: any) {
@@ -131,13 +131,13 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       await onRefreshAll();
       if (res.ok && data.status === 'completed') {
         showToast(
-          `Search complete: ${data.ready || 0} ready, ${data.missingEmail || 0} missing email, ${data.duplicates || 0} duplicates`
+          `Recherche terminée : ${data.ready || 0} prêtes, ${data.missingEmail || 0} sans courriel, ${data.duplicates || 0} doublons`
         );
       } else {
-        showToast(data.message || data.error || 'Company search could not run', true);
+        showToast(data.message || data.error || 'La recherche ne peut pas démarrer', true);
       }
     } catch (err: any) {
-      showToast(`Company search failed: ${err?.message || 'Connection error'}`, true);
+      showToast(`Recherche échouée : ${err?.message || 'Erreur de connexion'}`, true);
     } finally {
       setIsDiscovering(false);
     }
@@ -219,14 +219,14 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     }
     const headers = [
       'ID',
-      'Company',
+      'Société',
       'Canton',
       'Machinery',
       'Asking_Price_Raw',
       'Asking_Price_CHF',
       'Contact_Phone',
       'Status',
-      'Next_Action',
+      'Action_suivante',
     ];
     const rows = leads.map((l) => {
       const firstPrice = l.machinery_detected[0]?.asking_price || '';
@@ -317,7 +317,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
   const getSchedulerBadge = () => {
     if (!settings.is_active || !settings.outreach_active) {
-      return { label: 'Paused by Owner', color: 'bg-slate-100 text-slate-700' };
+      return { label: 'En pause', color: 'bg-slate-100 text-slate-700' };
     }
     if (schedulerStatus?.state === 'waiting_for_hours') {
       return {
@@ -327,7 +327,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     }
     if (schedulerStatus?.state === 'quota_reached') {
       return {
-        label: 'Daily Quota Reached',
+        label: 'Limite du jour atteinte',
         color: 'bg-blue-50 text-blue-800 border border-blue-200',
       };
     }
@@ -377,7 +377,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             className="h-9 px-3.5 rounded-xl bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-[#0B2240] font-medium text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
           >
             <Bell className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>{isTestingTelegram ? 'Sending...' : 'Test Phone Alert'}</span>
+            <span>{isTestingTelegram ? 'Envoi...' : 'Tester l’alerte'}</span>
           </button>
 
           <button
@@ -386,7 +386,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             className="h-9 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-medium text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export CSV</span>
+            <span>Exporter CSV</span>
           </button>
         </div>
       </div>
@@ -429,7 +429,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       settings.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF6B00]'
                     }`}
                   />
-                  <span>{settings.is_active ? 'I’m on it' : 'I’m here when you’re ready'}</span>
+                  <span>{settings.is_active ? 'Je m’en occupe' : 'Je suis prêt quand vous l’êtes'}</span>
                 </h2>
 
                 <span
@@ -446,7 +446,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className="font-mono font-semibold text-[#FF6B00] tabular-nums">
                     {todaySentCount}/{settings.daily_limit}
                   </span>
-                  <span className="text-slate-500 text-[11px]">today (Zurich)</span>
+                  <span className="text-slate-500 text-[11px]">aujourd’hui (Zurich)</span>
                   <div className="w-14 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                     <div
                       className="bg-[#FF6B00] h-full rounded-full transition-all duration-500"
@@ -460,11 +460,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <span>
                   {settings.is_active
                     ? `I’m looking across ${settings.selected_cantons.length} Swiss cantons and keeping an eye on the next good opportunity. I’ll let you know when something needs your attention.`
-                    : `You have ${activeContractorsCount} verified companies ready. Turn me on and I’ll quietly search, sort, and prepare the next opportunities for you.`}
+                    : `Vous avez ${activeContractorsCount} sociétés vérifiées. Activez-moi et je chercherai les prochaines bonnes occasions pour vous.`}
                 </span>
               </p>
               <div className="flex flex-wrap justify-center items-center gap-2 text-[11px] text-slate-500">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">{todaySentCount} conversations today</span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1">{todaySentCount} échanges aujourd’hui</span>
                 {schedulerStatus?.next_send_at && settings.is_active && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-orange-700">
                     <Clock className="w-3 h-3" />
@@ -487,7 +487,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <RefreshCw
                 className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`}
               />
-              <span>{isPollingImap ? 'Checking...' : 'Check Replies'}</span>
+            <span>{isPollingImap ? 'Vérification...' : 'Vérifier les réponses'}</span>
             </button>
 
             <button
@@ -498,7 +498,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               className="h-9 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B00] border border-orange-200/90 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{isDispatching ? 'Sending...' : 'Send 1 Now'}</span>
+              <span>{isDispatching ? 'Envoi...' : 'Envoyer 1 maintenant'}</span>
             </button>
 
             <div data-tour="auto-scout-switch">
@@ -514,12 +514,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 {settings.is_active ? (
                   <>
                     <Pause className="w-3.5 h-3.5 fill-current" />
-                    <span>Pause Jimy</span>
+                    <span>Mettre Jimy en pause</span>
                   </>
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Put Jimy to Work</span>
+                    <span>Mettre Jimy au travail</span>
                   </>
                 )}
               </button>
@@ -535,7 +535,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Company Discovery</h3>
+                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Recherche de sociétés</h3>
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                   }`}>
@@ -543,7 +543,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Searches selected cantons every {settings.discovery_interval_minutes} minutes.
+                  Recherche dans les cantons choisis toutes les {settings.discovery_interval_minutes} minutes.
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
                   <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} found today</span>
@@ -552,7 +552,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className="text-slate-500">{discoveryStatus?.duplicates_today || 0} duplicates</span>
                 </div>
                 {!discoveryStatus?.provider_configured && (
-                  <p className="text-[11px] text-amber-700 mt-2">Configure Google, Foursquare, or a managed OpenStreetMap provider to start live discovery.</p>
+                  <p className="text-[11px] text-amber-700 mt-2">Ajoutez une source de recherche pour commencer.</p>
                 )}
               </div>
             </div>
@@ -564,7 +564,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 className="h-9 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Search className={`w-3.5 h-3.5 ${isDiscovering ? 'animate-spin' : ''}`} />
-                <span>{isDiscovering ? 'Searching...' : 'Find Now'}</span>
+                <span>{isDiscovering ? 'Recherche...' : 'Chercher maintenant'}</span>
               </button>
               <button
                 type="button"
@@ -587,7 +587,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Automatic Outreach</h3>
+                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Envoi automatique</h3>
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                   }`}>
@@ -666,7 +666,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[#1A73E8] font-medium text-xs group-hover:text-blue-700">
-            <span>View sent emails &amp; table</span>
+              <span>Voir les courriels</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
@@ -824,7 +824,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     className="h-8 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-[#FF6B00] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Camera className="w-3.5 h-3.5" />
-                    <span>Scan Cards</span>
+                    <span>Scanner des cartes</span>
                   </button>
                 )}
                 <button
@@ -833,7 +833,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200/70 border border-slate-200 text-[#0B2240] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Add Company</span>
+                  <span>Ajouter une société</span>
                 </button>
               </div>
             </div>
@@ -943,7 +943,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 onClick={onNavigateToTargets}
                 className="h-8 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
-                <span>Manage</span>
+                <span>Gérer</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#FF6B00]" />
               </button>
             </div>
@@ -987,13 +987,13 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-                <span className="text-[11px] text-slate-500 block">Eligible companies</span>
+                <span className="text-[11px] text-slate-500 block">Sociétés prêtes</span>
                 <span className="font-mono font-bold text-sm text-[#0B2240] tabular-nums mt-0.5 block">
                   {activeContractorsCount} of {companies.length}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-orange-50/50 border border-orange-200/70">
-                <span className="text-[11px] text-slate-600 block">Daily speed limit</span>
+                <span className="text-[11px] text-slate-600 block">Limite par jour</span>
                 <span className="font-mono font-bold text-sm text-[#FF6B00] tabular-nums mt-0.5 block">
                   {settings.daily_limit} emails / day
                 </span>
@@ -1016,7 +1016,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 onClick={onNavigateToPersona}
                 className="text-xs font-semibold text-[#FF6B00] hover:text-[#E05E00] flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <span>Edit</span>
+                <span>Modifier</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

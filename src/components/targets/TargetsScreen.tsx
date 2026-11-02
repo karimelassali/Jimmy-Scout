@@ -135,7 +135,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompName.trim()) {
-      showToast('Company name is required.', true);
+      showToast('Le nom de la société est obligatoire.', true);
       return;
     }
 
@@ -273,7 +273,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         setNewSuppDomain('');
         await loadSuppressions();
         await onRefreshCompanies();
-        showToast('Added to permanent suppression list');
+      showToast('Ajouté à la liste de blocage permanente');
       }
     } catch {
       showToast('Failed to add suppression', true);
@@ -388,7 +388,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
-            <span>Opt-Outs</span>
+            <span>Refus</span>
           </button>
 
           <button
@@ -397,7 +397,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
           >
             <Upload className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>CSV Import/Export</span>
+            <span>Importer / exporter CSV</span>
           </button>
 
           {onNavigateToScanner && (
@@ -407,7 +407,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#0B2240] text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
             >
               <Camera className="w-4 h-4 text-[#FF6B00]" />
-              <span>Scan Cards</span>
+              <span>Scanner des cartes</span>
             </button>
           )}
 
@@ -420,7 +420,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             className="h-10 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Company</span>
+              <span>Ajouter une société</span>
           </button>
         </div>
       </div>
@@ -614,7 +614,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         <span>Active</span>
                       </>
                     ) : (
-                      <span>Off</span>
+                        <span>Arrêtée</span>
                     )}
                   </button>
                 </div>
@@ -670,13 +670,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="h-8 px-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
+                <span>Ajouter</span>
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
-                <span className="text-[11px] text-slate-500 block">Companies on List</span>
+                <span className="text-[11px] text-slate-500 block">Sociétés dans la liste</span>
                 <span className="font-heading font-bold text-xl text-[#0B2240] tabular-nums mt-0.5 block">
                   {contractorsInSelectedCanton.length}
                 </span>
@@ -972,7 +972,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
-                <span>{isSavingComp ? 'Saving...' : 'Save Company'}</span>
+                <span>{isSavingComp ? 'Enregistrement...' : 'Enregistrer la société'}</span>
               </button>
             </form>
           </div>
@@ -1181,7 +1181,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="w-full h-11 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>{isUpdatingComp ? 'Saving...' : 'Save Changes'}</span>
+                <span>{isUpdatingComp ? 'Enregistrement...' : 'Enregistrer les changements'}</span>
               </button>
             </form>
           </div>
@@ -1222,7 +1222,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="h-9 px-4 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-xs inline-flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download CSV</span>
+              <span>Télécharger CSV</span>
               </a>
             </div>
 
