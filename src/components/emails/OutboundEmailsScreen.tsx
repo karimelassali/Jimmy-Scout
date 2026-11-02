@@ -605,7 +605,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Languages
+              Langues
             </span>
             <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center">
               <Globe className="w-4 h-4" />
@@ -628,7 +628,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             </div>
           </div>
           <div className="mt-2 text-[11px] text-slate-500 truncate">
-            From {settings.sender_email}
+            Depuis {settings.sender_email}
           </div>
         </div>
       </section>
@@ -949,24 +949,24 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   const isSelected = selectedLogIds.includes(log.id);
 
                   // Formatting date nicely
-                  const formattedDate = sentDate.toLocaleDateString('en-GB', {
+                  const formattedDate = sentDate.toLocaleDateString('fr-CH', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',
                   });
-                  const formattedTime = sentDate.toLocaleTimeString([], {
+                  const formattedTime = sentDate.toLocaleTimeString('fr-CH', {
                     hour: '2-digit',
                     minute: '2-digit',
                   });
 
                   // Relative time helper
                   const diffMinutes = Math.round((Date.now() - sentDate.getTime()) / 60000);
-                  let relativeTime = `${diffMinutes}m ago`;
+                  let relativeTime = `il y a ${diffMinutes} min`;
                   if (diffMinutes < 1) relativeTime = 'À l’instant';
                   else if (diffMinutes >= 60 && diffMinutes < 1440) {
-                    relativeTime = `${Math.floor(diffMinutes / 60)}h ago`;
+                    relativeTime = `il y a ${Math.floor(diffMinutes / 60)} h`;
                   } else if (diffMinutes >= 1440) {
-                    relativeTime = `${Math.floor(diffMinutes / 1440)}d ago`;
+                    relativeTime = `il y a ${Math.floor(diffMinutes / 1440)} j`;
                   }
 
                   return (
@@ -1008,7 +1008,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                         </div>
                         {comp?.industry && (
                           <div className="text-[11px] text-slate-400 capitalize">
-                            {comp.industry.replace(/_/g, ' ')}
+                            {({ civil_engineering: 'Génie civil', tiefbau: 'Terrassement', demolition: 'Démolition', quarry: 'Carrière' } as Record<string, string>)[comp.industry] || comp.industry.replace(/_/g, ' ')}
                           </div>
                         )}
                       </td>

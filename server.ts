@@ -59,7 +59,7 @@ function rateLimit(maxRequests: number, windowMs: number) {
     }
     if (bucket.count >= maxRequests) {
       return res.status(429).json({
-        error: 'Too many requests. Please wait before retrying.',
+        error: 'Trop de demandes. Attendez avant de réessayer.',
         retryAfterSeconds: Math.ceil((bucket.resetAt - now) / 1000),
       });
     }
@@ -131,7 +131,7 @@ function requireAdminAuth(
     return next();
   }
   return res.status(401).json({
-    error: 'Unauthorized: Valid owner session or x-admin-token required.',
+    error: 'Accès refusé : une session valide est obligatoire.',
     authRequired: true,
   });
 }
@@ -160,7 +160,7 @@ function verifyWebhookAuth(
   if (timestampHeader) {
     const ts = Number(timestampHeader);
     if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > 5 * 60 * 1000) {
-      return res.status(401).json({ error: 'Webhook timestamp expired or invalid.' });
+      return res.status(401).json({ error: 'La date du webhook est invalide ou expirée.' });
     }
   }
 
@@ -186,7 +186,7 @@ function verifyWebhookAuth(
     if (signature === expectedSig || signature === `sha256=${expectedSig}`) {
       const nonceKey = `${timestampHeader || 'no-ts'}:${expectedSig}`;
       if (processedWebhookNonces.has(nonceKey)) {
-        return res.status(409).json({ error: 'Webhook replay rejected.' });
+        return res.status(409).json({ error: 'Webhook déjà reçu.' });
       }
       processedWebhookNonces.set(nonceKey, Date.now());
       return next();
@@ -194,7 +194,7 @@ function verifyWebhookAuth(
   }
 
   return res.status(401).json({
-    error: 'Unauthorized webhook request: valid x-webhook-secret or x-webhook-signature required.',
+    error: 'Webhook refusé : signature valide obligatoire.',
   });
 }
 
@@ -276,7 +276,7 @@ app.post('/api/auth/login', rateLimit(10, 60_000), (req, res) => {
 
   const provided = String(req.body?.token || req.body?.password || '').trim();
   if (!provided || provided !== adminToken) {
-    return res.status(401).json({ success: false, error: 'Invalid access token.' });
+    return res.status(401).json({ success: false, error: 'Code d’accès incorrect.' });
   }
 
   const cookieVal = computeSessionCookieValue(adminToken);
@@ -354,7 +354,7 @@ app.use('/api', (req, res, next) => {
   if (safePreview && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return res.status(409).json({
       status: 'preview_only',
-      message: 'This local preview is read-only. Production actions run on Railway.',
+      message: 'Cet aperçu local est en lecture seule. Les actions réelles fonctionnent sur Railway.',
     });
   }
   return next();
@@ -544,7 +544,7 @@ app.patch('/api/leads/:id', async (req, res) => {
 
     const updated = await supabaseDataService.updateLead(id, patch);
     if (!updated) {
-      return res.status(404).json({ error: 'Lead not found' });
+      return res.status(404).json({ error: 'Dossier introuvable' });
     }
     res.json(updated);
   } catch (err: any) {
@@ -558,13 +558,13 @@ app.post('/api/leads/:id/reply', rateLimit(15, 60_000), async (req, res) => {
     const { id } = req.params;
     const { subject, body } = req.body || {};
     if (!subject || !body) {
-      return res.status(400).json({ error: 'Reply subject and body are required.' });
+      return res.status(400).json({ error: 'Le sujet et le message sont obligatoires.' });
     }
 
     const leads = await supabaseDataService.getLeads();
     const lead = leads.find((l) => l.id === id);
     if (!lead) {
-      return res.status(404).json({ error: 'Lead not found.' });
+      return res.status(404).json({ error: 'Dossier introuvable.' });
     }
 
     const settings = await supabaseDataService.getSettings();
@@ -682,7 +682,7 @@ app.post('/api/equipment', async (req, res) => {
 app.patch('/api/equipment/:id', async (req, res) => {
   try {
     const updated = await supabaseDataService.updateEquipmentRecord(req.params.id, req.body || {});
-    if (!updated) return res.status(404).json({ error: 'Equipment record not found' });
+    if (!updated) return res.status(404).json({ error: 'Machine introuvable' });
     res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
@@ -732,7 +732,7 @@ app.post('/api/companies', async (req, res) => {
     if (!name || !canton) {
       return res
         .status(400)
-        .json({ error: 'Company name and Swiss canton are required.' });
+        .json({ error: 'Le nom de la société et le canton sont obligatoires.' });
     }
 
     const cleanCanton = normalizeCantonCode(String(canton));
@@ -829,7 +829,7 @@ app.post('/api/companies/bulk', async (req, res) => {
   try {
     const { companies } = req.body || {};
     if (!Array.isArray(companies) || companies.length === 0) {
-      return res.status(400).json({ error: 'Array of companies is required' });
+      return res.status(400).json({ error: 'Une liste de sociétés est obligatoire' });
     }
 
     const sanitizedList = companies
@@ -884,12 +884,12 @@ app.post('/api/companies/import-csv', async (req, res) => {
   try {
     const { csvText } = req.body || {};
     if (!csvText || typeof csvText !== 'string') {
-      return res.status(400).json({ error: 'csvText is required' });
+      return res.status(400).json({ error: 'Le contenu CSV est obligatoire' });
     }
 
     const parsedRows = parseCsvContent(csvText);
     if (parsedRows.length === 0) {
-      return res.status(400).json({ error: 'No valid contractor rows found in CSV.' });
+      return res.status(400).json({ error: 'Aucune société valide trouvée dans le fichier CSV.' });
     }
 
     const mapped = parsedRows
@@ -1017,7 +1017,7 @@ app.post('/api/suppressions', async (req, res) => {
   try {
     const { email, domain, companyName, reason } = req.body || {};
     if (!email && !domain) {
-      return res.status(400).json({ error: 'Email or domain is required for suppression.' });
+      return res.status(400).json({ error: 'Une adresse ou un domaine est obligatoire.' });
     }
     const entry = await supabaseDataService.addSuppression({
       email: email ? String(email) : null,
@@ -1061,7 +1061,7 @@ app.post('/api/scan-business-card', rateLimit(15, 60_000), async (req, res) => {
 
     if (imageList.length === 0) {
       return res.status(400).json({
-        error: 'Please provide at least one photo of a business card (base64 string)',
+        error: 'Ajoutez au moins une photo de carte de visite.',
       });
     }
 
@@ -1210,7 +1210,7 @@ app.post('/api/test-email', rateLimit(10, 60_000), async (req, res) => {
     const recipient = (targetEmail || settings.sender_email || '').trim();
 
     if (!recipient) {
-      return res.status(400).json({ success: false, error: 'Recipient email is required' });
+      return res.status(400).json({ success: false, error: 'L’adresse du destinataire est obligatoire' });
     }
 
     let subject = customSubject;
@@ -1339,7 +1339,7 @@ const inboundWebhookHandler = async (req: express.Request, res: express.Response
 
   if (!senderEmail || !rawBody) {
     return res.status(400).json({
-      error: 'Both senderEmail and rawBody are required for inbound AI triage.',
+      error: 'L’adresse du vendeur et son message sont obligatoires.',
     });
   }
 
@@ -1381,7 +1381,7 @@ app.post('/api/worker/step', rateLimit(20, 60_000), async (req, res) => {
     if (safePreview) {
       return res.status(409).json({
         status: 'preview_only',
-        message: 'Outbound dispatch is disabled in the local preview.',
+        message: 'Les envois sont désactivés dans l’aperçu local.',
       });
     }
     const manualOverride = Boolean(req.body?.manualOverride);
@@ -1427,7 +1427,7 @@ app.post('/api/discovery/step', rateLimit(10, 60_000), async (req, res) => {
     if (safePreview) {
       return res.status(409).json({
         status: 'preview_only',
-        message: 'Company discovery is disabled in the local preview.',
+        message: 'La recherche de sociétés est désactivée dans l’aperçu local.',
       });
     }
     const outcome = await companyDiscoveryService.executeStep({

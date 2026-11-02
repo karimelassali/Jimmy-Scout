@@ -938,8 +938,16 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                         }`}
                       >
                         {log.delivery_status === 'accepted'
-                            ? 'Accepté par le serveur'
-                          : log.delivery_status}
+                          ? 'Accepté par le serveur'
+                          : log.delivery_status === 'delivered'
+                            ? 'Remis'
+                            : log.delivery_status === 'simulated'
+                              ? 'Simulé'
+                              : log.delivery_status === 'failed'
+                                ? 'Échec'
+                                : log.delivery_status === 'bounced'
+                                  ? 'Rejeté'
+                                  : log.delivery_status}
                       </span>
                     </div>
                   );

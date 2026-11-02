@@ -346,7 +346,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
             Lire des cartes et ajouter plusieurs sociétés
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Take a photo or upload pictures of contractor visit cards. The AI extracts the company name, contact person, address, phone, email, and Swiss canton without fabricating missing emails.
+            Prenez ou choisissez des photos de cartes. Jimy trouve le nom, le contact, l’adresse, le téléphone, le courriel et le canton sans inventer les informations absentes.
           </p>
         </div>
 
@@ -391,7 +391,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 1. Prendre ou choisir des photos de cartes
               </h2>
               <p className="text-xs text-slate-500">
-                You can upload one card, multiple cards at once, or a photo with several cards on a table.
+                Vous pouvez choisir une carte, plusieurs cartes ou une photo avec plusieurs cartes.
               </p>
             </div>
           </div>
@@ -438,7 +438,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
           </div>
 
           <p className="text-xs text-slate-500">
-            or drag and drop business card photos right here (JPEG, PNG, HEIC, WebP)
+            ou déposez les photos ici (JPEG, PNG, HEIC, WebP)
           </p>
         </div>
 

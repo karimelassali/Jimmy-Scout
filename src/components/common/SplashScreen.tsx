@@ -3,10 +3,10 @@ import { Compass, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 
 export const SplashScreen: React.FC = () => {
   const steps = [
-    'Jimy is scanning active Swiss cantons (ZH · BE · VD · GE · TI · VS)...',
-    'Synchronizing verified contractor fleet registries...',
-    'Calibrating inquiry speed and email persona...',
-    'Connecting to Swiss B2B procurement network...',
+    'Jimy vérifie les cantons actifs (ZH · BE · VD · GE · TI · VS)…',
+    'Mise à jour des sociétés vérifiées…',
+    'Préparation du rythme et des courriels…',
+    'Connexion au réseau suisse des sociétés…',
   ];
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);

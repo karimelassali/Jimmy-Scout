@@ -139,7 +139,7 @@ export class OutboundSchedulerService {
     if (!settings.is_active || !settings.outreach_active) {
       return {
         status: 'paused',
-        message: 'Outreach engine is paused. Enable Jimy and Automatic Outreach first.',
+        message: 'Les envois sont en pause. Activez Jimy et l’envoi automatique.',
       };
     }
 
@@ -153,7 +153,7 @@ export class OutboundSchedulerService {
       return {
         status: 'waiting_for_hours',
         nextSendAt: nextWindow,
-        message: `Deferred: Outside Swiss business hours (08:30–17:00 Europe/Zurich, Mon–Fri). Next window: ${nextWindow}`,
+        message: `En attente : les envois sont permis du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich. Prochaine ouverture : ${nextWindow}`,
       };
     }
 
@@ -166,7 +166,7 @@ export class OutboundSchedulerService {
           return {
             status: 'waiting_for_jitter',
             nextSendAt: meta.next_send_at,
-            message: `Waiting for scheduled jitter window at ${meta.next_send_at}`,
+            message: `En attente du prochain envoi prévu à ${meta.next_send_at}`,
           };
         }
       }
@@ -182,7 +182,7 @@ export class OutboundSchedulerService {
       if (claim.reason === 'busy') {
         return {
           status: 'busy',
-          message: 'Another dispatch step is currently in progress.',
+          message: 'Un autre envoi est déjà en cours.',
         };
       }
       if (claim.reason === 'quota_reached') {
@@ -190,7 +190,7 @@ export class OutboundSchedulerService {
           status: 'quota_reached',
           todaySentCount: claim.todaySentCount,
           dailyLimit: settings.daily_limit,
-          message: `Daily quota reached (${claim.todaySentCount}/${settings.daily_limit}).`,
+          message: `Limite du jour atteinte (${claim.todaySentCount}/${settings.daily_limit}).`,
         };
       }
       return {
@@ -277,7 +277,7 @@ export class OutboundSchedulerService {
           language: lang,
           error: sendResult.error,
           log: updatedFailedLog || pendingLog,
-          message: `SMTP dispatch failed for ${company.email}: ${sendResult.error}`,
+          message: `Échec de l’envoi à ${company.email} : ${sendResult.error}`,
         };
       }
 
@@ -320,7 +320,7 @@ export class OutboundSchedulerService {
         dailyLimit: settings.daily_limit,
         nextSendAt: nextValidTime.toISOString(),
         log: finalizedLog || pendingLog,
-        message: `Email accepted by SMTP for ${company.name} (${company.email})`,
+        message: `Courriel accepté pour ${company.name} (${company.email})`,
       };
     } catch (err: any) {
       await supabaseDataService.updateOutboundLogStatus(pendingLog.id, {

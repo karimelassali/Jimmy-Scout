@@ -169,7 +169,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             Profil de Jimy et aperçu des courriels
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Configure the identity, speaking tone, and machinery preferences agent Jimy uses when reaching out to Swiss contractors.
+            Choisissez votre identité, le ton des messages et les machines que Jimy doit chercher.
           </p>
         </div>
 
@@ -333,7 +333,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           {/* Commercial Tone Selector */}
           <section className="bg-white rounded-3xl p-6 border border-slate-200/90 space-y-4" data-tour="persona-tone">
             <h2 className="font-heading font-bold text-base text-[#0B2240]">
-              2. Speaking Style
+              2. Ton des courriels
             </h2>
 
             <div className="space-y-2.5">
@@ -392,7 +392,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           {/* Value Proposition Checkboxes */}
           <section className="bg-white rounded-3xl p-6 border border-slate-200/90 space-y-4" data-tour="persona-hooks">
             <h2 className="font-heading font-bold text-base text-[#0B2240]">
-              3. Guarantees You Offer
+              3. Vos garanties
             </h2>
 
             <div className="space-y-2.5">
@@ -455,7 +455,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                       Guide interactif
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Screenshots &amp; Workflows
+                      Images et étapes
                     </span>
                   </div>
                   <h2 className="font-heading font-bold text-base text-[#0B2240] leading-snug">
@@ -466,7 +466,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Explore step-by-step instructions, high-resolution interface screenshots, Swiss canton strategies, and equipment extraction workflows.
+              Découvrez les étapes, les images de l’application, les cantons et la lecture des offres.
             </p>
 
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-1">
@@ -510,7 +510,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   Aperçu de votre courriel
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Exact text sent to sellers from {settings.sender_email}
+                  Texte exact envoyé aux vendeurs depuis {settings.sender_email}
                 </p>
               </div>
             </div>
@@ -521,8 +521,8 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 {(
                   [
                     { id: 'fr', label: 'FR · Romandie' },
-                    { id: 'de', label: 'DE · Deutschschweiz' },
-                    { id: 'it', label: 'IT · Ticino' },
+                    { id: 'de', label: 'DE · Suisse alémanique' },
+                    { id: 'it', label: 'IT · Tessin' },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -551,7 +551,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   {renderedTemplate.subject}
                 </h3>
                 <span className="px-2 py-0.5 rounded bg-[#f1f3f4] text-[#5f6368] text-[11px] font-medium">
-                  Inbox
+                  Boîte de réception
                 </span>
               </div>
             </div>
@@ -579,7 +579,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 </div>
               </div>
               <span className="text-[12px] text-[#5f6368] shrink-0 pt-0.5">
-                09:14 (just now)
+                09:14 (à l’instant)
               </span>
             </div>
 

@@ -333,7 +333,7 @@ export class CompanyDiscoveryService {
   }
 
   async executeStep(options?: { manualOverride?: boolean; referenceDate?: Date }): Promise<DiscoveryStepResult> {
-    if (this.running) return { status: 'busy', message: 'A discovery run is already in progress.' };
+    if (this.running) return { status: 'busy', message: 'Une recherche est déjà en cours.' };
     this.running = true;
     const now = options?.referenceDate || new Date();
     try {
@@ -345,16 +345,16 @@ export class CompanyDiscoveryService {
       // A deliberate one-off dashboard search is useful while the autonomous
       // agent is paused. Scheduled discovery still requires both switches.
       if ((!settings.is_active || !settings.discovery_active) && !options?.manualOverride) {
-        return { status: 'paused', message: 'Enable Jimy and Company Discovery first.' };
+        return { status: 'paused', message: 'Activez Jimy et la recherche de sociétés.' };
       }
       if (!this.providerConfigured()) {
-        return { status: 'blocked', message: 'Configure at least one discovery provider (Google, Foursquare, or a managed OpenStreetMap endpoint).' };
+        return { status: 'blocked', message: 'Configurez au moins une source de recherche.' };
       }
       if (stats.found_today >= settings.discovery_daily_limit) {
-        return { status: 'quota_reached', message: `Discovery daily limit reached (${stats.found_today}/${settings.discovery_daily_limit}).` };
+        return { status: 'quota_reached', message: `Limite de recherche du jour atteinte (${stats.found_today}/${settings.discovery_daily_limit}).` };
       }
       if (!options?.manualOverride && meta.next_run_at && new Date(meta.next_run_at).getTime() > now.getTime()) {
-        return { status: 'waiting', message: 'Waiting for the next scheduled discovery run.', nextRunAt: meta.next_run_at };
+        return { status: 'waiting', message: 'En attente de la prochaine recherche.', nextRunAt: meta.next_run_at };
       }
 
       const cantons = settings.selected_cantons.length ? settings.selected_cantons : ['ZH'];
@@ -498,7 +498,7 @@ export class CompanyDiscoveryService {
       });
       return {
         status: 'completed',
-        message: `Scanned ${places.length} businesses; ${ready} ready for outreach.`,
+        message: `${places.length} sociétés vérifiées ; ${ready} prêtes pour les courriels.`,
         query, canton: cantonCode, scanned: places.length, ready, missingEmail,
         duplicates, rejected, nextRunAt,
       };

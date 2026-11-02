@@ -448,11 +448,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   Limite d’envoi par jour
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[#FF6B00] font-mono font-bold text-xs">
-                  {dailyPace} emails / day
+                  {dailyPace} courriels / jour
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Sent automatically Monday–Friday (08:30 – 17:00 Europe/Zurich time with 8–18 min jitter)
+                Envoi automatique du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich
               </p>
             </div>
           </div>
@@ -469,9 +469,9 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="w-full accent-[#FF6B00] cursor-pointer h-2 bg-slate-200 rounded-full"
               />
               <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                <span>10 / day (Gentle)</span>
-                <span>25 / day (Recommended)</span>
-                <span>50 / day (Fast)</span>
+                <span>10 / jour (doux)</span>
+                <span>25 / jour (conseillé)</span>
+                <span>50 / jour (rapide)</span>
               </div>
             </div>
 
@@ -528,7 +528,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shrink-0 min-w-max shadow-2xs">
             {(
               [
-                { id: 'all', label: `All (${ALL_SWISS_CANTONS.length})` },
+                { id: 'all', label: `Tous (${ALL_SWISS_CANTONS.length})` },
                 {
                   id: 'de',
                   label: `DE (${ALL_SWISS_CANTONS.filter((c) => c.language === 'de').length})`,
@@ -607,13 +607,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         {canton.language.toUpperCase()}
                       </span>
                       <span>·</span>
-                      <span className="tabular-nums">PLZ {canton.plz}</span>
+                      <span className="tabular-nums">NPA {canton.plz}</span>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    aria-label={`Toggle Canton ${canton.name}`}
+                    aria-label={`Activer ou arrêter le canton ${canton.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleCanton(canton.code);
@@ -650,7 +650,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           cantonEligible > 0 ? 'bg-[#FF6B00]' : 'bg-slate-300'
                         }`}
                       />
-                      {cantonEligible} verified ({cantonCompanies.length} total)
+                      {cantonEligible} vérifiée(s) ({cantonCompanies.length} au total)
                     </span>
                   </div>
                 </div>
@@ -668,9 +668,9 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="text-xs font-medium text-slate-500">
-                  <span>{selectedCantonMeta.region}</span>
+                  <span>{selectedCantonMeta.region === 'Deutschschweiz (DE)' ? 'Suisse alémanique (DE)' : selectedCantonMeta.region === 'Ticino (IT)' ? 'Tessin (IT)' : selectedCantonMeta.region}</span>
                   <span className="mx-1.5">·</span>
-                  <span>PLZ {selectedCantonMeta.plz}</span>
+                  <span>NPA {selectedCantonMeta.plz}</span>
                 </div>
                 <h3 className="font-heading font-bold text-xl text-[#0B2240] mt-0.5">
                   Canton {selectedCantonMeta.name} ({selectedCantonMeta.code})
@@ -716,7 +716,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="text-xs font-semibold text-[#0B2240] flex items-center justify-between">
               <span>Sociétés dans le canton de {selectedCantonMeta.name}</span>
               <span className="font-mono text-[11px] text-slate-400">
-                Default: {selectedCantonMeta.language.toUpperCase()}
+                Langue : {selectedCantonMeta.language.toUpperCase()}
               </span>
             </div>
 
@@ -724,7 +724,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="bg-slate-50 rounded-2xl p-6 text-center space-y-2 border border-dashed border-slate-200">
                 <Building2 className="w-6 h-6 text-slate-400 mx-auto" />
                 <p className="text-xs text-slate-600">
-                  No companies saved in {selectedCantonMeta.name} yet.
+                  Aucune société enregistrée dans {selectedCantonMeta.name}.
                 </p>
                 <button
                   type="button"
@@ -769,7 +769,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           {comp.unsubscribed && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
-                              Opted Out (STOP)
+                              Refus (STOP)
                             </span>
                           )}
                           {!hasVerifiedEmail && !comp.unsubscribed && (
@@ -797,7 +797,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         <button
                           type="button"
                           onClick={() => setCompanyToDelete(comp)}
-                          aria-label={`Remove ${comp.name}`}
+                          aria-label={`Retirer ${comp.name}`}
                           title="Supprimer la société"
                           className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                         >
@@ -823,8 +823,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 <MapPin className="w-3.5 h-3.5" />
                 <span>
                   {settings.selected_cantons.includes(selectedCantonMeta.code)
-                    ? `Turn Off Region ${selectedCantonMeta.name} (${selectedCantonMeta.code})`
-                    : `Turn On Region ${selectedCantonMeta.name} (${selectedCantonMeta.code})`}
+                    ? `Arrêter la région ${selectedCantonMeta.name} (${selectedCantonMeta.code})`
+                    : `Activer la région ${selectedCantonMeta.name} (${selectedCantonMeta.code})`}
                 </span>
               </button>
             </div>

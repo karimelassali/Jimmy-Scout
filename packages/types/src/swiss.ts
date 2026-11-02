@@ -15,32 +15,32 @@ export interface SwissCantonMeta {
 }
 
 export const ALL_SWISS_CANTONS: SwissCantonMeta[] = [
-  { code: 'ZH', name: 'Zürich', nameDe: 'Zürich', nameFr: 'Zurich', nameIt: 'Zurigo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8000', primarySector: 'Tiefbau & Heavy Earthworks' },
-  { code: 'BE', name: 'Bern', nameDe: 'Bern', nameFr: 'Berne', nameIt: 'Berna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', bilingual: ['de', 'fr'], plz: '3000', primarySector: 'Kieswerk & Mineral Quarries' },
-  { code: 'LU', name: 'Luzern', nameDe: 'Luzern', nameFr: 'Lucerne', nameIt: 'Lucerna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6000', primarySector: 'Road Construction & Civil Works' },
-  { code: 'UR', name: 'Uri', nameDe: 'Uri', nameFr: 'Uri', nameIt: 'Uri', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6460', primarySector: 'Alpine Tunneling & Rock Works' },
-  { code: 'SZ', name: 'Schwyz', nameDe: 'Schwyz', nameFr: 'Schwyz', nameIt: 'Svitto', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6430', primarySector: 'Earthmoving & Quarries' },
-  { code: 'OW', name: 'Obwalden', nameDe: 'Obwalden', nameFr: 'Obwald', nameIt: 'Obvaldo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6060', primarySector: 'Civil Works & Forestry Machinery' },
-  { code: 'NW', name: 'Nidwalden', nameDe: 'Nidwalden', nameFr: 'Nidwald', nameIt: 'Nidvaldo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6370', primarySector: 'Infrastructure & Excavation' },
-  { code: 'GL', name: 'Glarus', nameDe: 'Glarus', nameFr: 'Glaris', nameIt: 'Glarona', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8750', primarySector: 'Mountain Civil Engineering' },
-  { code: 'ZG', name: 'Zug', nameDe: 'Zug', nameFr: 'Zoug', nameIt: 'Zugo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6300', primarySector: 'Commercial Infrastructure' },
-  { code: 'FR', name: 'Fribourg', nameDe: 'Freiburg', nameFr: 'Fribourg', nameIt: 'Friburgo', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', bilingual: ['fr', 'de'], plz: '1700', primarySector: 'Civil Engineering & Gravel Pits' },
-  { code: 'SO', name: 'Solothurn', nameDe: 'Solothurn', nameFr: 'Soleure', nameIt: 'Soletta', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4500', primarySector: 'Industrial Earthworks & Transport' },
-  { code: 'BS', name: 'Basel-Stadt', nameDe: 'Basel-Stadt', nameFr: 'Bâle-Ville', nameIt: 'Basilea Città', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4000', primarySector: 'Rhine Port Logistics & Demolition' },
-  { code: 'BL', name: 'Basel-Landschaft', nameDe: 'Basel-Landschaft', nameFr: 'Bâle-Campagne', nameIt: 'Basilea Campagna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4410', primarySector: 'Heavy Excavation & Recycling' },
-  { code: 'SH', name: 'Schaffhausen', nameDe: 'Schaffhausen', nameFr: 'Schaffhouse', nameIt: 'Sciaffusa', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8200', primarySector: 'Municipal & Road Equipment' },
-  { code: 'AR', name: 'Appenzell Ausserrhoden', nameDe: 'Appenzell Ausserrhoden', nameFr: 'Appenzell Rhodes-Extérieures', nameIt: 'Appenzello Esterno', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9100', primarySector: 'Regional Earthmoving' },
-  { code: 'AI', name: 'Appenzell Innerrhoden', nameDe: 'Appenzell Innerrhoden', nameFr: 'Appenzell Rhodes-Intérieures', nameIt: 'Appenzello Interno', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9050', primarySector: 'Civil & Utility Contractors' },
-  { code: 'SG', name: 'St. Gallen', nameDe: 'St. Gallen', nameFr: 'Saint-Gall', nameIt: 'San Gallo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9000', primarySector: 'Tiefbau Rheintal' },
-  { code: 'GR', name: 'Graubünden', nameDe: 'Graubünden', nameFr: 'Grisons', nameIt: 'Grigioni', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', bilingual: ['de', 'it'], plz: '7000', primarySector: 'Alpine Civil Engineering & Snow/Earth Fleet' },
-  { code: 'AG', name: 'Aargau', nameDe: 'Aargau', nameFr: 'Argovie', nameIt: 'Argovia', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '5000', primarySector: 'Kieswerk & Highway Grading' },
-  { code: 'TG', name: 'Thurgau', nameDe: 'Thurgau', nameFr: 'Thurgovie', nameIt: 'Turgovia', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8500', primarySector: 'Earthworks & Agricultural/Civil Fleet' },
-  { code: 'TI', name: 'Ticino', nameDe: 'Tessin', nameFr: 'Tessin', nameIt: 'Ticino', region: 'Ticino (IT)', defaultLanguage: 'it', language: 'it', plz: '6900', primarySector: 'Genio Civile & Stone Quarries' },
-  { code: 'VD', name: 'Vaud', nameDe: 'Waadt', nameFr: 'Vaud', nameIt: 'Vaud', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '1000', primarySector: 'Demolition & Mobile Crushing' },
-  { code: 'VS', name: 'Valais', nameDe: 'Wallis', nameFr: 'Valais', nameIt: 'Vallese', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', bilingual: ['fr', 'de'], plz: '1950', primarySector: 'Alpine Earthworks & Tunneling' },
-  { code: 'NE', name: 'Neuchâtel', nameDe: 'Neuenburg', nameFr: 'Neuchâtel', nameIt: 'Neuchâtel', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '2000', primarySector: 'Jura Earthmoving & Trenching' },
-  { code: 'GE', name: 'Genève', nameDe: 'Genf', nameFr: 'Genève', nameIt: 'Ginevra', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '1200', primarySector: 'Urban Civil Engineering' },
-  { code: 'JU', name: 'Jura', nameDe: 'Jura', nameFr: 'Jura', nameIt: 'Giura', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '2800', primarySector: 'Earthmoving & Quarry Operations' },
+  { code: 'ZH', name: 'Zürich', nameDe: 'Zürich', nameFr: 'Zurich', nameIt: 'Zurigo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8000', primarySector: 'Terrassement et grands travaux' },
+  { code: 'BE', name: 'Bern', nameDe: 'Bern', nameFr: 'Berne', nameIt: 'Berna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', bilingual: ['de', 'fr'], plz: '3000', primarySector: 'Gravières et carrières' },
+  { code: 'LU', name: 'Luzern', nameDe: 'Luzern', nameFr: 'Lucerne', nameIt: 'Lucerna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6000', primarySector: 'Routes et génie civil' },
+  { code: 'UR', name: 'Uri', nameDe: 'Uri', nameFr: 'Uri', nameIt: 'Uri', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6460', primarySector: 'Tunnels et travaux en montagne' },
+  { code: 'SZ', name: 'Schwyz', nameDe: 'Schwyz', nameFr: 'Schwyz', nameIt: 'Svitto', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6430', primarySector: 'Terrassement et carrières' },
+  { code: 'OW', name: 'Obwalden', nameDe: 'Obwalden', nameFr: 'Obwald', nameIt: 'Obvaldo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6060', primarySector: 'Génie civil et machines forestières' },
+  { code: 'NW', name: 'Nidwalden', nameDe: 'Nidwalden', nameFr: 'Nidwald', nameIt: 'Nidvaldo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6370', primarySector: 'Infrastructure et excavation' },
+  { code: 'GL', name: 'Glarus', nameDe: 'Glarus', nameFr: 'Glaris', nameIt: 'Glarona', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8750', primarySector: 'Génie civil en montagne' },
+  { code: 'ZG', name: 'Zug', nameDe: 'Zug', nameFr: 'Zoug', nameIt: 'Zugo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '6300', primarySector: 'Infrastructure commerciale' },
+  { code: 'FR', name: 'Fribourg', nameDe: 'Freiburg', nameFr: 'Fribourg', nameIt: 'Friburgo', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', bilingual: ['fr', 'de'], plz: '1700', primarySector: 'Génie civil et gravières' },
+  { code: 'SO', name: 'Solothurn', nameDe: 'Solothurn', nameFr: 'Soleure', nameIt: 'Soletta', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4500', primarySector: 'Terrassement industriel et transport' },
+  { code: 'BS', name: 'Basel-Stadt', nameDe: 'Basel-Stadt', nameFr: 'Bâle-Ville', nameIt: 'Basilea Città', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4000', primarySector: 'Logistique portuaire et démolition' },
+  { code: 'BL', name: 'Basel-Landschaft', nameDe: 'Basel-Landschaft', nameFr: 'Bâle-Campagne', nameIt: 'Basilea Campagna', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '4410', primarySector: 'Excavation et recyclage' },
+  { code: 'SH', name: 'Schaffhausen', nameDe: 'Schaffhausen', nameFr: 'Schaffhouse', nameIt: 'Sciaffusa', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8200', primarySector: 'Machines communales et routières' },
+  { code: 'AR', name: 'Appenzell Ausserrhoden', nameDe: 'Appenzell Ausserrhoden', nameFr: 'Appenzell Rhodes-Extérieures', nameIt: 'Appenzello Esterno', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9100', primarySector: 'Terrassement régional' },
+  { code: 'AI', name: 'Appenzell Innerrhoden', nameDe: 'Appenzell Innerrhoden', nameFr: 'Appenzell Rhodes-Intérieures', nameIt: 'Appenzello Interno', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9050', primarySector: 'Génie civil et services publics' },
+  { code: 'SG', name: 'St. Gallen', nameDe: 'St. Gallen', nameFr: 'Saint-Gall', nameIt: 'San Gallo', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '9000', primarySector: 'Terrassement du Rhin' },
+  { code: 'GR', name: 'Graubünden', nameDe: 'Graubünden', nameFr: 'Grisons', nameIt: 'Grigioni', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', bilingual: ['de', 'it'], plz: '7000', primarySector: 'Génie civil alpin et machines pour la neige' },
+  { code: 'AG', name: 'Aargau', nameDe: 'Aargau', nameFr: 'Argovie', nameIt: 'Argovia', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '5000', primarySector: 'Gravières et routes' },
+  { code: 'TG', name: 'Thurgau', nameDe: 'Thurgau', nameFr: 'Thurgovie', nameIt: 'Turgovia', region: 'Deutschschweiz (DE)', defaultLanguage: 'de', language: 'de', plz: '8500', primarySector: 'Terrassement et machines agricoles' },
+  { code: 'TI', name: 'Ticino', nameDe: 'Tessin', nameFr: 'Tessin', nameIt: 'Ticino', region: 'Ticino (IT)', defaultLanguage: 'it', language: 'it', plz: '6900', primarySector: 'Génie civil et carrières de pierre' },
+  { code: 'VD', name: 'Vaud', nameDe: 'Waadt', nameFr: 'Vaud', nameIt: 'Vaud', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '1000', primarySector: 'Démolition et concassage mobile' },
+  { code: 'VS', name: 'Valais', nameDe: 'Wallis', nameFr: 'Valais', nameIt: 'Vallese', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', bilingual: ['fr', 'de'], plz: '1950', primarySector: 'Terrassement alpin et tunnels' },
+  { code: 'NE', name: 'Neuchâtel', nameDe: 'Neuenburg', nameFr: 'Neuchâtel', nameIt: 'Neuchâtel', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '2000', primarySector: 'Terrassement et tranchées' },
+  { code: 'GE', name: 'Genève', nameDe: 'Genf', nameFr: 'Genève', nameIt: 'Ginevra', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '1200', primarySector: 'Génie civil urbain' },
+  { code: 'JU', name: 'Jura', nameDe: 'Jura', nameFr: 'Jura', nameIt: 'Giura', region: 'Romandie (FR)', defaultLanguage: 'fr', language: 'fr', plz: '2800', primarySector: 'Terrassement et carrières' },
 ];
 
 export const SWISS_CANTON_CODES = new Set(ALL_SWISS_CANTONS.map((c) => c.code));
@@ -152,7 +152,7 @@ export function convertToChf(amount: number | null | undefined, currency: 'CHF' 
 
 export function formatMoney(amount: number | null | undefined, currency: 'CHF' | 'EUR' | 'USD' = 'CHF'): string {
   if (amount === null || amount === undefined || !Number.isFinite(amount)) {
-    return 'Price on request';
+    return 'Prix sur demande';
   }
   return `${currency} ${Math.round(amount).toLocaleString('de-CH')}`;
 }
