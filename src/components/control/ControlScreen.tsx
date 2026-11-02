@@ -338,6 +338,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   };
 
   const schedulerBadge = getSchedulerBadge();
+  const statusFr = (value?: string | null) => ({
+    paused: 'en pause', enabled: 'activée', waiting: 'en attente', running: 'en cours',
+    waiting_for_hours: 'en attente des heures', quota_reached: 'limite atteinte', failed: 'erreur',
+  }[value || ''] || value || 'en pause');
 
   return (
     <div className="space-y-6 pb-24 md:pb-12">
@@ -539,7 +543,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {settings.discovery_active ? discoveryStatus?.state || 'activée' : 'en pause'}
+                    {settings.discovery_active ? statusFr(discoveryStatus?.state) : 'en pause'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
@@ -591,7 +595,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                     settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {settings.outreach_active ? schedulerStatus?.state || 'activé' : 'en pause'}
+                    {settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
