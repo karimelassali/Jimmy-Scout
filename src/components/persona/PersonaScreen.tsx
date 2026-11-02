@@ -120,6 +120,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   const previewRecipientLine = matchingContractor
     ? `${matchingContractor.name} (${matchingContractor.canton}) <${matchingContractor.email}>`
     : `{{company_name}} (${previewCanton}) <{{contractor_email}}>`;
+  const previewEquipmentFocus = localizeEquipmentFocus(settings.equipment_focus, activeLang);
 
   const templateParams = {
     companyName: previewCompanyName,
@@ -133,7 +134,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     // Localize the buyer's French default list before it reaches the preview.
     // Templates also normalize it, but doing it here keeps the on-screen
     // preview faithful to the message that will be sent.
-    equipmentFocus: localizeEquipmentFocus(settings.equipment_focus, activeLang),
+    equipmentFocus: previewEquipmentFocus,
   };
 
   const renderedTemplate =
@@ -608,7 +609,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                     ? 'Attualmente cerchiamo:'
                     : 'Nous recherchons actuellement :'}
                 </p>
-                <p className="text-[#202124]">{settings.equipment_focus}</p>
+                <p className="text-[#202124]">{previewEquipmentFocus}</p>
               </div>
 
               <p>
