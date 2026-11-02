@@ -44,11 +44,11 @@ export const SplashScreen: React.FC = () => {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200/80 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-pulse" />
-            <span>🇨🇭 Autonomous Swiss Machinery Agent</span>
+            <span>🇨🇭 Assistant suisse pour les machines</span>
           </div>
 
           <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0B2240] tracking-tight">
-            Jimy is Getting Ready
+            Jimy se prépare
           </h2>
         </div>
 

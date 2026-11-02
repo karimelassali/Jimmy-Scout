@@ -260,7 +260,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
   };
 
   // Copy helper
-  const handleCopyText = (text: string, identifier: string, label = 'Copied') => {
+  const handleCopyText = (text: string, identifier: string, label = 'Copié') => {
     navigator.clipboard.writeText(text);
     setCopiedId(identifier);
     showToast(label);
@@ -274,13 +274,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
       const res = await fetch('/api/worker/step', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.message || data.error || 'Failed to dispatch email', true);
+        showToast(data.message || data.error || 'Impossible d’envoyer le courriel', true);
       } else {
-        showToast(`Jimy successfully sent email to ${data.company} (${data.email})`);
+        showToast(`Jimy a envoyé un courriel à ${data.company} (${data.email})`);
         await onRefreshLogs();
       }
     } catch (err: any) {
-      showToast(err.message || 'Error executing email outreach step', true);
+      showToast(err.message || 'Erreur pendant l’envoi', true);
     } finally {
       setIsDispatching(false);
     }
@@ -291,9 +291,9 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
     setIsRefreshing(true);
     try {
       await onRefreshLogs();
-      showToast('Outbound email logs updated');
+      showToast('Liste des courriels mise à jour');
     } catch (err) {
-      showToast('Failed to refresh email logs', true);
+      showToast('Impossible de mettre la liste à jour', true);
     } finally {
       setIsRefreshing(false);
     }
@@ -306,16 +306,16 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
     try {
       const res = await fetch(`/api/logs/${logToDelete.id}`, { method: 'DELETE' });
       if (res.ok) {
-        showToast('Email log entry removed');
+        showToast('Courriel retiré de l’historique');
         if (activeModalLog?.id === logToDelete.id) {
           setActiveModalLog(null);
         }
         await onRefreshLogs();
       } else {
-        showToast('Failed to delete log entry', true);
+        showToast('Suppression impossible', true);
       }
     } catch (err) {
-      showToast('Network error deleting log', true);
+      showToast('Erreur de connexion pendant la suppression', true);
     } finally {
       setIsDeleting(false);
       setLogToDelete(null);
@@ -329,23 +329,23 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
       : filteredLogs;
 
     if (listToExport.length === 0) {
-      showToast('No email records to export', true);
+      showToast('Aucun courriel à exporter', true);
       return;
     }
 
     const headers = [
-      'Log ID',
-      'Sent At (UTC)',
-      'Sent At (Local)',
-      'Recipient Company',
-      'Recipient Email',
+      'ID',
+      'Date UTC',
+      'Date locale',
+      'Société',
+      'Adresse du destinataire',
       'Canton',
-      'Language',
-      'Subject',
-      'Message Snippet',
-      'Delivery Status',
-      'Sender Name',
-      'Sender Email',
+      'Langue',
+      'Sujet',
+      'Extrait du message',
+      'État de l’envoi',
+      'Nom de l’expéditeur',
+      'Adresse de l’expéditeur',
     ];
 
     const safeCell = (val: unknown) => {
@@ -356,7 +356,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
     const rows = listToExport.map((log) => {
       const comp = log.company_id ? companyById.get(log.company_id) : undefined;
-      const compName = log.company_name || comp?.name || 'Unknown';
+      const compName = log.company_name || comp?.name || 'Inconnu';
       const compEmail = log.recipient_email || comp?.email || '';
       const canton = log.canton || comp?.canton || '';
       const localTime = new Date(log.sent_at).toLocaleString();
@@ -389,7 +389,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
     link.click();
     document.body.removeChild(link);
 
-    showToast(`Exported ${listToExport.length} email records to CSV`);
+    showToast(`${listToExport.length} courriel(s) exporté(s)`);
   };
 
   // Reset all filters
@@ -400,7 +400,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
     setCantonFilter('all');
     setTimeFilter('all');
     setCurrentPage(1);
-    showToast('Filters reset');
+    showToast('Filtres réinitialisés');
   };
 
   const hasActiveFilters =
@@ -461,18 +461,18 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-[#1A73E8]">Google-Style Outbound Center</span>
+            <span className="text-[#1A73E8]">Centre des envois</span>
             <span>·</span>
-            <span>Live SMTP Dispatch Stream</span>
+            <span>Suivi SMTP en direct</span>
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1 flex items-center gap-3">
-            <span>Emails Sent by Jimy</span>
+            <span>Courriels envoyés par Jimy</span>
             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#1A73E8] border border-blue-200">
-              {logs.length} Total Dispatches
+              {logs.length} envois au total
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Complete audit trail of automated business inquiries dispatched to Swiss construction & excavation firms.
+            Historique complet des demandes envoyées aux sociétés suisses.
           </p>
         </div>
 
@@ -483,20 +483,20 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-            title="Refresh logs from database"
+            title="Actualiser l’historique"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            <span>{isRefreshing ? 'Actualisation…' : 'Actualiser'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleExportCSV(false)}
             className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Export filtered logs as CSV"
+            title="Exporter les courriels filtrés"
           >
             <Download className="w-3.5 h-3.5 text-blue-600" />
-            <span>Export CSV</span>
+            <span>Exporter</span>
           </button>
 
           <button
@@ -506,7 +506,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             className="h-9 px-4 rounded-xl bg-[#1A73E8] hover:bg-[#1557b0] text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:shadow-sm disabled:opacity-50"
           >
             <Send className={`w-3.5 h-3.5 ${isDispatching ? 'animate-bounce' : ''}`} />
-            <span>{isDispatching ? 'Sending Email...' : 'Send 1 Email Now'}</span>
+            <span>{isDispatching ? 'Envoi…' : 'Envoyer 1 courriel'}</span>
           </button>
         </div>
       </div>
@@ -517,7 +517,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Total Dispatched
+              Total envoyé
             </span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#1A73E8] border border-blue-100 flex items-center justify-center">
               <Mail className="w-4 h-4" />
@@ -527,8 +527,8 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             {totalSentCount}
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-            <span className="text-emerald-600 font-semibold">{deliveredCount} delivered</span>
-            {simulatedCount > 0 && <span>· {simulatedCount} simulated</span>}
+            <span className="text-emerald-600 font-semibold">{deliveredCount} remis</span>
+            {simulatedCount > 0 && <span>· {simulatedCount} simulé(s)</span>}
           </div>
         </div>
 
@@ -536,7 +536,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Today&apos;s Quota
+              Limite du jour
             </span>
             <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#FF6B00] border border-orange-100 flex items-center justify-center">
               <Send className="w-4 h-4" />
@@ -546,7 +546,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             <span className="font-heading font-bold text-2xl text-[#FF6B00] tabular-nums">
               {todaySentCount}
             </span>
-            <span className="text-xs text-slate-400 font-medium">/ {settings.daily_limit} max</span>
+            <span className="text-xs text-slate-400 font-medium">/ {settings.daily_limit} maximum</span>
           </div>
           <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div
@@ -562,7 +562,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Delivery Rate
+              Taux de remise
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
@@ -572,7 +572,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             {successRate}%
           </div>
           <div className="mt-2 text-[11px] text-slate-500">
-            {bouncedCount === 0 ? 'Zero bounced emails' : `${bouncedCount} bounced`}
+            {bouncedCount === 0 ? 'Aucun courriel rejeté' : `${bouncedCount} rejeté(s)`}
           </div>
         </div>
 
@@ -580,7 +580,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Cantons Reached
+              Cantons contactés
             </span>
             <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
@@ -648,7 +648,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search by recipient company, email, canton, subject, or message content..."
+              placeholder="Chercher une société, une adresse, un canton, un sujet ou un message…"
               className="w-full pl-10 pr-10 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs sm:text-sm text-slate-800 rounded-xl border border-slate-200 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 transition-all outline-none"
             />
             {searchQuery && (
@@ -670,7 +670,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               className="h-9 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B00] border border-orange-200/80 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 self-start lg:self-auto"
             >
               <X className="w-3.5 h-3.5" />
-              <span>Reset Filters</span>
+              <span>Effacer les filtres</span>
             </button>
           )}
         </div>
@@ -678,7 +678,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         {/* Filter Chips Bar */}
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-xs">
           {/* Status Filter Chips */}
-          <span className="text-slate-400 font-medium text-[11px] mr-1">Status:</span>
+          <span className="text-slate-400 font-medium text-[11px] mr-1">État :</span>
           {(['all', 'delivered', 'simulated', 'bounced'] as StatusFilter[]).map((status) => {
             const isActive = statusFilter === status;
             return (
@@ -706,8 +706,8 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 )}
                 <span>
                   {status === 'all'
-                    ? 'All Statuses'
-                    : status.charAt(0).toUpperCase() + status.slice(1)}
+                    ? 'Tous'
+                    : status === 'delivered' ? 'Remis' : status === 'simulated' ? 'Simulé' : 'Rejeté'}
                 </span>
               </button>
             );
@@ -716,7 +716,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
           <span className="text-slate-300 mx-1">|</span>
 
           {/* Language Filter Chips */}
-          <span className="text-slate-400 font-medium text-[11px] mr-1">Language:</span>
+          <span className="text-slate-400 font-medium text-[11px] mr-1">Langue :</span>
           {(['all', 'de', 'fr', 'it'] as LanguageFilter[]).map((lang) => {
             const isActive = languageFilter === lang;
             return (
@@ -733,7 +733,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                {lang === 'all' ? 'All' : lang.toUpperCase()}
+                {lang === 'all' ? 'Toutes' : lang.toUpperCase()}
               </button>
             );
           })}
@@ -742,7 +742,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
           {/* Canton Dropdown */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 font-medium text-[11px]">Canton:</span>
+            <span className="text-slate-400 font-medium text-[11px]">Canton :</span>
             <select
               value={cantonFilter}
               onChange={(e) => {
@@ -751,7 +751,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               }}
               className="h-7 px-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 outline-none cursor-pointer hover:bg-slate-200/70"
             >
-              <option value="all">All Cantons</option>
+              <option value="all">Tous les cantons</option>
               {availableCantons.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -764,7 +764,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
           {/* Time Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 font-medium text-[11px]">Date:</span>
+            <span className="text-slate-400 font-medium text-[11px]">Date :</span>
             <select
               value={timeFilter}
               onChange={(e) => {
@@ -773,10 +773,10 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               }}
               className="h-7 px-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 outline-none cursor-pointer hover:bg-slate-200/70"
             >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="7days">Past 7 Days</option>
-              <option value="30days">Past 30 Days</option>
+              <option value="all">Toute la période</option>
+              <option value="today">Aujourd’hui</option>
+              <option value="7days">7 derniers jours</option>
+              <option value="30days">30 derniers jours</option>
             </select>
           </div>
         </div>
@@ -788,7 +788,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
             <span className="font-semibold text-xs sm:text-sm">
-              {selectedLogIds.length} {selectedLogIds.length === 1 ? 'email' : 'emails'} selected
+              {selectedLogIds.length} {selectedLogIds.length === 1 ? 'courriel choisi' : 'courriels choisis'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -798,14 +798,14 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export Selected CSV</span>
+              <span>Exporter la sélection</span>
             </button>
             <button
               type="button"
               onClick={() => setSelectedLogIds([])}
               className="h-8 px-3 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
             >
-              Deselect All
+              Tout désélectionner
             </button>
           </div>
         </div>
@@ -817,15 +817,15 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         <div className="p-4 sm:px-6 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
           <div className="flex items-center gap-2">
             <h2 className="font-heading font-bold text-sm sm:text-base text-[#0B2240]">
-              Dispatched Inquiries Table
+              Liste des demandes envoyées
             </h2>
             <span className="text-xs text-slate-500 font-medium">
-              ({sortedLogs.length} {sortedLogs.length === 1 ? 'record' : 'records'})
+              ({sortedLogs.length} {sortedLogs.length === 1 ? 'ligne' : 'lignes'})
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span>Show:</span>
+            <span>Afficher :</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -834,10 +834,10 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               }}
               className="h-7 px-2 bg-white text-slate-700 rounded-lg text-xs font-medium border border-slate-200 outline-none cursor-pointer"
             >
-              <option value={10}>10 per page</option>
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
-              <option value={100}>100 per page</option>
+              <option value={10}>10 par page</option>
+              <option value={25}>25 par page</option>
+              <option value={50}>50 par page</option>
+              <option value={100}>100 par page</option>
             </select>
           </div>
         </div>
@@ -850,13 +850,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             </div>
             <h3 className="font-heading font-bold text-base text-[#0B2240]">
               {logs.length === 0
-                ? 'No outbound emails dispatched yet'
-                : 'No emails match your filter criteria'}
+                ? 'Aucun courriel envoyé pour le moment'
+                : 'Aucun courriel ne correspond aux filtres'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
               {logs.length === 0
-                ? 'When Jimy is active, he sends polite inquiries during Swiss business hours (08:30–17:00). You can also click "Send 1 Email Now" above to dispatch immediately.'
-                : 'Try adjusting your search terms or resetting the status/language filters to view other dispatches.'}
+                ? 'Quand Jimy travaille, il envoie les demandes pendant les heures suisses, de 08 h 30 à 17 h 00.'
+                : 'Changez la recherche ou effacez les filtres.'}
             </p>
             {hasActiveFilters && (
               <button
@@ -864,7 +864,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 onClick={resetFilters}
                 className="mt-2 h-9 px-4 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-200 font-semibold text-xs hover:bg-blue-100 transition-colors cursor-pointer"
               >
-                Reset All Filters
+                Effacer tous les filtres
               </button>
             )}
           </div>
@@ -890,7 +890,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     onClick={() => handleSort('date')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Date & Time</span>
+                      <span>Date et heure</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
@@ -900,13 +900,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     onClick={() => handleSort('company')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Recipient Contractor</span>
+                      <span>Société destinataire</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
 
                   <th className="py-3 px-3">
-                    <span>Email Address</span>
+                    <span>Adresse courriel</span>
                   </th>
 
                   <th
@@ -914,13 +914,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     onClick={() => handleSort('canton')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Canton & Lang</span>
+                      <span>Canton et langue</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
 
                   <th className="py-3 px-3 min-w-[220px]">
-                    <span>Subject & Snippet</span>
+                    <span>Sujet et extrait</span>
                   </th>
 
                   <th
@@ -928,7 +928,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Status</span>
+                      <span>État</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
@@ -942,7 +942,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               <tbody className="divide-y divide-slate-100">
                 {paginatedLogs.map((log) => {
                   const comp = companyById.get(log.company_id);
-                  const compName = log.company_name || comp?.name || 'Swiss Contractor';
+                  const compName = log.company_name || comp?.name || 'Société suisse';
                   const compEmail = log.recipient_email || comp?.email || 'info@btp-suisse.ch';
                   const canton = log.canton || comp?.canton || 'BE';
                   const sentDate = new Date(log.sent_at);
@@ -962,7 +962,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   // Relative time helper
                   const diffMinutes = Math.round((Date.now() - sentDate.getTime()) / 60000);
                   let relativeTime = `${diffMinutes}m ago`;
-                  if (diffMinutes < 1) relativeTime = 'Just now';
+                  if (diffMinutes < 1) relativeTime = 'À l’instant';
                   else if (diffMinutes >= 60 && diffMinutes < 1440) {
                     relativeTime = `${Math.floor(diffMinutes / 60)}h ago`;
                   } else if (diffMinutes >= 1440) {
@@ -1019,15 +1019,15 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                           <a
                             href={`mailto:${compEmail}`}
                             className="font-mono text-slate-700 hover:text-[#1A73E8] hover:underline"
-                            title="Send email via mail client"
+                            title="Envoyer un courriel"
                           >
                             {compEmail}
                           </a>
                           <button
                             type="button"
-                            onClick={() => handleCopyText(compEmail, `email-${log.id}`, 'Copied email')}
+                            onClick={() => handleCopyText(compEmail, `email-${log.id}`, 'Adresse copiée')}
                             className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer"
-                            title="Copy email address"
+                            title="Copier l’adresse"
                           >
                             {copiedId === `email-${log.id}` ? (
                               <Check className="w-3 h-3 text-emerald-600" />
@@ -1063,7 +1063,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                         <div
                           onClick={() => setActiveModalLog(log)}
                           className="font-semibold text-slate-800 hover:text-[#1A73E8] cursor-pointer line-clamp-1"
-                          title="Click to view full message"
+                          title="Voir le message complet"
                         >
                           {log.subject}
                         </div>
@@ -1080,15 +1080,15 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             <span>
                               {log.delivery_status === 'accepted'
-                                ? 'Accepted (SMTP)'
-                                : 'Delivered'}
+                                ? 'Accepté par SMTP'
+                                : 'Remis'}
                             </span>
                           </span>
                         )}
                         {log.delivery_status === 'simulated' && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-semibold text-[11px]">
                             <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>Simulated</span>
+                            <span>Simulé</span>
                           </span>
                         )}
                         {(log.delivery_status === 'bounced' ||
@@ -1115,7 +1115,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                             type="button"
                             onClick={() => setActiveModalLog(log)}
                             className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1A73E8] transition-colors cursor-pointer"
-                            title="Inspect full email"
+                            title="Voir le courriel complet"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -1127,11 +1127,11 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                               handleCopyText(
                                 getFullEmailBody(log, comp),
                                 `body-${log.id}`,
-                                'Copied full email text'
+                                'Texte du courriel copié'
                               )
                             }
                             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
-                            title="Copy email message text"
+                            title="Copier le texte du courriel"
                           >
                             {copiedId === `body-${log.id}` ? (
                               <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -1145,7 +1145,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                             type="button"
                             onClick={() => setLogToDelete(log)}
                             className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title="Delete this log entry"
+                            title="Supprimer cette ligne"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1163,15 +1163,15 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         {sortedLogs.length > 0 && (
           <div className="p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div>
-              Showing{' '}
+              Affichage de{' '}
               <span className="font-semibold text-slate-800">
                 {(currentPage - 1) * pageSize + 1}
               </span>{' '}
-              to{' '}
+              à{' '}
               <span className="font-semibold text-slate-800">
                 {Math.min(currentPage * pageSize, sortedLogs.length)}
               </span>{' '}
-              of <span className="font-semibold text-slate-800">{sortedLogs.length}</span> emails
+              sur <span className="font-semibold text-slate-800">{sortedLogs.length}</span> courriels
             </div>
 
             <div className="flex items-center gap-1">
@@ -1182,7 +1182,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
+                <span>Précédent</span>
               </button>
 
               <div className="px-3 py-1 font-mono font-semibold text-slate-800">
@@ -1195,7 +1195,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 disabled={currentPage === totalPages}
                 className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <span>Next</span>
+                <span>Suivant</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1218,7 +1218,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 </div>
                 <div className="min-w-0">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Dispatched Email Audit
+                    Détail du courriel envoyé
                   </span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
@@ -1231,14 +1231,14 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                       }`}
                     >
                       {activeModalLog.language === 'de'
-                        ? 'German (DE)'
+                        ? 'Allemand (DE)'
                         : activeModalLog.language === 'fr'
-                        ? 'French (FR)'
-                        : 'Italian (IT)'}
+                        ? 'Français (FR)'
+                        : 'Italien (IT)'}
                     </span>
                     <span className="text-xs text-slate-400">·</span>
                     <span className="text-xs text-slate-600 font-medium">
-                      SMTP 250 OK Delivered
+                      SMTP 250 · Courriel remis
                     </span>
                   </div>
                 </div>
@@ -1263,7 +1263,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 {/* From line */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium w-12 shrink-0">From:</span>
+                    <span className="text-slate-400 font-medium w-12 shrink-0">De :</span>
                     <span className="font-semibold text-slate-800">
                       {settings.sender_name} - JIMY EXPORT
                     </span>
@@ -1278,11 +1278,11 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
                 {/* To line */}
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-medium w-12 shrink-0">To:</span>
+                  <span className="text-slate-400 font-medium w-12 shrink-0">À :</span>
                   <span className="font-semibold text-[#0B2240]">
                     {activeModalLog.company_name ||
                       companyById.get(activeModalLog.company_id)?.name ||
-                      'Swiss Contractor'}
+                      'Société suisse'}
                   </span>
                   <span className="text-slate-600 font-mono text-[11px]">
                     &lt;
@@ -1300,9 +1300,9 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
                 {/* Sender phone */}
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-medium w-12 shrink-0">Reply-To:</span>
+                  <span className="text-slate-400 font-medium w-12 shrink-0">Réponse :</span>
                   <span className="font-mono text-slate-600 text-[11px]">
-                    {settings.sender_email} · Phone: {settings.sender_phone}
+                    {settings.sender_email} · Téléphone : {settings.sender_phone}
                   </span>
                 </div>
               </div>
@@ -1321,22 +1321,22 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               <div className="mt-4 p-3.5 bg-orange-50/60 rounded-xl border border-orange-200/70 text-xs space-y-1.5">
                 <div className="font-semibold text-[#FF6B00] flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Commercial hooks included in this dispatch:</span>
+                  <span>Conditions commerciales dans ce courriel :</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-700 pt-1">
                   {settings.hooks.cash_settlement && (
                     <span className="px-2 py-0.5 rounded-full bg-white border border-orange-200 font-medium">
-                      ✓ Immediate Bank Transfer / Cash
+                      ✓ Paiement immédiat
                     </span>
                   )}
                   {settings.hooks.transport_covered && (
                     <span className="px-2 py-0.5 rounded-full bg-white border border-orange-200 font-medium">
-                      ✓ Transport Organized &amp; Covered
+                      ✓ Transport organisé et payé
                     </span>
                   )}
                   {settings.hooks.as_is && (
                     <span className="px-2 py-0.5 rounded-full bg-white border border-orange-200 font-medium">
-                      ✓ Purchased As-Is Without Guarantee
+                      ✓ Achat en l’état, sans garantie
                     </span>
                   )}
                 </div>
@@ -1353,12 +1353,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                       activeModalLog,
                       companyById.get(activeModalLog.company_id)
                     );
-                    handleCopyText(fullText, 'modal-full-copy', 'Entire email copied to clipboard');
+                    handleCopyText(fullText, 'modal-full-copy', 'Courriel complet copié');
                   }}
                   className="h-8 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Full Text</span>
+                  <span>Copier le texte</span>
                 </button>
 
                 <a
@@ -1370,7 +1370,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   className="h-8 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in Mail</span>
+                  <span>Ouvrir dans la messagerie</span>
                 </a>
               </div>
 
@@ -1387,7 +1387,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                     className="h-8 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1A73E8] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Building2 className="w-3.5 h-3.5" />
-                    <span>View Contractor</span>
+                    <span>Voir la société</span>
                   </button>
                 )}
 
@@ -1396,7 +1396,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   onClick={() => setActiveModalLog(null)}
                   className="h-8 px-4 rounded-xl bg-[#0B2240] hover:bg-[#07172b] text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  Close
+                  Fermer
                 </button>
               </div>
             </div>
@@ -1414,16 +1414,16 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
             <div className="text-center space-y-1.5">
               <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                Remove Email Log Entry?
+                Supprimer ce courriel de l’historique ?
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                This will delete the dispatch record to{' '}
+                Cette action supprimera l’envoi vers{' '}
                 <span className="font-semibold text-slate-800">
                   {logToDelete.company_name ||
                     companyById.get(logToDelete.company_id)?.name ||
-                    'this company'}
+                    'cette société'}
                 </span>{' '}
-                from your history.
+                de votre historique.
               </p>
             </div>
 
@@ -1433,7 +1433,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 onClick={() => setLogToDelete(null)}
                 className="flex-1 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 type="button"
@@ -1441,7 +1441,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 disabled={isDeleting}
                 className="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Entry'}
+                {isDeleting ? 'Suppression…' : 'Supprimer'}
               </button>
             </div>
           </div>

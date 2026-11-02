@@ -72,7 +72,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
     const fileArray = Array.from(files);
     fileArray.forEach((file) => {
       if (!file.type.startsWith('image/')) {
-        showToast('Please select image files only.', true);
+        showToast('Choisissez seulement des images.', true);
         return;
       }
 
@@ -104,7 +104,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
   const handleScanCards = async () => {
     if (selectedImages.length === 0) {
-      showToast('Please take or upload at least one photo of a business card.', true);
+      showToast('Prenez ou choisissez au moins une photo de carte de visite.', true);
       return;
     }
 
@@ -122,10 +122,10 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Failed to read business cards', true);
+        showToast(data.error || 'Impossible de lire les cartes', true);
       } else if (!data.cards || data.cards.length === 0) {
         showToast(
-          'No company business cards found in the photo. Please try a clearer picture.',
+          'Aucune carte de société trouvée. Essayez avec une photo plus nette.',
           true
         );
       } else {
@@ -134,7 +134,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
           const hasValidEmail = Boolean(cleanEmail && cleanEmail.includes('@'));
           return {
             tempId: Math.random().toString(36).substring(2, 9),
-            name: c.name || 'Unknown Company',
+            name: c.name || 'Société inconnue',
             contact_person: c.contact_person || '',
             email: cleanEmail,
             verified_email:
@@ -162,7 +162,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
         );
       }
     } catch (err: any) {
-      showToast(`Error scanning cards: ${err?.message || 'Network error'}`, true);
+      showToast(`Erreur de lecture : ${err?.message || 'erreur de connexion'}`, true);
     } finally {
       setIsScanning(false);
     }
@@ -238,7 +238,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
       if (!res.ok) {
         const data = await res.json();
-        showToast(data.error || 'Failed to save company', true);
+        showToast(data.error || 'Impossible d’enregistrer la société', true);
         return;
       }
 
@@ -248,18 +248,18 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
       );
       showToast(
         hasValidEmail
-          ? `Saved ${card.name} (${card.canton}) with verified email!`
-          : `Saved ${card.name} (${card.canton}) as phone-only record (email needs verification before outreach).`
+          ? `${card.name} (${card.canton}) a été enregistrée avec un courriel vérifié.`
+          : `${card.name} (${card.canton}) a été enregistrée avec le téléphone seulement.`
       );
     } catch (err: any) {
-      showToast(`Error: ${err?.message}`, true);
+      showToast(`Erreur : ${err?.message}`, true);
     }
   };
 
   const handleSaveAllSelected = async () => {
     const selectedCards = extractedCards.filter((c) => c.selected && !c.saved);
     if (selectedCards.length === 0) {
-      showToast('No cards selected to save.', true);
+      showToast('Aucune carte choisie.', true);
       return;
     }
 
@@ -295,7 +295,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Failed to save companies in bulk', true);
+        showToast(data.error || 'Impossible d’enregistrer les sociétés', true);
       } else {
         await onRefreshCompanies();
         setExtractedCards((prev) =>
@@ -304,11 +304,11 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
           )
         );
         showToast(
-          `Saved ${data.added || 0} new and updated ${data.updated || 0} existing contractor records!`
+          `${data.added || 0} nouvelle(s) société(s) et ${data.updated || 0} mise(s) à jour.`
         );
       }
     } catch (err: any) {
-      showToast(`Error saving companies: ${err?.message}`, true);
+      showToast(`Erreur pendant l’enregistrement : ${err?.message}`, true);
     } finally {
       setIsSavingAll(false);
     }
@@ -343,7 +343,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
               <span>Scanner de cartes de visite</span>
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Scan Business Cards &amp; Add in Bulk
+            Lire des cartes et ajouter plusieurs sociétés
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
             Take a photo or upload pictures of contractor visit cards. The AI extracts the company name, contact person, address, phone, email, and Swiss canton without fabricating missing emails.
@@ -356,7 +356,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
           className="self-start sm:self-auto h-10 px-4 rounded-xl bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 text-[#0B2240] font-heading font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
         >
           <Building2 className="w-4 h-4 text-[#FF6B00]" />
-          <span>View Company List ({existingCompanies.length})</span>
+          <span>Voir les sociétés ({existingCompanies.length})</span>
           <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
@@ -388,7 +388,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
             </div>
             <div>
               <h2 className="font-heading font-bold text-lg text-[#0B2240]">
-                1. Take a Photo or Upload Business Cards
+                1. Prendre ou choisir des photos de cartes
               </h2>
               <p className="text-xs text-slate-500">
                 You can upload one card, multiple cards at once, or a photo with several cards on a table.
@@ -467,7 +467,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                     type="button"
                     onClick={() => removeImage(img.id)}
                     className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 hover:bg-red-600 text-white flex items-center justify-center transition-colors cursor-pointer"
-                    title="Remove photo"
+                    title="Retirer la photo"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -487,8 +487,8 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 />
                 <span>
                   {isScanning
-                    ? 'Reading Business Cards with AI...'
-                    : 'Scan Business Cards with AI'}
+                    ? 'Lecture des cartes…'
+                    : 'Lire les cartes avec Jimy'}
                 </span>
               </button>
             </div>
@@ -506,7 +506,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                   ✓
                 </span>
                 <h2 className="font-heading font-bold text-xl text-[#0B2240]">
-                  2. Review &amp; Add Companies ({extractedCards.length} found)
+                  2. Vérifier et ajouter les sociétés ({extractedCards.length} trouvée(s))
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
@@ -520,7 +520,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 onClick={toggleSelectAll}
                 className="text-xs font-semibold text-slate-600 hover:text-[#0B2240] px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                {extractedCards.every((c) => c.selected) ? 'Deselect All' : 'Select All'}
+                {extractedCards.every((c) => c.selected) ? 'Tout désélectionner' : 'Tout sélectionner'}
               </button>
 
               <button
@@ -532,7 +532,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                 <Check className="w-4 h-4 stroke-[3]" />
                 <span>
                   {isSavingAll
-                    ? 'Saving Companies...'
+                    ? 'Enregistrement…'
                     : `Save Selected (${selectedCount}) to System`}
                 </span>
               </button>
@@ -585,7 +585,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                       {!hasEmail && (
                         <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-semibold text-[11px] border border-amber-200">
-                          No Email (Phone Only)
+                          Pas de courriel, téléphone seulement
                         </span>
                       )}
                       {card.saved ? (
@@ -595,7 +595,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                         </span>
                       ) : isAlreadyInSystem ? (
                         <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold text-xs border border-amber-300">
-                          Already in List
+                          Déjà dans la liste
                         </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-mono font-bold text-xs border border-blue-200">
@@ -607,7 +607,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                         type="button"
                         onClick={() => removeCard(card.tempId)}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                        title="Discard card"
+                        title="Retirer cette carte"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -619,7 +619,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Company Name *
+                          Nom de la société *
                         </label>
                         <input
                           type="text"
@@ -640,7 +640,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                           <input
                             type="text"
                             value={card.contact_person || ''}
-                            placeholder="e.g. Marc Blanc, Werkhofleiter"
+                            placeholder="Ex. Marc Blanc, responsable du dépôt"
                             onChange={(e) =>
                               handleCardFieldChange(
                                 card.tempId,
@@ -657,14 +657,14 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Verified Email (leave blank if not on card)
+                          Courriel vérifié (laisser vide s’il est absent)
                         </label>
                         <div className="relative">
                           <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                           <input
                             type="email"
                             value={card.email}
-                            placeholder="Leave blank if not printed on card"
+                            placeholder="Laisser vide si absent de la carte"
                             onChange={(e) =>
                               handleCardFieldChange(card.tempId, 'email', e.target.value)
                             }
@@ -675,7 +675,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Phone Number
+                          Téléphone
                         </label>
                         <div className="relative">
                           <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -714,7 +714,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Postal Code
+                          Code postal
                         </label>
                         <input
                           type="text"
@@ -729,7 +729,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          City / Town
+                          Ville
                         </label>
                         <input
                           type="text"
@@ -744,7 +744,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Language
+                          Langue
                         </label>
                         <select
                           value={card.language}
@@ -753,9 +753,9 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                           }
                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-2 font-bold text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                         >
-                          <option value="de">DE (German)</option>
-                          <option value="fr">FR (French)</option>
-                          <option value="it">IT (Italian)</option>
+                          <option value="de">DE (allemand)</option>
+                          <option value="fr">FR (français)</option>
+                          <option value="it">IT (italien)</option>
                         </select>
                       </div>
                     </div>
@@ -763,7 +763,7 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Street Address
+                          Adresse
                         </label>
                         <div className="relative">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -781,12 +781,12 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
 
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">
-                          Sector / Notes
+                          Secteur et notes
                         </label>
                         <input
                           type="text"
                           value={card.notes || ''}
-                          placeholder="Earthworks, excavators, fleet notes..."
+                          placeholder="Terrassement, pelles, notes sur le parc…"
                           onChange={(e) =>
                             handleCardFieldChange(card.tempId, 'notes', e.target.value)
                           }
@@ -799,14 +799,14 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
                   {/* Card Bottom Actions */}
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
                     <span className="text-[11px] text-slate-500">
-                      Outreach Language: <strong>{card.language.toUpperCase()}</strong> ·{' '}
+                      Langue du courriel : <strong>{card.language.toUpperCase()}</strong> ·{' '}
                       {hasEmail ? (
                         <span className="text-emerald-700 font-semibold">
-                          Ready for email outreach
+                          Prête pour les courriels
                         </span>
                       ) : (
                         <span className="text-amber-700 font-semibold">
-                          Saved for phone/manual email verification
+                          Enregistrée pour vérification manuelle
                         </span>
                       )}
                     </span>

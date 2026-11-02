@@ -74,225 +74,225 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
   const sections: GuideSection[] = [
     {
       id: 'overview',
-      title: 'How Jimy Works',
-      badge: 'Core Workflow',
+      title: 'Comment Jimy travaille',
+      badge: 'Fonctionnement',
       badgeColor: 'bg-blue-50 text-[#1A73E8] border-blue-200',
       icon: <Sparkles className="w-4 h-4 text-[#1A73E8]" />,
-      headline: 'Autonomous Heavy Machinery Sourcing for Switzerland',
+      headline: 'Recherche automatique de machines en Suisse',
       description:
-        'JimiScout acts as your private digital procurement agent. It automates contractor outreach across Swiss cantons, tracks replies, and parses used equipment offers so you never miss an excavator, loader, or truck.',
+        'Jimy cherche des sociétés suisses, envoie des demandes, suit les réponses et classe les offres de machines.',
       screenshot: '/assets/guide/dashboard-overview.png',
-      screenshotAlt: 'JimiScout Dashboard & Outreach Flow',
+      screenshotAlt: 'Accueil et travail de JimyScout',
       features: [
         {
-          title: '1. Autonomous Outreach Engine',
+          title: '1. Envois automatiques',
           description:
-            'Jimy sends courteous, authentic inquiries to verified civil engineering and earthmoving firms during Swiss business hours (8:30 AM – 5:00 PM).',
+            'Jimy écrit aux sociétés vérifiées pendant les heures de travail suisses, de 08 h 30 à 17 h 00.',
         },
         {
-          title: '2. Multi-Canton Intelligence',
+          title: '2. Plusieurs cantons',
           description:
-            'Target German (DE), French (FR), and Italian (IT) cantons with native localized email templates.',
+            'Il utilise l’allemand, le français ou l’italien selon le canton.',
         },
         {
-          title: '3. Instant Deal Extraction',
+          title: '3. Lecture des offres',
           description:
-            'Contractor responses are analyzed in real time. Prices in CHF or EUR, machinery models, and seller phone numbers are extracted automatically.',
+            'Jimy trouve automatiquement les prix, les modèles et les téléphones dans les réponses.',
         },
       ],
       proTip:
-        'Keep Jimy active Monday to Friday. Verified Swiss firms typically review park renewal inquiries early in the morning.',
+        'Laissez Jimy actif du lundi au vendredi. Les sociétés lisent souvent leurs courriels le matin.',
     },
     {
       id: 'dashboard',
-      title: 'Scouting Dashboard',
-      badge: 'Live Operations',
+      title: 'Accueil',
+      badge: 'En direct',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: <Gauge className="w-4 h-4 text-emerald-600" />,
-      headline: 'Live Agent Control & Outreach Statistics',
+      headline: 'Contrôler Jimy et suivre son travail',
       description:
-        'Monitor your daily dispatch numbers, review response rates, and toggle Jimy between active scouting and standby mode with a single tap.',
+        'Voyez les envois du jour et mettez Jimy au travail ou en pause.',
       screenshot: '/assets/guide/dashboard-overview.png',
-      screenshotAlt: 'Dashboard Scouting Control',
+      screenshotAlt: 'Accueil de JimyScout',
       features: [
         {
-          title: 'Active / Standby Status Toggle',
+          title: 'Travail ou pause',
           description:
-            'Flip the switch to start automated outreach or pause Jimy anytime. A clear status pill always indicates what Jimy is doing.',
+            'Le bouton principal démarre ou arrête le travail automatique.',
         },
         {
-          title: 'Send 1 Immediate Inquiry',
+          title: 'Envoyer une demande',
           description:
-            'Need to test your configuration or dispatch an urgent inquiry right away? Use the "Send 1 Email Now" trigger.',
+            'Le bouton « Envoyer 1 courriel » envoie la prochaine demande pendant les heures autorisées.',
         },
         {
-          title: 'Live Outbound Audit Trail',
+          title: 'Historique des envois',
           description:
-            'Inspect delivered emails, delivery timestamps, recipient company names, and cantons in the live dispatch log.',
+            'Voyez les courriels remis, leur date, la société et le canton.',
         },
       ],
       proTip:
-        'The Total Offer Value metric accumulates asking prices from sellers in real time as deals arrive in your inbox.',
+        'La valeur totale additionne les prix donnés par les vendeurs.',
     },
     {
       id: 'emails',
-      title: 'Sent Emails Center',
-      badge: 'Audit & Analytics',
+      title: 'Courriels envoyés',
+      badge: 'Historique',
       badgeColor: 'bg-blue-50 text-[#1A73E8] border-blue-200',
       icon: <MailCheck className="w-4 h-4 text-[#1A73E8]" />,
-      headline: 'Dedicated Google-Style Outbound Audit & Filters',
+      headline: 'Retrouver tous les courriels envoyés',
       description:
-        'A dedicated audit table showing all emails sent by Jimy. Search across contractors, filter by Swiss language, delivery status, and canton, and inspect full email transcripts in Gmail view.',
+        'Cherchez les courriels par société, langue, état ou canton et ouvrez le message complet.',
       screenshot: '/assets/guide/dashboard-overview.png',
-      screenshotAlt: 'Emails Sent by Jimy Table & Search Filters',
+      screenshotAlt: 'Liste des courriels envoyés',
       features: [
         {
-          title: 'Google-Style Live Search & Filters',
+          title: 'Recherche et filtres',
           description:
-            'Search by recipient name, email, canton, or subject. Filter by Delivered, Simulated, or Bounced status, or isolate German, French, or Italian dispatches.',
+            'Cherchez par nom, adresse, canton ou sujet. Filtrez aussi par langue ou état.',
         },
         {
-          title: 'Full Gmail-Style Email Inspector',
+          title: 'Voir le courriel complet',
           description:
-            'Click any email record to inspect the exact trilingual inquiry Jimmy dispatched, including recipient details, delivery headers, and commercial purchase hooks.',
+            'Cliquez sur une ligne pour lire le message et voir le destinataire.',
         },
         {
-          title: 'CSV Export & Bulk Tools',
+          title: 'Export CSV',
           description:
-            'Download complete dispatch spreadsheets with one click or dispatch on-demand test inquiries directly from the action bar.',
+            'Téléchargez l’historique dans un fichier CSV.',
         },
       ],
       proTip:
-        'Click the "Emails Sent by Jimy" card directly on your Dashboard or tap the "Sent Emails" tab to jump straight into this audit center.',
+        'Ouvrez « Courriels » dans le menu pour voir cet historique.',
     },
     {
       id: 'regions',
-      title: 'Swiss Regions',
-      badge: 'Targeting & Speed',
+      title: 'Régions suisses',
+      badge: 'Cantons et rythme',
       badgeColor: 'bg-orange-50 text-[#FF6B00] border-orange-200',
       icon: <MapPin className="w-4 h-4 text-[#FF6B00]" />,
-      headline: 'Target Cantons & Set Daily Speed Limits',
+      headline: 'Choisir les cantons et la limite du jour',
       description:
-        'Configure which cantons Jimy contacts and control your email pacing to maintain high domain reputation and email deliverability.',
+        'Choisissez les cantons contactés et le nombre maximum de courriels par jour.',
       screenshot: '/assets/guide/regions-overview.png',
-      screenshotAlt: 'Swiss Regions and Cantons Selection',
+      screenshotAlt: 'Choix des cantons suisses',
       features: [
         {
-          title: 'Daily Speed Limit Slider',
+          title: 'Limite du jour',
           description:
-            'Adjust pace between 10 emails/day (Gentle), 25/day (Recommended safe volume), up to 50/day (High volume).',
+            'Choisissez entre 10 et 50 courriels par jour. Commencez doucement.',
         },
         {
-          title: 'Canton Cards & Postal Codes',
+          title: 'Cantons et codes postaux',
           description:
-            'Tap any Swiss canton (Zürich ZH, Bern BE, Vaud VD, Genève GE, Ticino TI, Valais VS) to activate or pause outreach in that territory.',
+            'Touchez un canton pour activer ou arrêter les envois dans cette région.',
         },
         {
-          title: 'Company Directory & Management',
+          title: 'Liste des sociétés',
           description:
-            'Browse verified contractor lists for each canton, add new companies, or remove inactive companies.',
+            'Voyez, ajoutez, modifiez ou retirez les sociétés de chaque canton.',
         },
       ],
       proTip:
-        'For high-response campaigns in Romandie, combine Canton Vaud (VD) and Genève (GE) with a French-language persona.',
+        'Pour la Suisse romande, choisissez Vaud et Genève avec des courriels en français.',
     },
     {
       id: 'deals',
-      title: 'Deals Inbox',
-      badge: 'Quotes & Offers',
+      title: 'Dossiers',
+      badge: 'Offres reçues',
       badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
       icon: <Inbox className="w-4 h-4 text-purple-600" />,
-      headline: 'Extracted Contractor Quotes & Fast Buyouts',
+      headline: 'Voir les offres de machines',
       description:
-        'Review incoming machinery offers parsed by Jimy. Each deal card shows equipment specifications, extracted CHF/EUR prices, and direct contact buttons.',
+        'Chaque dossier montre la machine, le prix et les coordonnées du vendeur.',
       screenshot: '/assets/guide/deals-mobile.png',
-      screenshotAlt: 'Deals Inbox & Offer Cards',
+      screenshotAlt: 'Dossiers et offres reçues',
       features: [
         {
-          title: 'Automated Pricing & Machine Specs',
+          title: 'Prix et informations',
           description:
-            'AI highlights asking prices (e.g., CHF 6,000 / EUR 8,027), equipment types (tracked excavators, dump trucks), and seller notes.',
+            'Jimy trouve le prix, le type de machine et les notes du vendeur.',
         },
         {
-          title: 'Quick Filter Tabs',
+          title: 'Filtres rapides',
           description:
-            'Quickly narrow down deals by Excavators, Loaders & Trucks, Unread Only, or your Bookmarked (Saved) machines.',
+            'Filtrez les pelles, chargeuses, camions, nouveaux dossiers ou favoris.',
         },
         {
-          title: 'Direct Call & Email Actions',
+          title: 'Appel et courriel',
           description:
-            'Tap the bright orange button to immediately contact the seller via direct phone or email from your mobile or desktop.',
+            'Contactez le vendeur directement par téléphone ou par courriel.',
         },
         {
-          title: 'Manual "Paste Seller Reply"',
+          title: 'Coller une réponse',
           description:
-            'Received a quote via WhatsApp or personal email? Click "Paste Seller Reply" to let Jimy structure and translate it instantly.',
+            'Collez une offre reçue ailleurs et Jimy créera le dossier.',
         },
       ],
       proTip:
-        'Click the bookmark icon on any deal card to save high-margin machines to your Saved tab for quick follow-up.',
+        'Utilisez l’icône de favori pour garder les meilleurs dossiers.',
     },
     {
       id: 'scanner',
-      title: 'Business Card Scanner',
-      badge: 'Field OCR',
+      title: 'Scanner de cartes',
+      badge: 'Lecture de carte',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: <Camera className="w-4 h-4 text-emerald-600" />,
-      headline: 'Digitize Job Site Business Cards in Seconds',
+      headline: 'Lire une carte de visite en quelques secondes',
       description:
-        'Meet contractors on Swiss job sites or trade fairs? Snap a photo of their physical card and Jimy will extract all details directly into your contact database.',
+        'Prenez une photo de la carte. Jimy ajoute les informations dans votre liste de sociétés.',
       screenshot: '/assets/guide/canton-grid.png',
-      screenshotAlt: 'Business Card Scanner & Canton Directory',
+      screenshotAlt: 'Scanner de cartes de visite',
       features: [
         {
-          title: 'Live Camera or Photo Upload',
+          title: 'Photo ou appareil photo',
           description:
-            'Take a live photo directly from your smartphone or upload existing business card photos from your library.',
+            'Prenez une photo ou choisissez une image de votre téléphone.',
         },
         {
-          title: 'Swiss OCR Recognition',
+          title: 'Lecture automatique',
           description:
-            'Automatically detects company name, contact person, Swiss telephone numbers (+41...), emails, and postal codes.',
+            'Jimy trouve le nom, la personne, le téléphone, l’adresse et le code postal.',
         },
         {
-          title: 'Immediate Campaign Inclusion',
+          title: 'Ajout immédiat',
           description:
-            'Once saved, the new company is automatically queued into Jimy’s next outreach round for that canton.',
+            'Après l’enregistrement, la société entre dans la file de Jimy.',
         },
       ],
       proTip:
-        'Ensure the business card is well-lit and laid flat on a clean surface for maximum OCR accuracy.',
+        'Posez la carte à plat avec une bonne lumière.',
     },
     {
       id: 'settings',
-      title: 'Email Persona & Settings',
-      badge: 'Reputation & Tone',
+      title: 'Profil et réglages',
+      badge: 'Profil et ton',
       badgeColor: 'bg-blue-50 text-[#0B2240] border-slate-300',
       icon: <SlidersHorizontal className="w-4 h-4 text-[#0B2240]" />,
-      headline: 'Customize Your Buyer Profile & Trilingual Templates',
+      headline: 'Changer votre profil et vos courriels',
       description:
-        'Configure your trading identity, phone number, and machinery wish list, and review the exact trilingual messages sent to Swiss contractors.',
+        'Changez votre nom, téléphone, machines recherchées et le ton des courriels.',
       screenshot: '/assets/guide/email-persona.png',
-      screenshotAlt: 'Email Persona & Google Style Message Preview',
+      screenshotAlt: 'Profil et aperçu du courriel',
       features: [
         {
-          title: 'Trader Identity & Wishlist',
+          title: 'Votre profil et vos machines',
           description:
-            'Specify your exact machinery interests (e.g. "Pelles sur chenilles 15–30t, camions benne 4 essieux, chargeuses").',
+            'Écrivez les machines que vous cherchez.',
         },
         {
-          title: 'Authentic Gmail Style Preview',
+          title: 'Aperçu du courriel',
           description:
-            'Review exact formatting, sender avatar, and wording in German (DE), French (FR), and Italian (IT) before emails go out.',
+            'Lisez le courriel en allemand, français ou italien avant l’envoi.',
         },
         {
-          title: 'Swiss Commercial Commitments',
+          title: 'Vos conditions d’achat',
           description:
-            'Templates include key buyer assurances: guaranteed bank transfer before pickup, full logistical handling, and as-is purchase without warranty.',
+            'Choisissez le paiement immédiat, le transport payé et l’achat sans garantie.',
         },
       ],
       proTip:
-        'Use the "Swiss Formal" tone for high-reputation outreach to large civil engineering corporations like Implenia and Züblin.',
+        'Le ton « Formel suisse » convient aux grandes sociétés.',
     },
   ];
 
@@ -348,7 +348,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title="Close Guide (Esc)"
+            title="Fermer le guide"
           >
             <X className="w-5 h-5" />
           </button>
@@ -449,7 +449,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
               <div
                 className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-md cursor-pointer aspect-video sm:aspect-4/3 flex items-center justify-center"
                 onClick={() => setEnlargedImage(currentSection.screenshot)}
-                title="Click to view full size"
+                title="Voir l’image en grand"
               >
                 <img
                   src={currentSection.screenshot}
@@ -458,15 +458,15 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
                 />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-medium text-xs backdrop-blur-xs">
                   <ZoomIn className="w-4 h-4" />
-                  <span>Click to view full screenshot</span>
+                  <span>Voir l’image complète</span>
                 </div>
                 <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[11px] text-white/90 font-medium flex items-center gap-1.5">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  <span>Real App Interface</span>
+                  <span>Vraie interface de l’application</span>
                 </div>
               </div>
               <p className="text-[11px] text-center text-slate-500">
-                Click screenshot to open high-resolution zoom view
+                Cliquez sur l’image pour l’agrandir
               </p>
             </div>
           </div>
@@ -481,7 +481,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
             className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Previous</span>
+            <span>Précédent</span>
           </button>
 
           {/* Step Dots */}
@@ -496,7 +496,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
                     ? 'w-6 bg-[#FF6B00]'
                     : 'bg-slate-300 hover:bg-slate-400'
                 }`}
-                title={`Go to step ${idx + 1}`}
+                title={`Aller à l’étape ${idx + 1}`}
               />
             ))}
           </div>
@@ -507,7 +507,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
               onClick={handleNext}
               className="h-10 px-5 rounded-xl bg-[#0B2240] hover:bg-[#16365C] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
-              <span>Next Guide</span>
+              <span>Suivant</span>
               <ChevronRight className="w-4 h-4 text-[#FF6B00]" />
             </button>
           ) : (
@@ -516,7 +516,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
               onClick={onClose}
               className="h-10 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#E05E00] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
-              <span>Done · Start Scouting</span>
+              <span>Terminé · Mettre Jimy au travail</span>
               <CheckCircle2 className="w-4 h-4" />
             </button>
           )}
@@ -542,7 +542,7 @@ export const GoogleAppGuideModal: React.FC<GoogleAppGuideModalProps> = ({
             </button>
             <img
               src={enlargedImage}
-              alt="Enlarged screenshot preview"
+              alt="Aperçu agrandi"
               className="w-auto h-auto max-h-[85vh] object-contain rounded-2xl mx-auto"
             />
           </div>

@@ -98,7 +98,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     let next: string[];
     if (settings.selected_cantons.includes(code)) {
       if (settings.selected_cantons.length <= 1) {
-        showToast('At least one canton must remain active.', true);
+        showToast('Au moins un canton doit rester actif.', true);
         return;
       }
       next = settings.selected_cantons.filter((c) => c !== code);
@@ -109,7 +109,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       await onUpdateSettings({ selected_cantons: next });
       showToast(`Region ${code} ${next.includes(code) ? 'turned on' : 'turned off'}`);
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update cantons', true);
+      showToast(err?.message || 'Impossible de modifier les cantons', true);
     }
   };
 
@@ -117,9 +117,9 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     const allCodes = ALL_SWISS_CANTONS.map((c) => c.code);
     try {
       await onUpdateSettings({ selected_cantons: allCodes });
-      showToast('All 26 Swiss cantons enabled');
+      showToast('Les 26 cantons suisses sont actifs');
     } catch (err: any) {
-      showToast(err?.message || 'Failed to enable all cantons', true);
+      showToast(err?.message || 'Impossible d’activer tous les cantons', true);
     }
   };
 
@@ -128,7 +128,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     try {
       await onUpdateSettings({ daily_limit: newVal });
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update daily pace', true);
+      showToast(err?.message || 'Impossible de changer la limite du jour', true);
     }
   };
 
@@ -161,7 +161,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Failed to add company', true);
+        showToast(data.error || 'Impossible d’ajouter la société', true);
       } else {
         await onRefreshCompanies();
         setSelectedCantonCode(newCompCanton);
@@ -173,10 +173,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         setNewCompPostalCode('');
         setNewCompNotes('');
         setShowAddModal(false);
-        showToast(`Saved ${data.name} (${data.canton}) to your company list`);
+        showToast(`${data.name} (${data.canton}) a été ajoutée`);
       }
     } catch (err: any) {
-      showToast(`Error: ${err?.message}`, true);
+      showToast(`Erreur : ${err?.message}`, true);
     } finally {
       setIsSavingComp(false);
     }
@@ -208,14 +208,14 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Failed to update company', true);
+        showToast(data.error || 'Impossible de modifier la société', true);
       } else {
         await onRefreshCompanies();
         setEditingCompany(null);
-        showToast(`Updated ${data.name}`);
+        showToast(`${data.name} a été modifiée`);
       }
     } catch (err: any) {
-      showToast(`Error: ${err?.message}`, true);
+      showToast(`Erreur : ${err?.message}`, true);
     } finally {
       setIsUpdatingComp(false);
     }
@@ -224,7 +224,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const handleImportCsv = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!csvText.trim()) {
-      showToast('Paste CSV content or upload a CSV file first.', true);
+      showToast('Collez un fichier CSV ou choisissez un fichier CSV.', true);
       return;
     }
     setIsImportingCsv(true);
@@ -242,11 +242,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         setShowCsvModal(false);
         setCsvText('');
         showToast(
-          `CSV Import complete: ${data.added} added, ${data.updated} updated (${data.skipped} skipped)`
+          `Import terminé : ${data.added} ajoutée(s), ${data.updated} mise(s) à jour, ${data.skipped} ignorée(s)`
         );
       }
     } catch (err: any) {
-      showToast(`Error: ${err?.message}`, true);
+      showToast(`Erreur : ${err?.message}`, true);
     } finally {
       setIsImportingCsv(false);
     }
@@ -255,7 +255,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const handleAddSuppression = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSuppEmail.trim() && !newSuppDomain.trim()) {
-      showToast('Enter an email address or domain to block.', true);
+      showToast('Entrez une adresse ou un domaine à bloquer.', true);
       return;
     }
     try {
@@ -276,7 +276,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       showToast('Ajouté à la liste de blocage permanente');
       }
     } catch {
-      showToast('Failed to add suppression', true);
+      showToast('Impossible d’ajouter ce refus', true);
     }
   };
 
@@ -284,9 +284,9 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     try {
       await fetch(`/api/suppressions/${id}`, { method: 'DELETE' });
       await loadSuppressions();
-      showToast('Removed from suppression list');
+      showToast('Retiré de la liste des refus');
     } catch {
-      showToast('Failed to remove suppression', true);
+      showToast('Impossible de retirer ce refus', true);
     }
   };
 
@@ -296,10 +296,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     try {
       await fetch(`/api/companies/${companyToDelete.id}`, { method: 'DELETE' });
       await onRefreshCompanies();
-      showToast(`Removed ${companyToDelete.name} from company list`);
+      showToast(`${companyToDelete.name} a été retirée`);
       setCompanyToDelete(null);
     } catch {
-      showToast('Failed to delete company', true);
+      showToast('Impossible de supprimer la société', true);
     } finally {
       setIsDeletingComp(false);
     }
@@ -372,10 +372,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Swiss Cantons (26) &amp; Contractor Directory
+            Cantons suisses (26) et sociétés
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Select active cantons across all 26 Swiss regions, manage verified contractors, import CSVs, and enforce opt-out suppressions.
+            Choisissez les cantons, gérez les sociétés, importez un fichier CSV et respectez les refus.
           </p>
         </div>
 
@@ -386,7 +386,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               {settings.selected_cantons.length}/26 cantons
             </strong>
             <span className="text-slate-300">·</span>
-            <strong className="text-[#FF6B00]">{activeContractorsTotal} verified ready</strong>
+            <strong className="text-[#FF6B00]">{activeContractorsTotal} vérifiées et prêtes</strong>
           </div>
 
           <button
@@ -445,7 +445,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-heading font-bold text-base text-[#0B2240]">
-                  Daily Speed Limit
+                  Limite d’envoi par jour
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[#FF6B00] font-mono font-bold text-xs">
                   {dailyPace} emails / day
@@ -503,7 +503,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search canton (ZH, VD, GR, Jura) or contractor..."
+            placeholder="Chercher un canton ou une société…"
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
           />
           {searchTerm && (
@@ -522,7 +522,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             onClick={handleSelectAllCantons}
             className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer shrink-0"
           >
-            Enable All 26 Cantons
+            Activer les 26 cantons
           </button>
 
           <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shrink-0 min-w-max shadow-2xs">
@@ -699,7 +699,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </div>
               <div className="bg-orange-50/60 rounded-xl p-3 border border-orange-200/80">
                 <span className="text-[11px] text-slate-600 font-medium block">
-                  Verified &amp; Eligible
+                  Vérifiées et prêtes
                 </span>
                 <span className="font-heading font-bold text-xl text-[#FF6B00] tabular-nums mt-0.5 block">
                   {
@@ -714,7 +714,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
 
           <div className="p-5 space-y-3">
             <div className="text-xs font-semibold text-[#0B2240] flex items-center justify-between">
-              <span>Companies in {selectedCantonMeta.name}</span>
+              <span>Sociétés dans le canton de {selectedCantonMeta.name}</span>
               <span className="font-mono text-[11px] text-slate-400">
                 Default: {selectedCantonMeta.language.toUpperCase()}
               </span>
@@ -735,7 +735,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6B00] hover:underline cursor-pointer pt-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Add Company in {selectedCantonMeta.name}</span>
+                  <span>Ajouter une société dans {selectedCantonMeta.name}</span>
                 </button>
               </div>
             ) : (
@@ -759,7 +759,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           </span>
                         </div>
                         <div className="font-mono text-[11px] text-slate-500 truncate mt-0.5">
-                          {comp.email || 'No email (phone only)'}
+                          {comp.email || 'Pas de courriel, téléphone seulement'}
                         </div>
                         {comp.contact_person && (
                           <div className="text-[11px] text-slate-500 truncate">
@@ -774,12 +774,12 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           )}
                           {!hasVerifiedEmail && !comp.unsubscribed && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">
-                              Needs Verified Email
+                              Courriel à vérifier
                             </span>
                           )}
                           {comp.stock_status === 'no_stock_temporarily' && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
-                              No Stock (30d cooldown)
+                              Pas de stock, pause de 30 jours
                             </span>
                           )}
                         </div>
@@ -789,7 +789,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         <button
                           type="button"
                           onClick={() => setEditingCompany({ ...comp })}
-                          title="Edit company"
+                          title="Modifier la société"
                           className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-[#0B2240] transition-colors cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -798,7 +798,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           type="button"
                           onClick={() => setCompanyToDelete(comp)}
                           aria-label={`Remove ${comp.name}`}
-                          title="Delete company"
+                          title="Supprimer la société"
                           className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -839,7 +839,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Add Construction Company
+                  Ajouter une société de chantier
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Leave email blank if you only have a phone number; Jimy will only email verified addresses.
@@ -857,26 +857,26 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Company Name *
+                    Nom de la société *
                   </label>
                   <input
                     type="text"
                     required
                     value={newCompName}
                     onChange={(e) => setNewCompName(e.target.value)}
-                    placeholder="e.g. Kibag Bauleistungen AG"
+                    placeholder="Ex. Kibag Bauleistungen AG"
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   />
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Contact Person
+                    Personne de contact
                   </label>
                   <input
                     type="text"
                     value={newCompContactPerson}
                     onChange={(e) => setNewCompContactPerson(e.target.value)}
-                    placeholder="e.g. Thomas Müller, Werkhof"
+                    placeholder="Ex. Thomas Müller, responsable du dépôt"
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   />
                 </div>
@@ -885,7 +885,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Company Email (Verified)
+                    Courriel vérifié
                   </label>
                   <input
                     type="email"
@@ -897,7 +897,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Phone Number
+                    Téléphone
                   </label>
                   <input
                     type="text"
@@ -928,7 +928,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Postal Code
+                    Code postal
                   </label>
                   <input
                     type="text"
@@ -940,7 +940,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    City
+                    Ville
                   </label>
                   <input
                     type="text"
@@ -955,17 +955,17 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Type of Work
+                    Type de travail
                   </label>
                   <select
                     value={newCompIndustry}
                     onChange={(e) => setNewCompIndustry(e.target.value)}
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-medium text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   >
-                    <option value="civil_engineering">Civil Engineering / Génie Civil</option>
-                    <option value="tiefbau">Tiefbau &amp; Earthworks</option>
-                    <option value="demolition">Demolition &amp; Recycling</option>
-                    <option value="quarry">Kieswerk / Quarry</option>
+                    <option value="civil_engineering">Génie civil</option>
+                    <option value="tiefbau">Terrassement</option>
+                    <option value="demolition">Démolition et recyclage</option>
+                    <option value="quarry">Gravière ou carrière</option>
                   </select>
                 </div>
                 <div>
@@ -976,7 +976,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     type="text"
                     value={newCompNotes}
                     onChange={(e) => setNewCompNotes(e.target.value)}
-                    placeholder="Fleet size, preferred machines..."
+                    placeholder="Taille du parc, machines utilisées…"
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                   />
                 </div>
@@ -1002,7 +1002,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Edit Company Record
+                  Modifier la société
                 </h3>
                 <p className="text-xs text-slate-500">
                   Update contractor details, language override, or stock status.
@@ -1020,7 +1020,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Company Name *
+                    Nom de la société *
                   </label>
                   <input
                     type="text"
@@ -1034,7 +1034,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Contact Person
+                    Personne de contact
                   </label>
                   <input
                     type="text"
@@ -1053,7 +1053,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Email Address
+                    Adresse courriel
                   </label>
                   <input
                     type="email"
@@ -1072,7 +1072,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Phone Number
+                    Téléphone
                   </label>
                   <input
                     type="text"
@@ -1106,7 +1106,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Outreach Language
+                    Langue du courriel
                   </label>
                   <select
                     value={editingCompany.language || 'de'}
@@ -1125,7 +1125,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Stock Status
+                    État du stock
                   </label>
                   <select
                     value={editingCompany.stock_status || 'unknown'}
@@ -1159,7 +1159,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     className="rounded border-slate-300 text-[#FF6B00]"
                   />
                   <span className="font-medium text-slate-700">
-                    Email verified for automated outreach
+                    Courriel vérifié pour les envois automatiques
                   </span>
                 </label>
 
@@ -1211,10 +1211,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Verified Contractor CSV Import &amp; Export
+                  Importer ou exporter les sociétés vérifiées
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Import contractors from CSV (preserves existing opt-outs and 30-day cooldowns) or download your directory.
+                  Importez les sociétés avec un fichier CSV ou téléchargez votre liste. Les refus et pauses de 30 jours sont conservés.
                 </p>
               </div>
               <button
@@ -1277,7 +1277,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Upload className="w-4 h-4" />
-                <span>{isImportingCsv ? 'Importing...' : 'Import Contractors'}</span>
+                <span>{isImportingCsv ? 'Importation…' : 'Importer les sociétés'}</span>
               </button>
             </form>
           </div>
@@ -1294,7 +1294,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   Permanent Suppression &amp; Opt-Out Registry
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Emails and domains listed here are never contacted, even if re-imported via CSV or business card scan.
+                  Les adresses et domaines de cette liste ne seront jamais contactés, même après un nouvel import.
                 </p>
               </div>
               <button
@@ -1320,21 +1320,21 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 type="text"
                 value={newSuppDomain}
                 onChange={(e) => setNewSuppDomain(e.target.value)}
-                placeholder="or domain.ch"
+                placeholder="ou domaine.ch"
                 className="h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-xs text-[#0B2240]"
               />
               <button
                 type="submit"
                 className="h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs cursor-pointer"
               >
-                Block Email / Domain
+                Bloquer une adresse ou un domaine
               </button>
             </form>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {suppressions.filter((s) => s.unsubscribed).length === 0 ? (
                 <div className="text-xs text-slate-500 text-center py-6 bg-slate-50 rounded-2xl">
-                  No active email/domain suppressions recorded.
+                  Aucun refus actif.
                 </div>
               ) : (
                 suppressions
@@ -1356,7 +1356,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         type="button"
                         onClick={() => handleRemoveSuppression(s.id)}
                         className="text-slate-400 hover:text-red-600 cursor-pointer"
-                        title="Remove suppression"
+                        title="Retirer ce refus"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1379,7 +1379,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                    Remove this company?
+                    Retirer cette société ?
                   </h3>
                   <p className="text-xs text-slate-500">
                     Prior contact cooldowns and opt-out suppressions are preserved in the registry.
@@ -1400,7 +1400,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 {companyToDelete.name}
               </div>
               <div className="text-slate-600 font-mono">
-                {companyToDelete.email || 'Phone only'} · Canton {companyToDelete.canton}
+                {companyToDelete.email || 'Téléphone seulement'} · Canton {companyToDelete.canton}
               </div>
             </div>
 
@@ -1411,7 +1411,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 disabled={isDeletingComp}
                 className="flex-1 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 type="button"
@@ -1420,7 +1420,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 className="flex-1 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>{isDeletingComp ? 'Removing...' : 'Yes, Remove'}</span>
+                <span>{isDeletingComp ? 'Suppression…' : 'Oui, retirer'}</span>
               </button>
             </div>
           </div>

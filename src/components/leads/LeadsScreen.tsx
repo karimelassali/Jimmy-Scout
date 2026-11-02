@@ -158,7 +158,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       } catch {
         // ignore storage errors
       }
-      showToast(exists ? 'Removed from Saved Deals' : 'Deal saved to your Saved list');
+      showToast(exists ? 'Dossier retiré des favoris' : 'Dossier ajouté aux favoris');
       return next;
     });
   };
@@ -185,11 +185,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       });
       const updated = await res.json();
       if (!res.ok) {
-        showToast(updated.error || 'Failed to save CRM notes', true);
+        showToast(updated.error || 'Impossible d’enregistrer les notes', true);
       } else {
         setSelectedModalLead(updated);
         await onRefreshLeads();
-        showToast('Saved follow-up, inspection & valuation details');
+        showToast('Suivi, visite et prix enregistrés');
       }
     } catch (err: any) {
       showToast(`Error: ${err?.message}`, true);
@@ -200,7 +200,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
   const handleAddCallLog = async () => {
     if (!selectedModalLead || !callNotes.trim()) {
-      showToast('Enter a brief call note before logging.', true);
+      showToast('Ajoutez une petite note sur l’appel.', true);
       return;
     }
     const existingCalls = Array.isArray(selectedModalLead.call_history)
@@ -229,10 +229,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         setSelectedModalLead(updated);
         setCallNotes('');
         await onRefreshLeads();
-        showToast('Logged phone call to deal timeline');
+        showToast('Appel ajouté au dossier');
       }
     } catch {
-      showToast('Failed to log call', true);
+      showToast('Impossible d’ajouter l’appel', true);
     }
   };
 
@@ -240,7 +240,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     e.preventDefault();
     if (!selectedModalLead) return;
     if (!replySubject.trim() || !replyBody.trim()) {
-      showToast('Subject and reply message are required.', true);
+      showToast('Le sujet et le message sont obligatoires.', true);
       return;
     }
     setIsSendingReply(true);
@@ -255,14 +255,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Could not send reply', true);
+        showToast(data.error || 'Impossible d’envoyer la réponse', true);
       } else {
         setSelectedModalLead(data.lead);
         await onRefreshLeads();
         showToast(`Reply sent to ${selectedModalLead.sender_email}`);
       }
     } catch (err: any) {
-      showToast(`Reply error: ${err?.message}`, true);
+      showToast(`Erreur de réponse : ${err?.message}`, true);
     } finally {
       setIsSendingReply(false);
     }
@@ -280,10 +280,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         } catch {}
         return next;
       });
-      showToast('Deal deleted permanently');
+      showToast('Dossier supprimé');
       setLeadToDelete(null);
     } catch (err: any) {
-      showToast(`Could not delete deal: ${err?.message || 'Error'}`, true);
+      showToast(`Suppression impossible : ${err?.message || 'erreur'}`, true);
     } finally {
       setIsDeleting(false);
     }
@@ -292,7 +292,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   const handleCopyPitch = () => {
     if (!selectedModalLead) return;
     const machinery = selectedModalLead.machinery_detected[0];
-    const text = `Jimy Deal Summary:\nCompany: ${selectedModalLead.company_name} (${selectedModalLead.canton})\nMachine: ${machinery?.make_model || 'Heavy Equipment'} (${machinery?.year || 'N/A'})\nAsking Price: ${machinery?.asking_price || 'Price on request'}\nContact: ${selectedModalLead.contact_name} (${selectedModalLead.contact_phone || selectedModalLead.sender_email})\nSummary: ${selectedModalLead.ai_summary}`;
+    const text = `Résumé du dossier Jimy :\nSociété : ${selectedModalLead.company_name} (${selectedModalLead.canton})\nMachine : ${machinery?.make_model || 'Machine de chantier'} (${machinery?.year || 'Non indiqué'})\nPrix demandé : ${machinery?.asking_price || 'Prix sur demande'}\nContact : ${selectedModalLead.contact_name} (${selectedModalLead.contact_phone || selectedModalLead.sender_email})\nRésumé : ${selectedModalLead.ai_summary}`;
     navigator.clipboard.writeText(text);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
@@ -304,17 +304,17 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       const res = await fetch('/api/imap/poll', { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        showToast(`Could not check inbox: ${data.error || 'Please try again'}`, true);
+        showToast(`Boîte mail inaccessible : ${data.error || 'réessayez'}`, true);
       } else {
         await onRefreshLeads();
         showToast(
           data.messagesProcessed > 0
             ? `Checked inbox: found ${data.messagesProcessed} new deal(s)!`
-            : 'Inbox checked — you are completely up to date'
+            : 'Boîte mail vérifiée : tout est à jour'
         );
       }
     } catch (err: any) {
-      showToast(`Could not connect to your email inbox: ${err?.message}`, true);
+      showToast(`Impossible de joindre votre boîte mail : ${err?.message}`, true);
     } finally {
       setIsPollingImap(false);
     }
@@ -323,7 +323,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   const handleProcessInbound = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inboundEmail.trim() || !inboundBody.trim()) {
-      showToast('Sender email and email message are required.', true);
+      showToast('L’adresse du vendeur et son message sont obligatoires.', true);
       return;
     }
 
@@ -337,25 +337,25 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
           senderEmail: inboundEmail.trim(),
           companyName: inboundCompany.trim() || undefined,
           canton: inboundCanton.trim() || 'CH',
-          rawSubject: inboundSubject.trim() || 'Inbound Contractor Reply',
+          rawSubject: inboundSubject.trim() || 'Réponse d’une société',
           rawBody: inboundBody.trim(),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Could not read email', true);
+        showToast(data.error || 'Impossible de lire le courriel', true);
       } else {
         setTriageResult(data);
         await onRefreshLeads();
         showToast(
           data.analysis?.intent === 'HOT_LEAD'
-            ? 'Great deal found! Saved to your offers list and sent to your phone alert!'
-            : `Email processed with intent: ${data.analysis?.intent}`
+            ? 'Bonne offre trouvée ! Elle est enregistrée et une alerte a été envoyée.'
+            : `Courriel traité : ${data.analysis?.intent}`
         );
       }
     } catch (err: any) {
-      showToast(`Error: ${err?.message || 'Failed to read incoming email'}`, true);
+      showToast(`Erreur : ${err?.message || 'impossible de lire le courriel'}`, true);
     } finally {
       setIsAnalyzing(false);
     }
@@ -414,17 +414,17 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   const savedCount = activeLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
 
   const statusLabels: Record<DealStatus, string> = {
-    new: 'New Offer',
-    contacted: 'Seller Contacted',
-    inspection_scheduled: 'Inspection Scheduled',
-    inspecting: 'Inspecting Yard',
-    inspected: 'Inspected',
-    negotiating: 'Negotiating Price',
-    purchased: 'Purchased (Won)',
-    closed: 'Closed',
-    passed: 'Passed',
-    archived: 'Archived',
-    deleted: 'Deleted',
+    new: 'Nouvelle offre',
+    contacted: 'Vendeur contacté',
+    inspection_scheduled: 'Visite prévue',
+    inspecting: 'Visite en cours',
+    inspected: 'Machine visitée',
+    negotiating: 'Prix en discussion',
+    purchased: 'Achetée',
+    closed: 'Terminé',
+    passed: 'Refusé',
+    archived: 'Archivé',
+    deleted: 'Supprimé',
   };
 
   return (
@@ -449,10 +449,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Machines Offered to You (CRM)
+            Machines proposées
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Contractor replies extracted by Jimy. Manage follow-ups, yard inspections, call logs, and direct replies.
+            Jimy classe ici les offres reçues. Suivez les appels, les visites et vos réponses.
           </p>
         </div>
 
@@ -464,7 +464,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             className="h-11 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isPollingImap ? 'animate-spin' : ''}`} />
-            <span>{isPollingImap ? 'Checking...' : 'Check for Replies'}</span>
+            <span>{isPollingImap ? 'Vérification…' : 'Vérifier les réponses'}</span>
           </button>
 
           <button
@@ -474,7 +474,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             className="h-11 px-5 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Mail className="w-4 h-4 text-[#FF6B00]" />
-            <span>Paste a Seller Reply</span>
+            <span>Coller une réponse</span>
           </button>
         </div>
       </div>
@@ -487,7 +487,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by make/model, company, seller name, or canton..."
+            placeholder="Chercher une machine, une société, un vendeur ou un canton…"
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
           />
           {searchTerm && (
@@ -514,7 +514,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   : 'text-slate-600 hover:text-[#0B2240]'
               }`}
             >
-              All Deals ({activeLeads.length})
+              Tous les dossiers ({activeLeads.length})
             </button>
             <button
               type="button"
@@ -525,7 +525,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   : 'text-slate-600 hover:text-[#0B2240]'
               }`}
             >
-              Excavators
+              Pelles
             </button>
             <button
               type="button"
@@ -536,7 +536,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   : 'text-slate-600 hover:text-[#0B2240]'
               }`}
             >
-              Loaders &amp; Trucks
+              Chargeuses et camions
             </button>
             <button
               type="button"
@@ -547,7 +547,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   : 'text-slate-600 hover:text-[#0B2240]'
               }`}
             >
-              New Only
+              Nouveaux
             </button>
             <button
               type="button"
@@ -559,7 +559,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               }`}
             >
               <Bookmark className="w-3.5 h-3.5 fill-current" />
-              <span>Saved ({savedCount})</span>
+              <span>Favoris ({savedCount})</span>
             </button>
           </div>
         </div>
@@ -598,10 +598,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     <span>·</span>
                     <span>Canton {lead.canton || 'CH'}</span>
                     <span>·</span>
-                    <span className="tabular-nums">{minutesAgo}m ago</span>
+                    <span className="tabular-nums">il y a {minutesAgo} min</span>
                     {lead.intent === 'NEEDS_REVIEW' && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                        Needs Review
+                        À vérifier
                       </span>
                     )}
                   </div>
@@ -610,7 +610,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     <button
                       type="button"
                       onClick={() => toggleBookmark(lead.id)}
-                      aria-label={isBookmarked ? 'Remove from saved deals' : 'Save deal'}
+                      aria-label={isBookmarked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                       className={`h-8 px-2.5 rounded-full flex items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer border ${
                         isBookmarked
                           ? 'bg-[#FFF0E5] text-[#FF6B00] border-orange-200'
@@ -618,13 +618,13 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       }`}
                     >
                       <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
-                      <span>{isBookmarked ? 'Saved' : 'Save'}</span>
+                      <span>{isBookmarked ? 'Favori' : 'Garder'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setLeadToDelete(lead)}
-                      aria-label="Delete deal"
+                      aria-label="Supprimer le dossier"
                       className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -636,21 +636,21 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
                   <div>
                     <h2 className="font-heading font-bold text-xl text-[#0B2240]">
-                      {primaryMachine?.make_model || 'Construction Machinery'}
+                      {primaryMachine?.make_model || 'Machine de chantier'}
                     </h2>
                     <div className="text-xs text-slate-500 mt-1">
-                      <span>{primaryMachine?.type || 'Heavy Equipment'}</span>
+                      <span>{primaryMachine?.type || 'Machine de chantier'}</span>
                       {primaryMachine?.year && (
                         <>
                           <span className="mx-1.5">·</span>
-                          <span className="tabular-nums">Year {primaryMachine.year}</span>
+                          <span className="tabular-nums">Année {primaryMachine.year}</span>
                         </>
                       )}
                       {primaryMachine?.hours && (
                         <>
                           <span className="mx-1.5">·</span>
                           <span className="tabular-nums">
-                            {primaryMachine.hours.toLocaleString()} hrs
+                            {primaryMachine.hours.toLocaleString()} heures
                           </span>
                         </>
                       )}
@@ -659,7 +659,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
                   <div className="text-right shrink-0">
                     <div className="font-mono font-bold text-xl text-[#FF6B00] tabular-nums">
-                      {primaryMachine?.asking_price || 'Price on request'}
+                      {primaryMachine?.asking_price || 'Prix sur demande'}
                     </div>
                     {chfEquiv && parsedPrice.currency !== 'CHF' && (
                       <div className="text-[11px] font-mono text-slate-500">
@@ -671,10 +671,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
                 {lead.machinery_detected.length > 1 && (
                   <div className="text-xs text-slate-600 pt-1">
-                    <span className="font-semibold text-[#0B2240]">Also included: </span>
+                    <span className="font-semibold text-[#0B2240]">Autres machines : </span>
                     {lead.machinery_detected
                       .slice(1)
-                      .map((m) => `${m.make_model} (${m.asking_price || 'Price on request'})`)
+                      .map((m) => `${m.make_model} (${m.asking_price || 'Prix sur demande'})`)
                       .join(' · ')}
                   </div>
                 )}
@@ -682,9 +682,9 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 {/* AI French Executive Summary */}
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-1">
                   <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between">
-                    <span>AI Deal Summary (French)</span>
+                    <span>Résumé de Jimy</span>
                     <span className="font-mono">
-                      Fit: {lead.match_score || 90}%
+                      Intérêt : {lead.match_score || 90}%
                     </span>
                   </div>
                   <p className="text-sm text-[#0B2240] leading-relaxed">
@@ -698,13 +698,13 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     {lead.next_action && (
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ClipboardList className="w-3.5 h-3.5 text-[#FF6B00]" />
-                        Next: {lead.next_action}
+                        Suite : {lead.next_action}
                       </span>
                     )}
                     {lead.inspection_date && (
                       <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600">
                         <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" />
-                        Inspection: {lead.inspection_date.slice(0, 10)}
+                        Visite : {lead.inspection_date.slice(0, 10)}
                       </span>
                     )}
                   </div>
@@ -715,14 +715,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <div className="space-y-4 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <div className="text-slate-600 truncate">
-                    <span className="text-slate-400">Seller: </span>
+                    <span className="text-slate-400">Vendeur : </span>
                     <span className="font-semibold text-[#0B2240]">
                       {lead.contact_name || lead.sender_email}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-slate-400">Stage:</span>
+                    <span className="text-slate-400">Étape :</span>
                     <select
                       value={lead.lead_status}
                       onChange={(e) =>
@@ -748,7 +748,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   >
                     <PhoneCall className="w-4 h-4" />
                     <span>
-                      {rawPhone ? `Call (${rawPhone})` : `Contact Seller`}
+                      {rawPhone ? `Appeler (${rawPhone})` : `Contacter le vendeur`}
                     </span>
                   </a>
 
@@ -758,7 +758,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     className="h-11 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" />
-                    <span>Follow-Up / Inspect</span>
+                    <span>Suivi et visite</span>
                   </button>
 
                   <button
@@ -767,14 +767,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     className="h-11 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Reply</span>
+                    <span>Répondre</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => openLeadModal(lead, 'email')}
                     className="h-11 px-3.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="View original email"
+                    title="Voir le courriel reçu"
                   >
                     <FileText className="w-3.5 h-3.5" />
                   </button>
@@ -788,12 +788,12 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       {filteredLeads.length === 0 && (
         <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
           <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-            {leads.length === 0 ? 'No incoming machinery deals yet' : 'No deals match your filter'}
+            {leads.length === 0 ? 'Aucune offre reçue pour le moment' : 'Aucun dossier ne correspond'}
           </h3>
           <p className="text-sm text-slate-600 leading-relaxed">
             {leads.length === 0
-              ? 'Poll your live IMAP inbox or paste a contractor reply to extract machinery offers and trigger a Telegram notification.'
-              : 'Try clearing your search query or switching back to All Deals.'}
+              ? 'Vérifiez la boîte mail ou collez la réponse d’un vendeur. Jimy créera le dossier.'
+              : 'Effacez la recherche ou choisissez « Tous les dossiers ».'}
           </p>
         </div>
       )}
@@ -812,7 +812,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 <h3 className="font-heading font-bold text-lg text-[#0B2240] mt-1">
                   {selectedModalLead.machinery_detected[0]?.make_model ||
                     selectedModalLead.raw_subject ||
-                    'Contractor Offer'}
+                    'Offre d’une société'}
                 </h3>
               </div>
               <button
@@ -834,7 +834,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     : 'text-slate-600 hover:text-[#0B2240]'
                 }`}
               >
-                Original Email
+                Courriel reçu
               </button>
               <button
                 type="button"
@@ -845,7 +845,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     : 'text-slate-600 hover:text-[#0B2240]'
                 }`}
               >
-                Follow-Up, Inspection &amp; Calls
+                Suivi, visite et appels
               </button>
               <button
                 type="button"
@@ -856,14 +856,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     : 'text-slate-600 hover:text-[#0B2240]'
                 }`}
               >
-                Send Reply ({selectedModalLead.reply_history?.length || 0})
+                Répondre ({selectedModalLead.reply_history?.length || 0})
               </button>
             </div>
 
             {modalTab === 'email' && (
               <div className="space-y-4">
                 <div className="text-xs text-slate-500">
-                  From:{' '}
+                  De :{' '}
                   <span className="font-mono text-[#0B2240]">
                     {selectedModalLead.sender_email}
                   </span>
@@ -878,7 +878,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     className="flex-1 h-11 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Copy className="w-4 h-4" />
-                    <span>{copiedId ? 'Copied Deal Sheet!' : 'Copy Deal Summary'}</span>
+                    <span>{copiedId ? 'Résumé copié !' : 'Copier le résumé'}</span>
                   </button>
 
                   {selectedModalLead.contact_phone && (
@@ -887,7 +887,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       className="h-11 px-6 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       <PhoneCall className="w-4 h-4" />
-                      <span>Call Seller</span>
+                      <span>Appeler le vendeur</span>
                     </a>
                   )}
                 </div>
@@ -900,19 +900,19 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Next Action
+                        Prochaine action
                       </label>
                       <input
                         type="text"
                         value={crmNextAction}
                         onChange={(e) => setCrmNextAction(e.target.value)}
-                        placeholder="e.g. Request serial plate & hydraulic pump photos"
+                        placeholder="Ex. demander les photos de la plaque et de la pompe"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[#0B2240]"
                       />
                     </div>
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Next Action Due Date
+                        Date de la prochaine action
                       </label>
                       <input
                         type="date"
@@ -926,7 +926,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Yard Inspection Date
+                        Date de la visite
                       </label>
                       <input
                         type="date"
@@ -937,7 +937,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     </div>
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Inspection Location / Yard Address
+                        Lieu de la visite
                       </label>
                       <div className="relative">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -945,7 +945,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                           type="text"
                           value={crmInspectionLocation}
                           onChange={(e) => setCrmInspectionLocation(e.target.value)}
-                          placeholder="Depot Bern / Werkhof..."
+                          placeholder="Dépôt de Berne…"
                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 text-[#0B2240]"
                         />
                       </div>
@@ -955,7 +955,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Target Buy (CHF)
+                        Prix d’achat visé (CHF)
                       </label>
                       <input
                         type="number"
@@ -967,7 +967,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     </div>
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Est. Export Value (CHF)
+                        Valeur de revente estimée (CHF)
                       </label>
                       <input
                         type="number"
@@ -979,7 +979,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     </div>
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Actual Paid (CHF)
+                        Prix payé (CHF)
                       </label>
                       <input
                         type="number"
@@ -993,13 +993,13 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      Inspection &amp; Condition Notes (undercarriage, hours, leaks)
+                      Notes de visite et état de la machine
                     </label>
                     <textarea
                       rows={2}
                       value={crmInspectionNotes}
                       onChange={(e) => setCrmInspectionNotes(e.target.value)}
-                      placeholder="Undercarriage 70%, dry engine, original CE certificate..."
+                      placeholder="Train de roulement 70 %, moteur sec, certificat CE…"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[#0B2240]"
                     />
                   </div>
@@ -1010,14 +1010,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     className="h-10 px-5 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs flex items-center gap-2 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>{isSavingCrm ? 'Saving...' : 'Save Follow-Up & Valuation'}</span>
+                    <span>{isSavingCrm ? 'Enregistrement…' : 'Enregistrer le suivi et le prix'}</span>
                   </button>
                 </form>
 
                 {/* Phone Call Log */}
                 <div className="pt-4 border-t border-slate-200 space-y-3">
                   <h4 className="font-heading font-bold text-sm text-[#0B2240]">
-                    Phone Call Log
+                    Historique des appels
                   </h4>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <select
@@ -1025,16 +1025,16 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       onChange={(e) => setCallOutcome(e.target.value as any)}
                       className="h-9 bg-slate-50 border border-slate-200 rounded-xl px-2.5 font-medium text-[#0B2240]"
                     >
-                      <option value="answered">Answered</option>
-                      <option value="voicemail">Left Voicemail</option>
-                      <option value="no_answer">No Answer</option>
-                      <option value="follow_up_needed">Follow-Up Needed</option>
+                      <option value="answered">A répondu</option>
+                      <option value="voicemail">Message vocal laissé</option>
+                      <option value="no_answer">Pas de réponse</option>
+                      <option value="follow_up_needed">À rappeler</option>
                     </select>
                     <input
                       type="text"
                       value={callNotes}
                       onChange={(e) => setCallNotes(e.target.value)}
-                      placeholder="Spoke with workshop manager, machine available next Tuesday..."
+                      placeholder="Le responsable dit que la machine sera libre mardi…"
                       className="flex-1 h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[#0B2240]"
                     />
                     <button
@@ -1042,7 +1042,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       onClick={handleAddCallLog}
                       className="h-9 px-4 rounded-xl bg-[#FF6B00] hover:bg-[#E05E00] text-white font-semibold cursor-pointer shrink-0"
                     >
-                      Log Call
+                      Ajouter l’appel
                     </button>
                   </div>
 
@@ -1075,7 +1075,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 <form onSubmit={handleSendReply} className="space-y-3">
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      To Seller Email
+                      Adresse du vendeur
                     </label>
                     <input
                       type="text"
@@ -1086,7 +1086,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      Subject
+                      Sujet
                     </label>
                     <input
                       type="text"
@@ -1098,7 +1098,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      Message (Reviewed before SMTP dispatch)
+                      Message à envoyer
                     </label>
                     <textarea
                       rows={5}
@@ -1116,15 +1116,15 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     <Send className="w-4 h-4" />
                     <span>
                       {isSendingReply
-                        ? 'Sending via SMTP...'
-                        : `Send Reply to ${selectedModalLead.sender_email}`}
+                        ? 'Envoi…'
+                        : `Envoyer à ${selectedModalLead.sender_email}`}
                     </span>
                   </button>
                 </form>
 
                 {selectedModalLead.reply_history && selectedModalLead.reply_history.length > 0 && (
                   <div className="pt-3 border-t border-slate-200 space-y-2">
-                    <div className="font-semibold text-slate-600">Previous Replies Sent:</div>
+                    <div className="font-semibold text-slate-600">Réponses déjà envoyées :</div>
                     {selectedModalLead.reply_history.map((rep) => (
                       <div
                         key={rep.id}
@@ -1152,10 +1152,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Paste a Seller&apos;s Email Reply
+                  Coller la réponse d’un vendeur
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Reads the seller&apos;s email, extracts machine names and prices, saves it to your offers list, and alerts your phone.
+                  Jimy lit le message, trouve les machines et les prix, crée un dossier et envoie une alerte.
                 </p>
               </div>
               <button
@@ -1169,7 +1169,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             {companies.length > 0 && (
               <div className="space-y-1.5 text-xs">
                 <label className="font-semibold text-slate-600 block">
-                  Choose a company from your list (Optional)
+                  Choisir une société de la liste (facultatif)
                 </label>
                 <select
                   onChange={(e) => {
@@ -1183,7 +1183,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   defaultValue=""
                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                 >
-                  <option value="">-- Pick a company or type below --</option>
+                  <option value="">— Choisir une société ou écrire les informations —</option>
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.canton}) — {c.email}
@@ -1197,7 +1197,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="sm:col-span-2">
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Sender Email *
+                    Adresse du vendeur *
                   </label>
                   <input
                     type="email"
@@ -1210,7 +1210,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Swiss Canton
+                    Canton suisse
                   </label>
                   <input
                     type="text"
@@ -1225,19 +1225,19 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Company Name
+                    Nom de la société
                   </label>
                   <input
                     type="text"
                     value={inboundCompany}
                     onChange={(e) => setInboundCompany(e.target.value)}
-                    placeholder="Company name"
+                    placeholder="Nom de la société"
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-medium text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
                   />
                 </div>
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1.5">
-                    Email Subject
+                    Sujet du courriel
                   </label>
                   <input
                     type="text"
@@ -1251,14 +1251,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
               <div className="text-xs">
                 <label className="font-semibold text-slate-600 block mb-1.5">
-                  Email Message from Seller (German, French, or Italian) *
+                  Message du vendeur (allemand, français ou italien) *
                 </label>
                 <textarea
                   rows={5}
                   required
                   value={inboundBody}
                   onChange={(e) => setInboundBody(e.target.value)}
-                  placeholder="Paste what the seller wrote back (machine model, price, phone number, etc.)..."
+                  placeholder="Collez la réponse du vendeur : machine, prix, téléphone…"
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 font-mono text-xs text-[#0B2240] leading-relaxed focus:outline-none focus:border-[#0B2240]"
                 />
               </div>
@@ -1271,8 +1271,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 <Send className="w-4 h-4" />
                 <span>
                   {isAnalyzing
-                    ? 'Reading and saving message...'
-                    : 'Read Message & Add to Deals'}
+                    ? 'Lecture et enregistrement…'
+                    : 'Lire le message et créer le dossier'}
                 </span>
               </button>
             </form>
@@ -1280,14 +1280,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             {triageResult && (
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 text-xs">
                 <div className="flex items-center justify-between font-mono font-semibold text-[#059669]">
-                  <span>Intent: {triageResult.analysis?.intent}</span>
+                  <span>Type : {triageResult.analysis?.intent}</span>
                   <span className="tabular-nums">
-                    Confidence: {((triageResult.analysis?.confidence || 0) * 100).toFixed(0)}% · Fit:{' '}
+                    Confiance : {((triageResult.analysis?.confidence || 0) * 100).toFixed(0)}% · Intérêt :{' '}
                     {triageResult.analysis?.equipment_fit_score ?? 90}%
                   </span>
                 </div>
                 <p className="text-sm text-[#0B2240] leading-relaxed">
-                  <strong>Summary:</strong> {triageResult.analysis?.french_summary}
+                  <strong>Résumé :</strong> {triageResult.analysis?.french_summary}
                 </p>
               </div>
             )}
@@ -1306,10 +1306,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                    Delete this deal offer?
+                    Supprimer ce dossier ?
                   </h3>
                   <p className="text-xs text-slate-500">
-                    This action cannot be undone.
+                    Cette action est définitive.
                   </p>
                 </div>
               </div>
@@ -1324,7 +1324,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
               <div className="font-bold text-sm text-[#0B2240]">
-                {leadToDelete.machinery_detected[0]?.make_model || 'Construction Machinery'}{' '}
+                {leadToDelete.machinery_detected[0]?.make_model || 'Machine de chantier'}{' '}
                 {leadToDelete.machinery_detected[0]?.asking_price && (
                   <span className="text-[#FF6B00] font-mono">
                     — {leadToDelete.machinery_detected[0]?.asking_price}
@@ -1332,7 +1332,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 )}
               </div>
               <div className="text-slate-600">
-                Seller:{' '}
+                Vendeur :{' '}
                 <span className="font-semibold text-[#0B2240]">
                   {leadToDelete.company_name ||
                     leadToDelete.contact_name ||
@@ -1349,7 +1349,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 disabled={isDeleting}
                 className="flex-1 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 type="button"
@@ -1358,7 +1358,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 className="flex-1 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Deal'}</span>
+                <span>{isDeleting ? 'Suppression…' : 'Oui, supprimer'}</span>
               </button>
             </div>
           </div>

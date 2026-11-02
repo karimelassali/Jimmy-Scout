@@ -166,7 +166,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               Step {step + 1} of 2 · Workspace Setup
             </div>
             <h2 className="text-lg font-semibold text-[#202124] mt-0.5 tracking-tight">
-              {step === 0 ? 'Buyer identity & equipment' : 'Target cantons & outreach pace'}
+              {step === 0 ? 'Votre profil et les machines' : 'Cantons et rythme des envois'}
             </h2>
           </div>
 
@@ -175,7 +175,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-full text-[#5F6368] hover:text-[#202124] hover:bg-[#F1F3F4] flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Close"
+              title="Fermer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -195,7 +195,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     type="text"
                     value={draftName}
                     onChange={(e) => setDraftName(e.target.value)}
-                    placeholder="e.g. Jamal"
+                    placeholder="Ex. Jamal"
                     autoFocus
                     className="w-full h-10 px-3 rounded-lg bg-white border border-[#DADCE0] text-sm text-[#202124] placeholder:text-[#80868B] focus:outline-none focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/15 transition-colors"
                   />
@@ -217,7 +217,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-[#3C4043] mb-1">
-                  Reply-to email address
+                  Adresse courriel de réponse
                 </label>
                 <input
                   type="email"
@@ -274,7 +274,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-[#3C4043]">
-                    Active Swiss cantons ({draftCantons.length})
+                    Cantons suisses actifs ({draftCantons.length})
                   </label>
                   <div className="flex items-center gap-1 text-[11px]">
                     <button
@@ -331,7 +331,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <div className="pt-3 border-t border-[#F1F3F4] grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-[#3C4043] mb-1.5">
-                    Daily email limit
+                    Limite de courriels par jour
                   </label>
                   <div className="grid grid-cols-4 gap-1 p-1 bg-[#F1F3F4] rounded-lg">
                     {[15, 25, 35, 50].map((val) => (
@@ -353,14 +353,14 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-medium text-[#3C4043] mb-1.5">
-                    Outreach tone
+                    Ton des courriels
                   </label>
                   <div className="grid grid-cols-3 gap-1 p-1 bg-[#F1F3F4] rounded-lg">
                     {(
                       [
-                        { id: 'swiss_formal', label: 'Formal' },
+                        { id: 'swiss_formal', label: 'Formel' },
                         { id: 'approachable_trade', label: 'Direct' },
-                        { id: 'fast_cash', label: 'Fast Cash' },
+                        { id: 'fast_cash', label: 'Paiement rapide' },
                       ] as const
                     ).map((t) => (
                       <button

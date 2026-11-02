@@ -63,10 +63,10 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     showToast(
       `Tone updated to ${
         tone === 'swiss_formal'
-          ? 'Swiss Formal'
+          ? 'Formel suisse'
           : tone === 'approachable_trade'
-          ? 'Approachable Trade'
-          : 'Fast Cash Buyout'
+          ? 'Professionnel et simple'
+          : 'Achat avec paiement rapide'
       }`
     );
   };
@@ -79,7 +79,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
       [key]: !settings.hooks[key],
     };
     await onUpdateSettings({ hooks: nextHooks });
-    showToast('Email value proposition updated');
+    showToast('Conditions du courriel mises à jour');
   };
 
   const handleSendTestEmail = async (e: React.FormEvent) => {
@@ -99,13 +99,13 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        showToast(`Could not send email: ${data.error || 'Please check your settings'}`, true);
+        showToast(`Envoi impossible : ${data.error || 'vérifiez les réglages'}`, true);
       } else {
-        showToast(`Sent preview email to ${data.recipient}`);
+        showToast(`Courriel de test envoyé à ${data.recipient}`);
         setShowTestModal(false);
       }
     } catch (err: any) {
-      showToast(`Error sending email: ${err?.message || 'Network error'}`, true);
+      showToast(`Erreur d’envoi : ${err?.message || 'erreur de connexion'}`, true);
     } finally {
       setIsSendingTest(false);
     }
@@ -166,7 +166,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Jimy's Persona &amp; Email Preview
+            Profil de Jimy et aperçu des courriels
           </h1>
           <p className="text-sm text-slate-600 mt-1">
             Configure the identity, speaking tone, and machinery preferences agent Jimy uses when reaching out to Swiss contractors.
@@ -204,7 +204,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           <section className="bg-white rounded-3xl p-5 border border-slate-200/90 space-y-3" data-tour="persona-identity">
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-heading font-bold text-sm text-[#0B2240]">
-                1. Your Profile &amp; Machinery
+                1. Votre profil et vos machines
               </h2>
               <button
                 type="button"
@@ -228,7 +228,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
                   <img
                     src="/assets/jimy-export-avatar.jpg"
-                    alt="Jimy Export Profile"
+                    alt="Profil Jimy Export"
                     className="w-10 h-10 rounded-full object-cover border border-slate-300 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
@@ -250,7 +250,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      Your Name
+                      Votre nom
                     </label>
                     <input
                       type="text"
@@ -261,7 +261,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   </div>
                   <div>
                     <label className="font-semibold text-slate-600 block mb-1">
-                      Phone Number
+                      Téléphone
                     </label>
                     <input
                       type="text"
@@ -274,7 +274,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
 
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Email Address
+                    Adresse courriel
                   </label>
                   <input
                     type="email"
@@ -286,7 +286,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
 
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Machinery you want to buy
+                    Machines que vous voulez acheter
                   </label>
                   <textarea
                     rows={2}
@@ -340,18 +340,18 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               {[
                 {
                   id: 'swiss_formal' as ToneType,
-                  title: 'Swiss Formal (Recommended)',
-                  desc: 'Respectful, professional business style suited for Swiss company owners.',
+                  title: 'Formel suisse (conseillé)',
+                  desc: 'Un ton poli et professionnel pour les sociétés suisses.',
                 },
                 {
                   id: 'approachable_trade' as ToneType,
-                  title: 'Friendly Contractor Style',
-                  desc: 'Direct and friendly, like talking to another contractor in the yard.',
+                  title: 'Simple et cordial',
+                  desc: 'Un ton direct et amical, comme entre professionnels.',
                 },
                 {
                   id: 'fast_cash' as ToneType,
-                  title: 'Fast Payment Deal',
-                  desc: 'Highlights fast bank wire transfer and immediate fleet purchases.',
+                  title: 'Paiement rapide',
+                  desc: 'Met en avant le paiement rapide et l’achat immédiat.',
                 },
               ].map((item) => {
                 const isSelected = settings.tone === item.id;
@@ -399,18 +399,18 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               {[
                 {
                   key: 'cash_settlement' as const,
-                  title: 'Immediate Wire Payment (Comptant)',
-                  desc: 'You pay 100% in full before the machine is loaded',
+                  title: 'Paiement immédiat',
+                  desc: 'Vous payez la totalité avant le chargement de la machine.',
                 },
                 {
                   key: 'transport_covered' as const,
-                  title: 'Transport Covered by You',
-                  desc: 'You organize and pay for the transport truck yourself',
+                  title: 'Transport payé par vous',
+                  desc: 'Vous organisez et payez le camion de transport.',
                 },
                 {
                   key: 'as_is' as const,
-                  title: "Purchased As-Is (No Warranty)",
-                  desc: 'No repairs or guarantees demanded from the seller after sale',
+                  title: 'Achat en l’état, sans garantie',
+                  desc: 'Vous ne demandez aucune réparation ni garantie après la vente.',
                 },
               ].map((hook) => {
                 const isChecked = settings.hooks[hook.key];
@@ -452,14 +452,14 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A73E8]">
-                      Interactive Manual
+                      Guide interactif
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Screenshots &amp; Workflows
                     </span>
                   </div>
                   <h2 className="font-heading font-bold text-base text-[#0B2240] leading-snug">
-                    4. Visual App Guide
+                    4. Guide de l’application
                   </h2>
                 </div>
               </div>
@@ -472,7 +472,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-1">
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Scouting &amp; Pacing</span>
+                <span className="truncate">Recherche et rythme</span>
               </div>
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -480,11 +480,11 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               </div>
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Deals &amp; Extraction</span>
+                <span className="truncate">Offres et lecture</span>
               </div>
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Card OCR &amp; Emails</span>
+                <span className="truncate">Cartes et courriels</span>
               </div>
             </div>
 
@@ -494,7 +494,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               className="w-full h-11 px-5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               <Compass className="w-4 h-4 text-white" />
-              <span>Open Visual App Guide with Screenshots</span>
+              <span>Ouvrir le guide avec images</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </button>
           </section>
@@ -507,7 +507,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               <Mail className="w-5 h-5 text-[#FF6B00]" />
               <div>
                 <h2 className="font-heading font-bold text-lg text-[#0B2240]">
-                  What Your Email Looks Like
+                  Aperçu de votre courriel
                 </h2>
                 <p className="text-xs text-slate-500">
                   Exact text sent to sellers from {settings.sender_email}
@@ -574,7 +574,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                     </span>
                   </div>
                   <div className="text-[12px] text-[#5f6368] truncate">
-                    to {previewCompanyName} ({previewCanton}) ▾
+                    à {previewCompanyName} ({previewCanton}) ▾
                   </div>
                 </div>
               </div>
@@ -728,7 +728,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                Send a Test Email to Myself
+                M’envoyer un courriel de test
               </h3>
               <button
                 onClick={() => setShowTestModal(false)}
@@ -739,13 +739,13 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Sends the current <strong>{activeLang.toUpperCase()}</strong> email to your mailbox so you can verify how it looks.
+              Envoie le courriel <strong>{activeLang.toUpperCase()}</strong> dans votre boîte pour vérifier son apparence.
             </p>
 
             <form onSubmit={handleSendTestEmail} className="space-y-4">
               <div className="space-y-1.5 text-xs">
                 <label className="font-semibold text-slate-600 block">
-                  Send email to:
+                  Envoyer à :
                 </label>
                 <input
                   type="email"

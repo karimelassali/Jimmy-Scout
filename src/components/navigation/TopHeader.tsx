@@ -70,14 +70,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                 : 'bg-orange-50 text-[#FF6B00] border-orange-200/80'
             }`}
-            title={isAgentActive ? 'Agent Jimy is actively working' : 'Agent Jimy is waiting on standby'}
+            title={isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
                 isAgentActive ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF6B00]'
               }`}
             />
-            <span>{isAgentActive ? 'Jimy is working' : 'Jimy is waiting'}</span>
+            <span>{isAgentActive ? 'Jimy travaille' : 'Jimy attend'}</span>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               type="button"
               onClick={onOpenNotifications}
               className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] flex items-center justify-center transition-colors cursor-pointer"
-              title="Activity & Notifications"
+              title="Activité et alertes"
             >
               <Bell className="w-4 h-4 text-slate-700" />
               {notificationCount > 0 && (

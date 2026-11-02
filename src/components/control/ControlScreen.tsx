@@ -110,11 +110,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       await onRefreshAll();
       showToast(
         nextState
-          ? 'Jimy is now working — company discovery and enabled outreach are running automatically'
-          : 'Jimy is now waiting on standby'
+          ? 'Jimy travaille maintenant. La recherche et les envois activés sont automatiques.'
+          : 'Jimy est maintenant en pause.'
       );
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update automation status', true);
+      showToast(err?.message || 'Impossible de changer l’état de Jimy', true);
     }
   };
 
@@ -129,7 +129,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         }`
       );
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update Jimy engine', true);
+      showToast(err?.message || 'Impossible de changer ce réglage', true);
     }
   };
 
@@ -196,12 +196,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       const data = await res.json();
       await onRefreshAll();
       if (res.ok && data.status === 'dispatched') {
-        showToast(`Jimy sent an email to ${data.company} (${data.email})`);
+        showToast(`Jimy a envoyé un courriel à ${data.company} (${data.email})`);
       } else {
-        showToast(data.message || data.error || 'Could not send email', true);
+        showToast(data.message || data.error || 'Impossible d’envoyer le courriel', true);
       }
     } catch (err: any) {
-      showToast(`Failed to send email: ${err?.message || 'Connection error'}`, true);
+      showToast(`Envoi impossible : ${err?.message || 'erreur de connexion'}`, true);
     } finally {
       setIsDispatching(false);
     }
@@ -234,18 +234,18 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
   const handleExportCSV = () => {
     if (leads.length === 0) {
-      showToast('No deals available to export yet.', true);
+      showToast('Aucun dossier à exporter pour le moment.', true);
       return;
     }
     const headers = [
       'ID',
       'Société',
       'Canton',
-      'Machinery',
-      'Asking_Price_Raw',
-      'Asking_Price_CHF',
-      'Contact_Phone',
-      'Status',
+      'Machine',
+      'Prix_demandé',
+      'Prix_CHF',
+      'Téléphone',
+      'État',
       'Action_suivante',
     ];
     const rows = leads.map((l) => {
@@ -276,7 +276,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Downloaded formula-safe deals spreadsheet');
+    showToast('Le fichier des dossiers a été téléchargé.');
   };
 
   // Real metrics from database state
@@ -811,7 +811,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
                 <div className="flex items-center gap-2.5 shrink-0">
                   <div className="px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-[#FF6B00] font-bold font-mono text-sm">
-                    {topLead.machinery_detected[0]?.asking_price || 'Price on request'}
+                    {topLead.machinery_detected[0]?.asking_price || 'Prix sur demande'}
                   </div>
 
                   {topLead.contact_phone && (
@@ -910,7 +910,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                           <span className="font-semibold text-[#0B2240]">
-                            {log.company_name || comp?.name || 'Company'}
+                            {log.company_name || comp?.name || 'Société'}
                           </span>
                           {(log.canton || comp?.canton) && (
                             <>
@@ -1065,7 +1065,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center gap-3">
                 <img
                   src="/assets/jimy-export-avatar.jpg"
-                  alt="Jimy Export Profile Avatar"
+                  alt="Photo du profil Jimy Export"
                   className="w-10 h-10 rounded-full object-cover border border-slate-300 shrink-0"
                 />
                 <div className="min-w-0">

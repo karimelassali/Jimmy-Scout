@@ -85,12 +85,12 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
       const diffHours = Math.floor(diffMins / 60);
       const diffDays = Math.floor(diffHours / 24);
 
-      if (diffMins < 1) return 'Just now';
+      if (diffMins < 1) return 'À l’instant';
       if (diffMins < 60) return `${diffMins}m ago`;
       if (diffHours < 24) return `${diffHours}h ago`;
       return `${diffDays}d ago`;
     } catch {
-      return 'Recently';
+      return 'Récemment';
     }
   };
 
@@ -147,7 +147,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
-            title="Close"
+            title="Fermer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -209,7 +209,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               type="button"
               onClick={onMarkAllAsRead}
               className="text-[11px] font-semibold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-              title="Mark all notifications as read and reset counters"
+              title="Tout marquer comme lu"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               <span>Tout marquer comme lu</span>
@@ -230,8 +230,8 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 </h4>
                 <p className="text-xs text-slate-500 max-w-xs mt-0.5">
                   {filter === 'unread'
-                    ? 'No unseen notifications right now.'
-                    : 'Activity and contractor responses will appear here as Jimy works.'}
+                    ? 'Aucune nouvelle alerte.'
+                    : 'Les actions de Jimy et les réponses des sociétés apparaîtront ici.'}
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                   {isUnread && (
                     <span
                       className="absolute top-4 right-3 w-2 h-2 rounded-full bg-[#1A73E8]"
-                      title="Unseen notification"
+                      title="Nouvelle alerte"
                     />
                   )}
 
@@ -322,7 +322,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                       }
                     }}
                     className="p-1 rounded text-slate-400 hover:text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={item.isRead ? 'Mark as unread' : 'Mark as seen'}
+                    title={item.isRead ? 'Marquer comme non lu' : 'Marquer comme lu'}
                   >
                     {item.isRead ? (
                       <EyeOff className="w-3.5 h-3.5" />
@@ -342,13 +342,13 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             type="button"
             onClick={onClearSeenCounters}
             className="text-[11px] text-slate-500 hover:text-[#0B2240] flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Reset all tab badges and seen counters"
+            title="Réinitialiser les alertes"
           >
             <CheckCheck className="w-3.5 h-3.5 text-[#FF6B00]" />
             <span>Réinitialiser les alertes</span>
           </button>
 
-          <span className="text-[11px] text-slate-400">JimiScout Live Feed</span>
+          <span className="text-[11px] text-slate-400">Activité de JimyScout</span>
         </div>
       </div>
     </div>

@@ -275,14 +275,14 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok || !data.authenticated) {
-        setLoginError(data.error || 'Invalid access token');
+        setLoginError(data.error || 'Code d’accès incorrect');
       } else {
         setIsAuthenticated(true);
         setLoginToken('');
         await fetchData();
       }
     } catch (err: any) {
-      setLoginError(err?.message || 'Login failed');
+      setLoginError(err?.message || 'Connexion impossible');
     } finally {
       setIsLoggingIn(false);
     }
@@ -300,7 +300,7 @@ export default function App() {
       if (!res.ok) {
         setSettings(previous);
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to save settings (HTTP ${res.status})`);
+        throw new Error(errData.error || `Impossible d’enregistrer les réglages (HTTP ${res.status})`);
       }
       const updated = await res.json();
       setSettings(updated);
@@ -325,7 +325,7 @@ export default function App() {
       if (!res.ok) {
         setLeads(previousLeads);
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to update deal status (HTTP ${res.status})`);
+        throw new Error(errData.error || `Impossible de modifier le dossier (HTTP ${res.status})`);
       }
       const updated = await res.json();
       setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
@@ -343,7 +343,7 @@ export default function App() {
       const res = await fetch(`/api/leads/${leadId}`, { method: 'DELETE' });
       if (!res.ok) {
         setLeads(previousLeads);
-        throw new Error(`Failed to delete deal (HTTP ${res.status})`);
+        throw new Error(`Impossible de supprimer le dossier (HTTP ${res.status})`);
       }
     } catch (err) {
       setLeads(previousLeads);
@@ -393,12 +393,12 @@ export default function App() {
       .map((lead) => ({
         id: `lead-${lead.id}`,
         type: 'offer' as const,
-        title: lead.contact_name || lead.company_name || 'Contractor Offer',
+        title: lead.contact_name || lead.company_name || 'Offre d’une société',
         subtitle:
           lead.ai_summary ||
           lead.machinery_detected.map((m) => m.make_model || m.type).join(', ') ||
           lead.raw_subject ||
-          'New machinery equipment inquiry reply',
+          'Nouvelle réponse avec une offre de machine',
         timestamp: lead.received_at,
         isRead: seenState.readNotificationIds.includes(`lead-${lead.id}`),
         leadId: lead.id,
@@ -409,7 +409,7 @@ export default function App() {
     ...logs.map((log) => ({
       id: `log-${log.id}`,
       type: 'email_sent' as const,
-      title: log.company_name ? `Inquiry sent to ${log.company_name}` : 'Inquiry Dispatched',
+      title: log.company_name ? `Demande envoyée à ${log.company_name}` : 'Demande envoyée',
       subtitle: `${log.subject} · Status: ${log.delivery_status}`,
       timestamp: log.sent_at,
       isRead: seenState.readNotificationIds.includes(`log-${log.id}`),
@@ -475,7 +475,7 @@ export default function App() {
                 JimiScout Owner Access
               </h1>
               <p className="text-xs text-slate-500">
-                Private Swiss Machinery Procurement CRM — JIMY EXPORT
+                Espace privé d’achat de machines suisses — JIMY EXPORT
               </p>
             </div>
           </div>
@@ -492,7 +492,7 @@ export default function App() {
                   required
                   value={loginToken}
                   onChange={(e) => setLoginToken(e.target.value)}
-                  placeholder="Enter JIMISCOUT_ADMIN_TOKEN..."
+                  placeholder="Entrez le code d’accès JimyScout…"
                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
                 />
               </div>
@@ -510,7 +510,7 @@ export default function App() {
               disabled={isLoggingIn}
               className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50"
             >
-              {isLoggingIn ? 'Signing in...' : 'Sign In to Workspace'}
+              {isLoggingIn ? 'Connexion…' : 'Ouvrir mon espace'}
             </button>
           </form>
         </div>

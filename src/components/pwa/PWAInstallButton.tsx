@@ -26,11 +26,11 @@ export const PWAInstallButton: React.FC = () => {
       <button
         type="button"
         onClick={handleInstallClick}
-        title="Install JimiScout as an App on your phone or computer"
+        title="Installer JimyScout sur votre téléphone ou ordinateur"
         className="h-9 px-3 rounded-lg border border-slate-200/90 bg-white hover:bg-orange-50/50 hover:border-orange-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
       >
         <Download className="w-3.5 h-3.5 text-[#FF6B00]" />
-        <span className="hidden sm:inline">Install App</span>
+        <span className="hidden sm:inline">Installer</span>
       </button>
 
       {showModal && (
@@ -40,15 +40,15 @@ export const PWAInstallButton: React.FC = () => {
               <div className="flex items-center gap-3.5">
                 <img
                   src="/assets/jimiscout-logo.png"
-                  alt="JimiScout App Icon"
+                  alt="Icône de JimyScout"
                   className="w-14 h-14 rounded-2xl object-contain bg-slate-50 border border-slate-200 p-1.5 shrink-0"
                 />
                 <div>
                   <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                    Install JimiScout App
+                    Installer l’application JimyScout
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Add JimiScout to your home screen or desktop for instant 1-tap access.
+                    Ajoutez JimyScout à votre écran d’accueil pour l’ouvrir rapidement.
                   </p>
                 </div>
               </div>
@@ -66,10 +66,10 @@ export const PWAInstallButton: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200/80 text-xs text-slate-700 space-y-1.5">
                   <div className="font-bold text-[#0B2240] flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-[#FF6B00]" />
-                    <span>Ready for 1-Click Installation</span>
+                    <span>Prêt à installer</span>
                   </div>
                   <p>
-                    Click the button below to install JimiScout with its official app icon and splash screen.
+                    Cliquez ci-dessous pour installer JimyScout avec son icône.
                   </p>
                 </div>
                 <button
@@ -81,7 +81,7 @@ export const PWAInstallButton: React.FC = () => {
                   className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Install JimiScout Now</span>
+                  <span>Installer JimyScout</span>
                 </button>
               </div>
             ) : (
@@ -90,17 +90,17 @@ export const PWAInstallButton: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                     <div className="font-bold text-sm text-[#0B2240] flex items-center gap-2">
                       <Smartphone className="w-4 h-4 text-[#FF6B00]" />
-                      <span>Install on iPhone / iPad (Safari)</span>
+                      <span>Installer sur iPhone ou iPad avec Safari</span>
                     </div>
                     <ol className="space-y-2 text-slate-600 list-decimal pl-4">
                       <li>
-                        Tap the <Share2 className="w-3.5 h-3.5 inline text-[#FF6B00] mx-0.5" /> <strong>Share</strong> button at the bottom of Safari.
+                        Touchez le bouton <Share2 className="w-3.5 h-3.5 inline text-[#FF6B00] mx-0.5" /> <strong>Partager</strong> en bas de Safari.
                       </li>
                       <li>
-                        Scroll down and tap <strong>Add to Home Screen</strong>.
+                        Descendez puis touchez <strong>Sur l’écran d’accueil</strong>.
                       </li>
                       <li>
-                        Tap <strong>Add</strong> in the top corner to install JimiScout with its app icon.
+                        Touchez <strong>Ajouter</strong> en haut de l’écran.
                       </li>
                     </ol>
                   </div>
@@ -109,20 +109,20 @@ export const PWAInstallButton: React.FC = () => {
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
                       <div className="font-bold text-sm text-[#0B2240] flex items-center gap-2">
                         <Monitor className="w-4 h-4 text-[#FF6B00]" />
-                        <span>On Computer (Chrome / Edge)</span>
+                        <span>Sur ordinateur avec Chrome ou Edge</span>
                       </div>
                       <p className="text-slate-600 leading-relaxed">
-                        Click the <strong>Install icon</strong> (computer with down arrow) on the right side of your browser&apos;s address bar, then click <strong>Install</strong>.
+                        Cliquez sur l’icône <strong>Installer</strong> à droite de la barre d’adresse, puis sur <strong>Installer</strong>.
                       </p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
                       <div className="font-bold text-sm text-[#0B2240] flex items-center gap-2">
                         <Smartphone className="w-4 h-4 text-[#FF6B00]" />
-                        <span>On Phone (Android / iPhone)</span>
+                        <span>Sur téléphone Android ou iPhone</span>
                       </div>
                       <p className="text-slate-600 leading-relaxed">
-                        Open your browser menu and tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.
+                        Ouvrez le menu du navigateur puis touchez <strong>Ajouter à l’écran d’accueil</strong> ou <strong>Installer l’application</strong>.
                       </p>
                     </div>
                   </>
