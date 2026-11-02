@@ -4,7 +4,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+# The production server runs TypeScript through tsx, so include the
+# development dependencies that provide the runtime/build toolchain.
+RUN npm ci --legacy-peer-deps --include=dev
 
 COPY . .
 RUN npm run build
