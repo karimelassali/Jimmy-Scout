@@ -5,6 +5,7 @@ import path from 'node:path';
 import { config } from '../config/env.ts';
 import {
   AgentSettings,
+  AgentAction,
   AuditLogEntry,
   Company,
   DealStatus,
@@ -12,6 +13,7 @@ import {
   DiscoveryStats,
   OutboundLog,
   SuppressionEntry,
+  WatchlistRule,
 } from '@/packages/types/src/database.ts';
 import { EquipmentRecord, InboundLead } from '@/packages/types/src/lead.ts';
 import { parsePriceString } from '@/packages/types/src/swiss.ts';
@@ -67,6 +69,8 @@ export interface PersistedState {
   scheduler: PersistedSchedulerMeta;
   discovery_records: DiscoveryRecord[];
   discovery: PersistedDiscoveryMeta;
+  agent_actions: AgentAction[];
+  watchlists: WatchlistRule[];
 }
 
 export class SupabaseDataService {
@@ -133,6 +137,8 @@ export class SupabaseDataService {
       scheduler: {},
       discovery_records: [],
       discovery: {},
+      agent_actions: [],
+      watchlists: [],
     };
     this.stateLoadPromise = null;
     this.activeInboundClaims.clear();
@@ -168,6 +174,19 @@ export class SupabaseDataService {
       },
       equipment_focus:
         'Pelles sur chenilles 15–30t, camions benne 4 essieux, chargeuses sur pneus, concasseurs',
+      feature_controls: {
+        deal_scoring: 'auto',
+        follow_ups: 'approval',
+        qualification: 'approval',
+        price_comparison: 'auto',
+        watchlists: 'auto',
+        daily_briefing: 'auto',
+        negotiation: 'approval',
+        seller_intelligence: 'auto',
+      },
+      follow_up_first_business_days: 4,
+      follow_up_final_business_days: 9,
+      daily_briefing_hour: 7,
       updated_at: new Date().toISOString(),
     };
   }
@@ -254,7 +273,16 @@ export class SupabaseDataService {
 
   private normalizeState(parsed: Partial<PersistedState>, initial: PersistedState): PersistedState {
     return {
-      settings: parsed.settings ? { ...initial.settings, ...parsed.settings } : initial.settings,
+      settings: parsed.settings
+        ? {
+            ...initial.settings,
+            ...parsed.settings,
+            feature_controls: {
+              ...initial.settings.feature_controls,
+              ...(parsed.settings.feature_controls || {}),
+            },
+          }
+        : initial.settings,
       companies: Array.isArray(parsed.companies) ? parsed.companies : [],
       leads: Array.isArray(parsed.leads) ? parsed.leads : [],
       logs: Array.isArray(parsed.logs) ? parsed.logs : [],
@@ -277,6 +305,8 @@ export class SupabaseDataService {
       discovery_records: Array.isArray(parsed.discovery_records) ? parsed.discovery_records : [],
       discovery:
         parsed.discovery && typeof parsed.discovery === 'object' ? parsed.discovery : {},
+      agent_actions: Array.isArray(parsed.agent_actions) ? parsed.agent_actions : [],
+      watchlists: Array.isArray(parsed.watchlists) ? parsed.watchlists : [],
     };
   }
 
@@ -299,6 +329,8 @@ export class SupabaseDataService {
         scheduler: {},
         discovery_records: [],
         discovery: {},
+        agent_actions: [],
+        watchlists: [],
       };
 
       if (!this.client) {
@@ -443,6 +475,15 @@ export class SupabaseDataService {
     const discoveryKeywords = Array.isArray(patch.discovery_keywords)
       ? patch.discovery_keywords.map((item) => String(item).trim()).filter(Boolean).slice(0, 20)
       : current.discovery_keywords;
+    const isMode = (value: unknown): value is 'off' | 'approval' | 'auto' =>
+      value === 'off' || value === 'approval' || value === 'auto';
+    const featureControls: AgentSettings['feature_controls'] = { ...current.feature_controls };
+    if (patch.feature_controls) {
+      for (const key of Object.keys(featureControls) as Array<keyof typeof featureControls>) {
+        const value = patch.feature_controls[key];
+        if (isMode(value)) featureControls[key] = value;
+      }
+    }
 
     const updated: AgentSettings = {
       ...current,
@@ -451,6 +492,19 @@ export class SupabaseDataService {
       discovery_daily_limit: discoveryDailyLimit,
       discovery_interval_minutes: discoveryIntervalMinutes,
       discovery_keywords: discoveryKeywords,
+      feature_controls: featureControls,
+      follow_up_first_business_days:
+        patch.follow_up_first_business_days !== undefined
+          ? Math.max(1, Math.min(20, Math.round(Number(patch.follow_up_first_business_days) || 4)))
+          : current.follow_up_first_business_days,
+      follow_up_final_business_days:
+        patch.follow_up_final_business_days !== undefined
+          ? Math.max(2, Math.min(30, Math.round(Number(patch.follow_up_final_business_days) || 9)))
+          : current.follow_up_final_business_days,
+      daily_briefing_hour:
+        patch.daily_briefing_hour !== undefined
+          ? Math.max(0, Math.min(23, Math.round(Number(patch.daily_briefing_hour) || 7)))
+          : current.daily_briefing_hour,
       updated_at: new Date().toISOString(),
     };
 
@@ -1866,6 +1920,117 @@ export class SupabaseDataService {
     state.discovery = { ...(state.discovery || {}), ...patch };
     await this.saveStorageState(state);
     return state.discovery;
+  }
+
+  // =========================================================
+  // 11. CONTROLLED AGENT ACTIONS & WATCHLISTS
+  // =========================================================
+  async getAgentActions(): Promise<AgentAction[]> {
+    const state = await this.ensureStorageState();
+    return [...state.agent_actions].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
+
+  async createAgentAction(
+    input: Omit<AgentAction, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<AgentAction> {
+    const state = await this.ensureStorageState();
+    const duplicate = state.agent_actions.find(
+      (item) =>
+        item.type === input.type &&
+        item.company_id === input.company_id &&
+        item.lead_id === input.lead_id &&
+        (item.status === 'scheduled' || item.status === 'pending_approval')
+    );
+    if (duplicate) return duplicate;
+    const now = new Date().toISOString();
+    const action: AgentAction = {
+      ...input,
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+    };
+    state.agent_actions.unshift(action);
+    state.agent_actions = state.agent_actions.slice(0, 1000);
+    await this.saveStorageState(state);
+    await this.recordAuditLog(
+      'agent_action_created',
+      'agent_action',
+      `${action.title} · ${action.status} · ${action.rule}`,
+      action.id
+    );
+    return action;
+  }
+
+  async updateAgentAction(
+    id: string,
+    patch: Partial<AgentAction>
+  ): Promise<AgentAction | null> {
+    const state = await this.ensureStorageState();
+    const index = state.agent_actions.findIndex((item) => item.id === id);
+    if (index < 0) return null;
+    state.agent_actions[index] = {
+      ...state.agent_actions[index],
+      ...patch,
+      id,
+      updated_at: new Date().toISOString(),
+    };
+    await this.saveStorageState(state);
+    return state.agent_actions[index];
+  }
+
+  async cancelAgentActionsForRecipient(email: string, reason: string): Promise<number> {
+    const state = await this.ensureStorageState();
+    const clean = email.trim().toLowerCase();
+    let count = 0;
+    for (const action of state.agent_actions) {
+      if (
+        action.recipient_email?.toLowerCase() === clean &&
+        (action.status === 'scheduled' || action.status === 'pending_approval')
+      ) {
+        action.status = 'cancelled';
+        action.error = reason;
+        action.updated_at = new Date().toISOString();
+        count++;
+      }
+    }
+    if (count > 0) await this.saveStorageState(state);
+    return count;
+  }
+
+  async getWatchlists(): Promise<WatchlistRule[]> {
+    const state = await this.ensureStorageState();
+    return state.watchlists;
+  }
+
+  async createWatchlist(
+    input: Omit<WatchlistRule, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<WatchlistRule> {
+    const state = await this.ensureStorageState();
+    const now = new Date().toISOString();
+    const rule: WatchlistRule = { ...input, id: crypto.randomUUID(), created_at: now, updated_at: now };
+    state.watchlists.unshift(rule);
+    await this.saveStorageState(state);
+    return rule;
+  }
+
+  async updateWatchlist(id: string, patch: Partial<WatchlistRule>): Promise<WatchlistRule | null> {
+    const state = await this.ensureStorageState();
+    const index = state.watchlists.findIndex((item) => item.id === id);
+    if (index < 0) return null;
+    state.watchlists[index] = { ...state.watchlists[index], ...patch, id, updated_at: new Date().toISOString() };
+    await this.saveStorageState(state);
+    return state.watchlists[index];
+  }
+
+  async deleteWatchlist(id: string): Promise<boolean> {
+    const state = await this.ensureStorageState();
+    const before = state.watchlists.length;
+    state.watchlists = state.watchlists.filter((item) => item.id !== id);
+    if (before === state.watchlists.length) return false;
+    await this.saveStorageState(state);
+    return true;
   }
 
   /**

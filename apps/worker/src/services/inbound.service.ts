@@ -4,6 +4,8 @@ import { telegramService } from './telegram.service.ts';
 import { computeDurableMessageKey, extractLatestReplyText } from './imap.service.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
+import { dealIntelligenceService } from './deal-intelligence.service.ts';
+import { agentOrchestrator } from './agent-orchestrator.service.ts';
 
 export interface ProcessInboundEmailInput {
   senderEmail: string;
@@ -141,6 +143,7 @@ export class InboundProcessingService {
       if (params.isBounce) {
         const bouncedAddr = (params.bouncedRecipient || '').trim().toLowerCase();
         if (bouncedAddr) {
+          await supabaseDataService.cancelAgentActionsForRecipient(bouncedAddr, 'Rebond reçu.');
           await supabaseDataService.addSuppression({
             email: bouncedAddr,
             reason: 'hard_bounce',
@@ -167,6 +170,9 @@ export class InboundProcessingService {
           messageKey,
         };
       }
+
+      // Any real reply stops all pending follow-ups to this address.
+      await supabaseDataService.cancelAgentActionsForRecipient(senderEmail, 'Le vendeur a répondu.');
 
       // 4. Match existing contractor in directory
       const existingCompany = await supabaseDataService.findCompanyByEmail(senderEmail);
@@ -277,6 +283,36 @@ export class InboundProcessingService {
         references: params.references || [],
       });
 
+      const enrichedLead = await dealIntelligenceService.enrichLead(createdLead);
+      await supabaseDataService.updateLead(createdLead.id, enrichedLead);
+
+      if (enrichedLead.qualification_draft && enrichedLead.qualification_subject) {
+        await agentOrchestrator.scheduleQualification(
+          enrichedLead.id,
+          enrichedLead.sender_email,
+          enrichedLead.qualification_subject,
+          enrichedLead.qualification_draft
+        );
+      }
+
+      if (enrichedLead.watchlist_matches?.length) {
+        const settingsNow = await supabaseDataService.getSettings();
+        if (settingsNow.feature_controls.watchlists !== 'off') {
+          await supabaseDataService.createAgentAction({
+            type: 'watchlist_match',
+            status: 'completed',
+            lead_id: enrichedLead.id,
+            recipient_email: enrichedLead.sender_email,
+            title: `Machine trouvée · ${enrichedLead.watchlist_matches.join(', ')}`,
+            reason: 'Cette machine respecte une liste de recherche active.',
+            rule: 'Comparer le type, le canton, l’année, les heures et le prix.',
+            payload: { matches: enrichedLead.watchlist_matches },
+            scheduled_for: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+          });
+        }
+      }
+
       // 7. Send Telegram notification for HOT_LEAD (and record attempt on lead)
       let telegramResult: any = null;
       if (
@@ -284,7 +320,7 @@ export class InboundProcessingService {
         !analysis.needs_review
       ) {
         telegramResult = await telegramService.sendDealNotification({
-          leadId: createdLead.id,
+          leadId: enrichedLead.id,
           companyName,
           canton,
           machinery: analysis.machinery_detected,
@@ -295,18 +331,18 @@ export class InboundProcessingService {
           summary: analysis.french_summary,
         });
 
-        await supabaseDataService.updateLead(createdLead.id, {
+        await supabaseDataService.updateLead(enrichedLead.id, {
           telegram_notified_at: telegramResult.success ? new Date().toISOString() : null,
           telegram_error: telegramResult.success ? null : telegramResult.error || 'Telegram failed',
         });
       }
 
-      await supabaseDataService.completeInboundMessage(messageKey, createdLead.id);
+      await supabaseDataService.completeInboundMessage(messageKey, enrichedLead.id);
 
       return {
         status: 'processed',
         analysis,
-        lead: createdLead,
+        lead: enrichedLead,
         telegram: telegramResult,
         isDuplicate: false,
         messageKey,

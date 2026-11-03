@@ -37,6 +37,7 @@ import {
   Globe2,
   Database,
 } from 'lucide-react';
+import { AgentActionsPanel } from './AgentActionsPanel.tsx';
 
 interface ControlScreenProps {
   settings: AgentSettings;
@@ -424,6 +425,8 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           </button>
         </div>
       </div>
+
+      <AgentActionsPanel />
 
       {/* CONVERSATIONAL AGENT JIMY PANEL */}
       <section

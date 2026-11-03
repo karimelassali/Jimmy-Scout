@@ -95,6 +95,19 @@ export interface PersonaHooks {
   as_is: boolean;
 }
 
+export type AutomationMode = 'off' | 'approval' | 'auto';
+
+export interface AgentFeatureControls {
+  deal_scoring: AutomationMode;
+  follow_ups: AutomationMode;
+  qualification: AutomationMode;
+  price_comparison: AutomationMode;
+  watchlists: AutomationMode;
+  daily_briefing: AutomationMode;
+  negotiation: AutomationMode;
+  seller_intelligence: AutomationMode;
+}
+
 export interface AgentSettings {
   id: string;
   is_active: boolean;
@@ -111,6 +124,55 @@ export interface AgentSettings {
   tone: ToneType;
   hooks: PersonaHooks;
   equipment_focus: string;
+  feature_controls: AgentFeatureControls;
+  follow_up_first_business_days: number;
+  follow_up_final_business_days: number;
+  daily_briefing_hour: number;
+  updated_at: string;
+}
+
+export type AgentActionType =
+  | 'follow_up_1'
+  | 'follow_up_final'
+  | 'qualification_reply'
+  | 'daily_briefing'
+  | 'watchlist_match';
+
+export type AgentActionStatus =
+  | 'pending_approval'
+  | 'scheduled'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
+export interface AgentAction {
+  id: string;
+  type: AgentActionType;
+  status: AgentActionStatus;
+  company_id?: string | null;
+  lead_id?: string | null;
+  recipient_email?: string | null;
+  title: string;
+  reason: string;
+  rule: string;
+  payload: Record<string, unknown>;
+  scheduled_for: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  error?: string | null;
+}
+
+export interface WatchlistRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  keywords: string[];
+  min_year?: number | null;
+  max_hours?: number | null;
+  max_price_chf?: number | null;
+  cantons: string[];
+  created_at: string;
   updated_at: string;
 }
 
@@ -213,7 +275,7 @@ export interface SchedulerStatus {
 export interface AuditLogEntry {
   id: string;
   action: string;
-  entity_type: 'settings' | 'company' | 'suppression' | 'lead' | 'outbound' | 'equipment' | 'import';
+  entity_type: 'settings' | 'company' | 'suppression' | 'lead' | 'outbound' | 'equipment' | 'import' | 'agent_action' | 'watchlist';
   entity_id?: string | null;
   details: string;
   created_at: string;

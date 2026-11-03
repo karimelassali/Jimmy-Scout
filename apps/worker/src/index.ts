@@ -8,6 +8,7 @@ import { imapService } from './services/imap.service.ts';
 import { inboundService } from './services/inbound.service.ts';
 import { outboundScheduler } from './services/outbound-scheduler.service.ts';
 import { companyDiscoveryService } from './services/company-discovery.service.ts';
+import { agentOrchestrator } from './services/agent-orchestrator.service.ts';
 import { isSwissBusinessHours } from './scheduler.ts';
 
 console.log('========================================================');
@@ -26,6 +27,7 @@ export function startWorker() {
 
   // 1b. Search one canton/keyword slice at a time and respect the persisted interval/limit.
   companyDiscoveryService.startDaemonLoop(5 * 60_000);
+  agentOrchestrator.startDaemonLoop(60_000);
 
   // 2. Start IMAP inbox polling with post-processing \Seen guarantees
   imapService.startPolling(async (raw) => {

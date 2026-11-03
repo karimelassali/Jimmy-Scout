@@ -692,6 +692,22 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </p>
                 </div>
 
+                {typeof lead.deal_score === 'number' && (
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div><div className="text-[11px] text-slate-500">Score de l’affaire</div><div className="text-2xl font-bold text-[#0B2240] tabular-nums">{lead.deal_score}/100</div></div>
+                      {lead.market_price_low_chf && lead.market_price_high_chf ? <div className="text-right"><div className="text-[11px] text-slate-500">Prix estimé</div><div className="text-sm font-bold text-[#0B2240] tabular-nums">CHF {lead.market_price_low_chf.toLocaleString('fr-CH')} – {lead.market_price_high_chf.toLocaleString('fr-CH')}</div><div className="text-[10px] text-slate-500">Confiance {lead.market_price_confidence === 'high' ? 'forte' : lead.market_price_confidence === 'medium' ? 'moyenne' : 'faible'}</div></div> : null}
+                    </div>
+                    {lead.negotiation_opening_chf && lead.negotiation_max_chf ? <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-white border border-blue-100 p-2.5"><span className="text-slate-500">Premier prix</span><div className="font-bold text-[#0B2240]">CHF {(lead.negotiation_opening_chf || 0).toLocaleString('fr-CH')}</div></div>
+                      <div className="rounded-xl bg-white border border-blue-100 p-2.5"><span className="text-slate-500">Prix maximum</span><div className="font-bold text-[#0B2240]">CHF {(lead.negotiation_max_chf || 0).toLocaleString('fr-CH')}</div></div>
+                    </div> : null}
+                    {typeof lead.seller_reliability_score === 'number' && <div className="text-[11px] text-slate-600">Vendeur : {lead.seller_reliability_score}/100 · {lead.seller_history_summary}</div>}
+                    {!!lead.missing_information?.length && <div className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2.5 py-2">À demander : {lead.missing_information.join(', ')}</div>}
+                    {!!lead.watchlist_matches?.length && <div className="text-[11px] font-semibold text-emerald-700">Trouvé pour : {lead.watchlist_matches.join(', ')}</div>}
+                  </div>
+                )}
+
                 {/* Active Follow-up / Inspection Banner if scheduled */}
                 {(lead.next_action || lead.inspection_date) && (
                   <div className="flex flex-wrap items-center gap-2 text-xs bg-orange-50/70 border border-orange-200/80 rounded-xl px-3.5 py-2 text-[#0B2240]">

@@ -5,6 +5,7 @@ import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
 import { generateDeTemplate } from '@/apps/worker/src/templates/de.template.ts';
 import { generateItTemplate } from '@/apps/worker/src/templates/it.template.ts';
 import { GoogleAppGuideModal } from '../guide/GoogleAppGuideModal.tsx';
+import { AgentControlsPanel } from './AgentControlsPanel.tsx';
 import {
   Send,
   Mail,
@@ -329,6 +330,8 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               </div>
             )}
           </section>
+
+          <AgentControlsPanel settings={settings} onUpdateSettings={onUpdateSettings} />
 
           {/* Commercial Tone Selector */}
           <section className="bg-white rounded-3xl p-6 border border-slate-200/90 space-y-4" data-tour="persona-tone">

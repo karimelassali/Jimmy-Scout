@@ -83,6 +83,24 @@ export interface InboundLead {
   actual_purchase_value_chf?: number | null;
   call_history?: CallLogItem[];
   reply_history?: ReplyDraftItem[];
+
+  // Deal-closing intelligence generated from the available dossier data.
+  deal_score?: number;
+  deal_score_reasons?: string[];
+  market_price_low_chf?: number | null;
+  market_price_high_chf?: number | null;
+  market_price_confidence?: 'low' | 'medium' | 'high';
+  market_price_basis?: string;
+  estimated_margin_chf?: number | null;
+  missing_information?: string[];
+  qualification_subject?: string | null;
+  qualification_draft?: string | null;
+  negotiation_opening_chf?: number | null;
+  negotiation_max_chf?: number | null;
+  negotiation_draft?: string | null;
+  watchlist_matches?: string[];
+  seller_reliability_score?: number;
+  seller_history_summary?: string;
 }
 
 export interface EquipmentRecord {

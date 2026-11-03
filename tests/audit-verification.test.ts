@@ -31,6 +31,8 @@ import { supabaseDataService } from '../apps/worker/src/services/supabase.servic
 import { inboundService } from '../apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from '../apps/worker/src/services/outbound-scheduler.service.ts';
 import { companyDiscoveryService } from '../apps/worker/src/services/company-discovery.service.ts';
+import { dealIntelligenceService } from '../apps/worker/src/services/deal-intelligence.service.ts';
+import { agentOrchestrator } from '../apps/worker/src/services/agent-orchestrator.service.ts';
 import { app, sanitizeCsvCell, parseCsvContent } from '../server.ts';
 
 test('1. All 26 Swiss cantons and language routing work accurately', () => {
@@ -442,4 +444,47 @@ test('10. Express API authentication, webhook HMAC verification, and CSV formula
   } finally {
     server.close();
   }
+});
+
+test('11. Deal intelligence and approval actions remain under user control', async () => {
+  supabaseDataService.resetForTests();
+  await supabaseDataService.updateSettings({
+    is_active: true,
+    feature_controls: {
+      deal_scoring: 'auto',
+      follow_ups: 'approval',
+      qualification: 'approval',
+      price_comparison: 'auto',
+      watchlists: 'auto',
+      daily_briefing: 'off',
+      negotiation: 'approval',
+      seller_intelligence: 'auto',
+    },
+  });
+
+  const lead = await supabaseDataService.createLead({
+    company_name: 'Test Machines SA', canton: 'VD', sender_email: 'deal@test-machines.ch',
+    raw_subject: 'CAT 320', raw_body: 'CAT 320 2021, 4200 heures, CHF 68000',
+    intent: 'HOT_LEAD', lead_status: 'new',
+    machinery_detected: [{ type: 'Pelle', make_model: 'CAT 320', year: 2021, hours: 4200, asking_price_amount: 68000, asking_price_currency: 'CHF', asking_price_chf: 68000 }],
+  });
+  const enriched = await dealIntelligenceService.enrichLead(lead);
+  assert.ok(typeof enriched.deal_score === 'number' && enriched.deal_score > 0);
+  assert.ok((enriched.market_price_high_chf || 0) > (enriched.market_price_low_chf || 0));
+  assert.ok((enriched.negotiation_max_chf || 0) >= (enriched.negotiation_opening_chf || 0));
+  assert.ok(enriched.missing_information?.includes('le numéro de série'));
+
+  await agentOrchestrator.scheduleFollowUps({
+    company_id: 'company-test', recipient_email: 'deal@test-machines.ch',
+    company_name: 'Test Machines SA', language: 'fr', sent_at: '2026-11-02T09:00:00.000Z',
+  });
+  let actions = await supabaseDataService.getAgentActions();
+  assert.strictEqual(actions.filter((item) => item.type.startsWith('follow_up')).length, 2);
+  assert.ok(actions.filter((item) => item.type.startsWith('follow_up')).every((item) => item.status === 'pending_approval'));
+  assert.strictEqual((await supabaseDataService.getOutboundLogs()).length, 0, 'Approval actions must never send by themselves');
+
+  const cancelled = await supabaseDataService.cancelAgentActionsForRecipient('deal@test-machines.ch', 'Réponse reçue.');
+  assert.strictEqual(cancelled, 2);
+  actions = await supabaseDataService.getAgentActions();
+  assert.ok(actions.filter((item) => item.type.startsWith('follow_up')).every((item) => item.status === 'cancelled'));
 });

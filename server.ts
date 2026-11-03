@@ -20,6 +20,8 @@ import { supabaseDataService } from './apps/worker/src/services/supabase.service
 import { inboundService } from './apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from './apps/worker/src/services/outbound-scheduler.service.ts';
 import { companyDiscoveryService } from './apps/worker/src/services/company-discovery.service.ts';
+import { agentOrchestrator } from './apps/worker/src/services/agent-orchestrator.service.ts';
+import { dealIntelligenceService } from './apps/worker/src/services/deal-intelligence.service.ts';
 import { normalizeCantonCode } from './packages/types/src/swiss.ts';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
@@ -470,6 +472,24 @@ app.patch('/api/settings', async (req, res) => {
     if (typeof body.sender_phone === 'string') {
       allowed.sender_phone = body.sender_phone.trim();
     }
+    const validMode = (value: unknown) => value === 'off' || value === 'approval' || value === 'auto';
+    if (body.feature_controls && typeof body.feature_controls === 'object') {
+      const current = await supabaseDataService.getSettings();
+      const next = { ...current.feature_controls };
+      for (const key of Object.keys(next) as Array<keyof typeof next>) {
+        if (validMode(body.feature_controls[key])) next[key] = body.feature_controls[key];
+      }
+      allowed.feature_controls = next;
+    }
+    if (Number.isFinite(body.follow_up_first_business_days)) {
+      allowed.follow_up_first_business_days = Number(body.follow_up_first_business_days);
+    }
+    if (Number.isFinite(body.follow_up_final_business_days)) {
+      allowed.follow_up_final_business_days = Number(body.follow_up_final_business_days);
+    }
+    if (Number.isFinite(body.daily_briefing_hour)) {
+      allowed.daily_briefing_hour = Number(body.daily_briefing_hour);
+    }
 
     const updated = await supabaseDataService.updateSettings(allowed);
     res.json(updated);
@@ -486,6 +506,97 @@ app.get('/api/leads', async (_req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
   }
+});
+
+app.post('/api/leads/:id/intelligence/refresh', async (req, res) => {
+  try {
+    const lead = (await supabaseDataService.getLeads(true)).find((item) => item.id === req.params.id);
+    if (!lead) return res.status(404).json({ error: 'Dossier introuvable.' });
+    const enriched = await dealIntelligenceService.enrichLead(lead);
+    await supabaseDataService.updateLead(lead.id, enriched);
+    res.json(enriched);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Analyse impossible.' });
+  }
+});
+
+app.get('/api/agent-actions', async (_req, res) => {
+  try { res.json(await supabaseDataService.getAgentActions()); }
+  catch (err: any) { res.status(500).json({ error: err?.message }); }
+});
+
+app.patch('/api/agent-actions/:id', async (req, res) => {
+  try {
+    const status = req.body?.status;
+    if (status !== 'scheduled' && status !== 'cancelled') {
+      return res.status(400).json({ error: 'Choisissez valider ou annuler.' });
+    }
+    const currentAction = (await supabaseDataService.getAgentActions()).find(
+      (item) => item.id === req.params.id
+    );
+    if (!currentAction) return res.status(404).json({ error: 'Action introuvable.' });
+    if (status === 'scheduled' && currentAction.status !== 'pending_approval') {
+      return res.status(409).json({ error: 'Cette action ne demande plus de validation.' });
+    }
+    if (status === 'cancelled' && currentAction.status !== 'pending_approval' && currentAction.status !== 'scheduled') {
+      return res.status(409).json({ error: 'Cette action est déjà terminée.' });
+    }
+    const action = await supabaseDataService.updateAgentAction(req.params.id, {
+      status,
+      error: status === 'cancelled' ? 'Annulé par l’utilisateur.' : null,
+      ...(status === 'scheduled'
+        ? { payload: { ...currentAction.payload, approvedByUser: true } }
+        : {}),
+    });
+    if (!action) return res.status(404).json({ error: 'Action introuvable.' });
+    if (status === 'scheduled') void agentOrchestrator.tick();
+    res.json(action);
+  } catch (err: any) { res.status(500).json({ error: err?.message }); }
+});
+
+app.get('/api/watchlists', async (_req, res) => {
+  try { res.json(await supabaseDataService.getWatchlists()); }
+  catch (err: any) { res.status(500).json({ error: err?.message }); }
+});
+
+app.post('/api/watchlists', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    const keywords = Array.isArray(body.keywords) ? body.keywords.map(String).map((v: string) => v.trim()).filter(Boolean).slice(0, 20) : [];
+    if (!name || keywords.length === 0) return res.status(400).json({ error: 'Un nom et un mot de recherche sont obligatoires.' });
+    const rule = await supabaseDataService.createWatchlist({
+      name, keywords, enabled: body.enabled !== false,
+      min_year: Number.isFinite(body.min_year) ? Number(body.min_year) : null,
+      max_hours: Number.isFinite(body.max_hours) ? Number(body.max_hours) : null,
+      max_price_chf: Number.isFinite(body.max_price_chf) ? Number(body.max_price_chf) : null,
+      cantons: Array.isArray(body.cantons) ? body.cantons.map((value: unknown) => normalizeCantonCode(String(value))).filter((v: string) => v !== 'CH') : [],
+    });
+    res.status(201).json(rule);
+  } catch (err: any) { res.status(500).json({ error: err?.message }); }
+});
+
+app.patch('/api/watchlists/:id', async (req, res) => {
+  try {
+    const patch: Record<string, unknown> = {};
+    if (typeof req.body?.name === 'string') patch.name = req.body.name.trim();
+    if (typeof req.body?.enabled === 'boolean') patch.enabled = req.body.enabled;
+    if (Array.isArray(req.body?.keywords)) patch.keywords = req.body.keywords.map(String).map((v: string) => v.trim()).filter(Boolean).slice(0, 20);
+    for (const key of ['min_year', 'max_hours', 'max_price_chf']) {
+      if (key in (req.body || {})) {
+        const value = req.body[key];
+        patch[key] = value === null || value === '' ? null : Number.isFinite(Number(value)) ? Number(value) : null;
+      }
+    }
+    const rule = await supabaseDataService.updateWatchlist(req.params.id, patch);
+    if (!rule) return res.status(404).json({ error: 'Liste introuvable.' });
+    res.json(rule);
+  } catch (err: any) { res.status(500).json({ error: err?.message }); }
+});
+
+app.delete('/api/watchlists/:id', async (req, res) => {
+  try { res.json({ success: await supabaseDataService.deleteWatchlist(req.params.id) }); }
+  catch (err: any) { res.status(500).json({ error: err?.message }); }
 });
 
 app.patch('/api/leads/:id', async (req, res) => {
@@ -1476,6 +1587,7 @@ export async function startServer() {
   // Start background scheduler loop when running as a persistent server process
   if (!process.env.VERCEL && process.env.JIMISCOUT_DISABLE_DAEMON !== 'true') {
     outboundScheduler.startDaemonLoop(60_000);
+    agentOrchestrator.startDaemonLoop(60_000);
     companyDiscoveryService.startDaemonLoop(5 * 60_000);
     imapService.startPolling(async (raw) => {
       console.log(`[Server:IMAP] Incoming message detected from ${raw.senderEmail}`);

@@ -166,6 +166,19 @@ export default function App() {
     },
     equipment_focus:
       'Pelles sur chenilles 15–30t, camions benne 4 essieux, chargeuses sur pneus, concasseurs',
+    feature_controls: {
+      deal_scoring: 'auto',
+      follow_ups: 'approval',
+      qualification: 'approval',
+      price_comparison: 'auto',
+      watchlists: 'auto',
+      daily_briefing: 'auto',
+      negotiation: 'approval',
+      seller_intelligence: 'auto',
+    },
+    follow_up_first_business_days: 4,
+    follow_up_final_business_days: 9,
+    daily_briefing_hour: 7,
     updated_at: new Date().toISOString(),
   });
 

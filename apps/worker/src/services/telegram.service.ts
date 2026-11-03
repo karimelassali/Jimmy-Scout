@@ -15,6 +15,28 @@ export interface TelegramDealAlert {
 }
 
 export class TelegramService {
+  async sendText(text: string): Promise<{ success: boolean; messageId?: number; simulated?: boolean; error?: string }> {
+    if (process.env.JIMISCOUT_STUB_EXTERNAL === 'true') {
+      return { success: true, messageId: Math.floor(10000 + Math.random() * 90000), simulated: true };
+    }
+    const token = config.telegram.botToken?.trim();
+    const chatId = config.telegram.chatId?.trim();
+    if (!token || !chatId) return { success: false, error: 'Telegram n’est pas configuré.' };
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+      });
+      const data = await res.json();
+      return res.ok && data.ok
+        ? { success: true, messageId: data.result?.message_id }
+        : { success: false, error: data?.description || 'Telegram a refusé le message.' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Connexion à Telegram impossible.' };
+    }
+  }
+
   async sendDealNotification(deal: TelegramDealAlert): Promise<{
     success: boolean;
     messageId?: number;

@@ -11,6 +11,7 @@ import { generateDeTemplate } from '../templates/de.template.ts';
 import { generateFrTemplate } from '../templates/fr.template.ts';
 import { generateItTemplate } from '../templates/it.template.ts';
 import { OutboundLog, SchedulerStatus } from '@/packages/types/src/database.ts';
+import { agentOrchestrator } from './agent-orchestrator.service.ts';
 
 export interface OutboundStepOptions {
   referenceDate?: Date;
@@ -288,6 +289,14 @@ export class OutboundSchedulerService {
         delivery_status: finalStatus,
         smtp_message_id: sendResult.messageId || null,
         error_message: null,
+      });
+
+      await agentOrchestrator.scheduleFollowUps({
+        company_id: company.id,
+        recipient_email: company.email,
+        company_name: company.name,
+        language: lang,
+        sent_at: refDate.toISOString(),
       });
 
       const contactedIso = refDate.toISOString();
