@@ -456,23 +456,18 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
       )}
 
-      {/* HEADER: Title, Google-Style Breadcrumb & High-Impact Action Bar */}
+      {/* Campaign header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-[#1A73E8]">Centre des envois</span>
-            <span>·</span>
-            <span>Suivi SMTP en direct</span>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+            <span>Journal des envois · suivi SMTP</span>
           </div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1 flex items-center gap-3">
-            <span>Courriels envoyés par Jimy</span>
-            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#1A73E8] border border-blue-200">
-              {logs.length} envois au total
-            </span>
+          <h1 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
+            Campagne de courriels
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Historique complet des demandes envoyées aux sociétés suisses.
+            {logs.length} envois adressés aux sociétés suisses depuis {settings.sender_email}
           </p>
         </div>
 
@@ -482,7 +477,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+            className="h-9 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             title="Actualiser l’historique"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -492,10 +487,10 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
           <button
             type="button"
             onClick={() => handleExportCSV(false)}
-            className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            className="h-9 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             title="Exporter les courriels filtrés"
           >
-            <Download className="w-3.5 h-3.5 text-blue-600" />
+            <Download className="w-3.5 h-3.5 text-slate-500" />
             <span>Exporter</span>
           </button>
 
@@ -503,23 +498,23 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             type="button"
             onClick={handleManualDispatch}
             disabled={isDispatching}
-            className="h-9 px-4 rounded-xl bg-[#1A73E8] hover:bg-[#1557b0] text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs hover:shadow-sm disabled:opacity-50"
+            className="h-9 px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs flex items-center gap-1.5 transition-[background-color,box-shadow] cursor-pointer shadow-2xs hover:shadow-sm disabled:opacity-50"
           >
-            <Send className={`w-3.5 h-3.5 ${isDispatching ? 'animate-bounce' : ''}`} />
+            <Send className={`w-3.5 h-3.5 ${isDispatching ? 'animate-spin' : ''}`} />
             <span>{isDispatching ? 'Envoi…' : 'Envoyer 1 courriel'}</span>
           </button>
         </div>
       </div>
 
-      {/* 5-COLUMN VIVID GOOGLE KPI CARDS STRIP */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      {/* Campaign pulse */}
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Card 1: Total Dispatched */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-medium text-slate-500">
               Total envoyé
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#1A73E8] border border-blue-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
               <Mail className="w-4 h-4" />
             </div>
           </div>
@@ -533,12 +528,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
 
         {/* Card 2: Today's Quota */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-medium text-slate-500">
               Limite du jour
             </span>
-            <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#FF6B00] border border-orange-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#C94F00] border border-orange-200 flex items-center justify-center">
               <Send className="w-4 h-4" />
             </div>
           </div>
@@ -550,7 +545,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
           </div>
           <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-[#FF6B00] h-full rounded-full transition-all duration-500"
+              className="bg-[#FF6B00] h-full rounded-full transition-[width] duration-300"
               style={{
                 width: `${Math.min(100, Math.round((todaySentCount / Math.max(1, settings.daily_limit)) * 100))}%`,
               }}
@@ -559,12 +554,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
 
         {/* Card 3: Delivery Rate */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-[#F3FCF8] rounded-xl p-4 border border-emerald-200 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-medium text-slate-600">
               Taux de remise
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-white text-emerald-700 border border-emerald-200 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
@@ -577,12 +572,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
 
         {/* Card 4: Swiss Cantons Reached */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-medium text-slate-500">
               Cantons contactés
             </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
@@ -602,12 +597,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
 
         {/* Card 5: Languages Dispatched */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between col-span-2 sm:col-span-1">
+        <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-[11px] font-medium text-slate-500">
               Langues
             </span>
-            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
               <Globe className="w-4 h-4" />
             </div>
           </div>
@@ -633,8 +628,8 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
       </section>
 
-      {/* GOOGLE-STYLE SEARCH & FILTER BAR */}
-      <section className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-3.5">
+      {/* Search and filters */}
+      <section className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Google Search Pill */}
           <div className="relative flex-1 min-w-0">
@@ -649,7 +644,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                 setCurrentPage(1);
               }}
               placeholder="Chercher une société, une adresse, un canton, un sujet ou un message…"
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs sm:text-sm text-slate-800 rounded-xl border border-slate-200 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 transition-all outline-none"
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs sm:text-sm text-slate-800 rounded-lg border border-slate-200 focus:border-[#0B2240] focus:ring-2 focus:ring-[#0B2240]/10 transition-colors outline-none"
             />
             {searchQuery && (
               <button
@@ -667,7 +662,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             <button
               type="button"
               onClick={resetFilters}
-              className="h-9 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B00] border border-orange-200/80 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 self-start lg:self-auto"
+              className="h-9 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#C94F00] border border-orange-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 self-start lg:self-auto"
             >
               <X className="w-3.5 h-3.5" />
               <span>Effacer les filtres</span>
@@ -676,7 +671,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
         </div>
 
         {/* Filter Chips Bar */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-xs">
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 text-xs">
           {/* Status Filter Chips */}
           <span className="text-slate-400 font-medium text-[11px] mr-1">État :</span>
           {(['all', 'delivered', 'simulated', 'bounced'] as StatusFilter[]).map((status) => {
@@ -689,9 +684,9 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   setStatusFilter(status);
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1 rounded-full font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-[#1A73E8] text-white shadow-2xs font-semibold'
+                    ? 'bg-[#0B2240] text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
@@ -713,7 +708,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             );
           })}
 
-          <span className="text-slate-300 mx-1">|</span>
+          <span className="hidden sm:block text-slate-300 mx-1">|</span>
 
           {/* Language Filter Chips */}
           <span className="text-slate-400 font-medium text-[11px] mr-1">Langue :</span>
@@ -727,7 +722,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   setLanguageFilter(lang);
                   setCurrentPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
                   isActive
                     ? 'bg-[#0B2240] text-white shadow-2xs font-semibold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
@@ -738,7 +733,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             );
           })}
 
-          <span className="text-slate-300 mx-1">|</span>
+          <span className="hidden sm:block text-slate-300 mx-1">|</span>
 
           {/* Canton Dropdown */}
           <div className="flex items-center gap-1.5">
@@ -760,7 +755,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             </select>
           </div>
 
-          <span className="text-slate-300 mx-1">|</span>
+          <span className="hidden sm:block text-slate-300 mx-1">|</span>
 
           {/* Time Filter */}
           <div className="flex items-center gap-1.5">
@@ -784,7 +779,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
       {/* FLOATING BULK SELECTION ACTION BAR */}
       {selectedLogIds.length > 0 && (
-        <div className="bg-[#0B2240] text-white rounded-2xl px-5 py-3 shadow-lg flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="bg-[#0B2240] text-white rounded-xl px-5 py-3 shadow-lg flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
             <span className="font-semibold text-xs sm:text-sm">
@@ -795,7 +790,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             <button
               type="button"
               onClick={() => handleExportCSV(true)}
-              className="h-8 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="h-8 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Exporter la sélection</span>
@@ -803,7 +798,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedLogIds([])}
-              className="h-8 px-3 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+              className="h-8 px-3 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
             >
               Tout désélectionner
             </button>
@@ -812,12 +807,12 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
       )}
 
       {/* RICH TABLE SECTION */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         {/* Table Top Bar */}
         <div className="p-4 sm:px-6 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
           <div className="flex items-center gap-2">
-            <h2 className="font-heading font-bold text-sm sm:text-base text-[#0B2240]">
-              Liste des demandes envoyées
+            <h2 className="font-heading font-medium text-sm sm:text-base text-[#0B2240]">
+              Registre des demandes envoyées
             </h2>
             <span className="text-xs text-slate-500 font-medium">
               ({sortedLogs.length} {sortedLogs.length === 1 ? 'ligne' : 'lignes'})
@@ -862,7 +857,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
               <button
                 type="button"
                 onClick={resetFilters}
-                className="mt-2 h-9 px-4 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-200 font-semibold text-xs hover:bg-blue-100 transition-colors cursor-pointer"
+                className="mt-2 h-9 px-4 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 font-medium text-xs hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Effacer tous les filtres
               </button>
@@ -972,8 +967,8 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
                   return (
                     <tr
                       key={log.id}
-                      className={`hover:bg-blue-50/40 transition-colors group ${
-                        isSelected ? 'bg-blue-50/60' : ''
+                      className={`hover:bg-slate-50 transition-colors group ${
+                        isSelected ? 'bg-orange-50/70' : ''
                       }`}
                     >
                       {/* Checkbox */}
