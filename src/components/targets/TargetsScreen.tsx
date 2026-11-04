@@ -107,7 +107,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     }
     try {
       await onUpdateSettings({ selected_cantons: next });
-      showToast(`Region ${code} ${next.includes(code) ? 'turned on' : 'turned off'}`);
+      showToast(`Canton ${code} ${next.includes(code) ? 'activé' : 'arrêté'}`);
     } catch (err: any) {
       showToast(err?.message || 'Impossible de modifier les cantons', true);
     }
@@ -236,7 +236,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'CSV import failed', true);
+        showToast(data.error || 'Import CSV impossible', true);
       } else {
         await onRefreshCompanies();
         setShowCsvModal(false);
@@ -351,11 +351,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   }, [filteredCantonCodes, selectedCantonCode]);
 
   return (
-    <div className="space-y-5 pb-24 md:pb-12 pt-2">
+    <div className="space-y-8 pb-24 pt-2 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
         <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-white shadow-lg flex items-center gap-2.5 text-sm font-medium max-w-xl ${
+          className={`fixed bottom-20 left-1/2 z-50 flex max-w-xl -translate-x-1/2 items-center gap-2.5 rounded-lg px-5 py-3 text-sm font-medium text-white shadow-lg md:bottom-6 ${
             toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
           }`}
         >
@@ -368,26 +368,22 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Cantons suisses (26) et sociétés
+      {/* Page heading and territory tools */}
+      <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-[#FF6B00]" aria-hidden="true" />
+            <span>{settings.selected_cantons.length} cantons actifs · {activeContractorsTotal} sociétés prêtes</span>
+          </div>
+          <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
+            Couverture des cantons
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Choisissez les cantons, gérez les sociétés, importez un fichier CSV et respectez les refus.
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Activez les régions où Jimy cherche, puis gardez les sociétés et leurs refus au même endroit.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-full border border-slate-200 text-xs font-medium shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
-            <strong className="text-[#0B2240]">
-              {settings.selected_cantons.length}/26 cantons
-            </strong>
-            <span className="text-slate-300">·</span>
-            <strong className="text-[#FF6B00]">{activeContractorsTotal} vérifiées et prêtes</strong>
-          </div>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
 
           <button
             type="button"
@@ -395,7 +391,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               loadSuppressions();
               setShowSuppressionModal(true);
             }}
-            className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
             <span>Refus</span>
@@ -404,7 +400,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
           <button
             type="button"
             onClick={() => setShowCsvModal(true)}
-            className="h-10 px-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
           >
             <Upload className="w-3.5 h-3.5 text-[#FF6B00]" />
             <span>Importer / exporter CSV</span>
@@ -414,7 +410,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <button
               type="button"
               onClick={onNavigateToScanner}
-              className="h-10 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[#0B2240] text-[#0B2240] font-heading font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs"
+              className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
             >
               <Camera className="w-4 h-4 text-[#FF6B00]" />
               <span>Scanner des cartes</span>
@@ -427,38 +423,33 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               setNewCompCanton(selectedCantonCode);
               setShowAddModal(true);
             }}
-            className="h-10 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0B2240] px-5 text-xs font-medium text-white transition-colors hover:bg-[#173863] sm:w-auto sm:text-sm"
           >
             <Plus className="w-4 h-4" />
               <span>Ajouter une société</span>
           </button>
         </div>
-      </div>
+      </section>
 
       {/* DAILY SPEED LIMIT BAR */}
-      <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200/80 text-[#FF6B00] flex items-center justify-center shrink-0">
-              <Sliders className="w-5 h-5" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[#0B2240]">
+              <Sliders className="w-5 h-5" strokeWidth={1.5} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading font-bold text-base text-[#0B2240]">
-                  Limite d’envoi par jour
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[#FF6B00] font-mono font-bold text-xs">
-                  {dailyPace} courriels / jour
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h2 className="font-heading text-base font-medium text-[#0B2240]">
+                Rythme d’envoi
+              </h2>
+              <p className="mt-0.5 text-xs leading-5 text-slate-500">
                 Envoi automatique du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1 max-w-xl">
-            <div className="flex-1 space-y-1.5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:w-[52%]">
+            <div className="flex-1 space-y-2">
               <input
                 type="range"
                 min="10"
@@ -468,22 +459,22 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 onChange={(e) => handlePaceChange(Number(e.target.value))}
                 className="w-full accent-[#FF6B00] cursor-pointer h-2 bg-slate-200 rounded-full"
               />
-              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
                 <span>10 / jour (doux)</span>
                 <span>25 / jour (conseillé)</span>
                 <span>50 / jour (rapide)</span>
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-center">
+            <div className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg bg-slate-100 p-1 sm:self-center">
               {[15, 25, 35, 50].map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => handlePaceChange(preset)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${
                     dailyPace === preset
-                      ? 'bg-[#FF6B00] text-white shadow-2xs'
+                      ? 'bg-[#0B2240] text-white'
                       : 'text-slate-600 hover:text-[#0B2240]'
                   }`}
                 >
@@ -495,37 +486,40 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       </section>
 
-      {/* Search & Language Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md flex items-center bg-white rounded-full border border-slate-200 px-4 h-11 focus-within:border-[#FF6B00] transition-all">
+      {/* Search and language filters */}
+      <section className="space-y-4 border-b border-slate-200 pb-4">
+        <div className="relative flex h-11 max-w-md items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:border-[#0B2240]">
           <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Chercher un canton ou une société…"
+            placeholder="Rechercher un canton ou une société"
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
+            aria-label="Rechercher dans les cantons et sociétés"
           />
           {searchTerm && (
             <button
+              type="button"
               onClick={() => setSearchTerm('')}
               className="text-slate-400 hover:text-[#0B2240] p-1 cursor-pointer"
+              aria-label="Effacer la recherche"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <button
             type="button"
             onClick={handleSelectAllCantons}
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer shrink-0"
+            className="h-9 shrink-0 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-medium text-[#C44F00] transition-colors hover:bg-orange-100"
           >
             Activer les 26 cantons
           </button>
 
-          <div className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shrink-0 min-w-max shadow-2xs">
+          <div className="inline-flex min-w-max items-center gap-1">
             {(
               [
                 { id: 'all', label: `Tous (${ALL_SWISS_CANTONS.length})` },
@@ -553,10 +547,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     : ALL_SWISS_CANTONS.find((canton) => canton.language === tab.id);
                   if (firstVisibleCanton) setSelectedCantonCode(firstVisibleCanton.code);
                 }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                aria-pressed={regionFilter === tab.id}
+                className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap ${
                   regionFilter === tab.id
                     ? 'bg-[#0B2240] text-white'
-                    : 'text-slate-600 hover:text-[#0B2240]'
+                    : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
                 }`}
               >
                 {tab.label}
@@ -564,12 +559,12 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* 2-COLUMN WORKSPACE: 26 Cantons Grid + Regional Contractor Dossier */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
         <div
-          className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:col-span-8"
           data-tour="canton-selection"
         >
           {filteredCantons.map((canton) => {
@@ -581,29 +576,38 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             ).length;
 
             return (
-              <div
+              <article
                 key={canton.code}
                 onClick={() => setSelectedCantonCode(canton.code)}
-                className={`rounded-2xl p-4 transition-all cursor-pointer flex flex-col justify-between space-y-3.5 ${
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedCantonCode(canton.code);
+                  }
+                }}
+                tabIndex={0}
+                role="group"
+                aria-label={`Canton ${canton.name}${isFocused ? ', dossier ouvert' : ''}`}
+                className={`flex cursor-pointer flex-col justify-between space-y-4 rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00]/40 ${
                   isFocused
-                    ? 'bg-white border-2 border-[#FF6B00] ring-3 ring-[#FF6B00]/15 shadow-sm'
+                    ? 'border-[#FF6B00] bg-white shadow-[inset_3px_0_0_#FF6B00]'
                     : isSelected
-                    ? 'bg-white border border-slate-200 hover:border-orange-300 shadow-2xs'
-                    : 'bg-slate-50/70 border border-slate-200/70 opacity-75 hover:opacity-100 hover:bg-white'
+                    ? 'border-slate-200 bg-white hover:border-orange-200'
+                    : 'border-slate-200/80 bg-slate-50/70 text-slate-600 hover:bg-white'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-heading font-bold text-base text-[#0B2240] leading-tight truncate">
+                      <span className="truncate font-heading text-base font-medium leading-tight text-[#0B2240]">
                         {canton.name}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono font-bold text-[11px] shrink-0">
+                      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
                         {canton.code}
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-600">
+                      <span className="font-medium text-slate-600">
                         {canton.language.toUpperCase()}
                       </span>
                       <span>·</span>
@@ -614,13 +618,14 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   <button
                     type="button"
                     aria-label={`Activer ou arrêter le canton ${canton.name}`}
+                    aria-pressed={isSelected}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleCanton(canton.code);
                     }}
-                    className={`h-7 px-2.5 rounded-full text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+                    className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition-colors ${
                       isSelected
-                        ? 'bg-[#FF6B00] text-white shadow-2xs'
+                        ? 'bg-[#0B2240] text-white'
                         : 'bg-white text-slate-500 border border-slate-200 hover:border-[#0B2240] hover:text-[#0B2240]'
                     }`}
                   >
@@ -635,14 +640,14 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   </button>
                 </div>
 
-                <div className="pt-2.5 border-t border-slate-100 space-y-1.5">
+                <div className="space-y-1.5 border-t border-slate-100 pt-3">
                   <div className="text-xs font-medium text-slate-700 truncate">
                     {canton.primarySector}
                   </div>
                   <div className="flex items-center justify-between">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-semibold tabular-nums ${
-                        cantonEligible > 0 ? 'text-[#FF6B00]' : 'text-slate-400'
+                      className={`inline-flex items-center gap-1.5 text-xs font-medium tabular-nums ${
+                        cantonEligible > 0 ? 'text-[#C44F00]' : 'text-slate-400'
                       }`}
                     >
                       <span
@@ -654,17 +659,17 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     </span>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
 
         {/* Right 4 Columns: Regional Contractor Dossier */}
         <div
-          className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden sticky top-24"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-24 xl:col-span-4"
           data-tour="company-database"
         >
-          <div className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-white border-b border-slate-100 space-y-4">
+          <div className="space-y-5 border-b border-slate-100 p-5">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="text-xs font-medium text-slate-500">
@@ -672,7 +677,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   <span className="mx-1.5">·</span>
                   <span>NPA {selectedCantonMeta.plz}</span>
                 </div>
-                <h3 className="font-heading font-bold text-xl text-[#0B2240] mt-0.5">
+                <h3 className="mt-0.5 font-heading text-xl font-medium text-[#0B2240]">
                   Canton {selectedCantonMeta.name} ({selectedCantonMeta.code})
                 </h3>
               </div>
@@ -683,7 +688,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   setNewCompCanton(selectedCantonMeta.code);
                   setShowAddModal(true);
                 }}
-                className="h-8 px-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                className="flex h-8 shrink-0 items-center gap-1 rounded-md bg-[#0B2240] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#173863]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Ajouter</span>
@@ -691,17 +696,17 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <span className="text-[11px] text-slate-500 block">Sociétés dans la liste</span>
-                <span className="font-heading font-bold text-xl text-[#0B2240] tabular-nums mt-0.5 block">
+                <span className="mt-0.5 block font-heading text-xl font-medium tabular-nums text-[#0B2240]">
                   {contractorsInSelectedCanton.length}
                 </span>
               </div>
-              <div className="bg-orange-50/60 rounded-xl p-3 border border-orange-200/80">
-                <span className="text-[11px] text-slate-600 font-medium block">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <span className="block text-[11px] text-slate-500">
                   Vérifiées et prêtes
                 </span>
-                <span className="font-heading font-bold text-xl text-[#FF6B00] tabular-nums mt-0.5 block">
+                <span className="mt-0.5 block font-heading text-xl font-medium tabular-nums text-[#C44F00]">
                   {
                     contractorsInSelectedCanton.filter(
                       (c) => !c.unsubscribed && c.email && c.verified_email !== false
@@ -712,8 +717,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             </div>
           </div>
 
-          <div className="p-5 space-y-3">
-            <div className="text-xs font-semibold text-[#0B2240] flex items-center justify-between">
+          <div className="space-y-3 p-5">
+            <div className="flex items-center justify-between text-xs font-medium text-[#0B2240]">
               <span>Sociétés dans le canton de {selectedCantonMeta.name}</span>
               <span className="font-mono text-[11px] text-slate-400">
                 Langue : {selectedCantonMeta.language.toUpperCase()}
@@ -739,7 +744,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
                 {contractorsInSelectedCanton.map((comp) => {
                   const hasVerifiedEmail = Boolean(
                     comp.email && comp.verified_email !== false
@@ -747,11 +752,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   return (
                     <div
                       key={comp.id}
-                      className="p-3 rounded-xl bg-slate-50 hover:bg-orange-50/30 border border-slate-200/80 hover:border-orange-200 flex items-center justify-between gap-2 text-xs transition-colors"
+                      className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs transition-colors hover:bg-white"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-[#0B2240] truncate">
+                          <span className="truncate font-medium text-[#0B2240]">
                             {comp.name}
                           </span>
                           <span className="px-1.5 py-0.2 rounded bg-slate-200/70 text-[10px] font-mono uppercase text-slate-700">
@@ -768,17 +773,17 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         )}
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           {comp.unsubscribed && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
+                            <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
                               Refus (STOP)
                             </span>
                           )}
                           {!hasVerifiedEmail && !comp.unsubscribed && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
                               Courriel à vérifier
                             </span>
                           )}
                           {comp.stock_status === 'no_stock_temporarily' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
+                            <span className="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] text-slate-600">
                               Pas de stock, pause de 30 jours
                             </span>
                           )}
@@ -790,7 +795,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           type="button"
                           onClick={() => setEditingCompany({ ...comp })}
                           title="Modifier la société"
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-[#0B2240] transition-colors cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-[#0B2240]"
+                        aria-label={`Modifier ${comp.name}`}
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -799,7 +805,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           onClick={() => setCompanyToDelete(comp)}
                           aria-label={`Retirer ${comp.name}`}
                           title="Supprimer la société"
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -814,10 +820,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleCanton(selectedCantonMeta.code)}
-                className={`w-full h-10 rounded-full font-heading font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                aria-pressed={settings.selected_cantons.includes(selectedCantonMeta.code)}
+                className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-colors ${
                   settings.selected_cantons.includes(selectedCantonMeta.code)
-                    ? 'bg-slate-100 hover:bg-slate-200 text-[#0B2240]'
-                    : 'bg-[#FF6B00] hover:bg-[#E05E00] text-white shadow-xs'
+                    ? 'border border-slate-200 bg-white text-[#0B2240] hover:bg-slate-50'
+                    : 'bg-[#0B2240] text-white hover:bg-[#173863]'
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
@@ -835,19 +842,20 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* ADD CONTRACTOR MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                   Ajouter une société de chantier
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Leave email blank if you only have a phone number; Jimy will only email verified addresses.
+                  Laissez le courriel vide si vous avez seulement un téléphone. Jimy écrit uniquement aux adresses vérifiées.
                 </p>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -912,7 +920,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
-                    Swiss Canton *
+                    Canton suisse *
                   </label>
                   <select
                     value={newCompCanton}
@@ -985,7 +993,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <button
                 type="submit"
                 disabled={isSavingComp}
-                className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0B2240] text-sm font-medium text-white transition-colors hover:bg-[#173863] disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isSavingComp ? 'Enregistrement...' : 'Enregistrer la société'}</span>
@@ -998,19 +1006,20 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* EDIT CONTRACTOR MODAL */}
       {editingCompany && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                   Modifier la société
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Update contractor details, language override, or stock status.
+                  Mettez à jour les coordonnées, la langue et l’état du stock.
                 </p>
               </div>
               <button
                 onClick={() => setEditingCompany(null)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1118,9 +1127,9 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     }
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240]"
                   >
-                    <option value="de">German (DE)</option>
-                    <option value="fr">French (FR)</option>
-                    <option value="it">Italian (IT)</option>
+                    <option value="de">Allemand (DE)</option>
+                    <option value="fr">Français (FR)</option>
+                    <option value="it">Italien (IT)</option>
                   </select>
                 </div>
                 <div>
@@ -1137,10 +1146,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     }
                     className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-2.5 text-sm font-medium text-[#0B2240]"
                   >
-                    <option value="unknown">Unknown</option>
-                    <option value="has_stock">Has Stock</option>
-                    <option value="no_stock_temporarily">No Stock Temporarily</option>
-                    <option value="opted_out">Opted Out</option>
+                    <option value="unknown">Inconnu</option>
+                    <option value="has_stock">Stock disponible</option>
+                    <option value="no_stock_temporarily">Pas de stock pour le moment</option>
+                    <option value="opted_out">Refus de contact</option>
                   </select>
                 </div>
               </div>
@@ -1175,7 +1184,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     }
                     className="rounded border-slate-300 text-red-600"
                   />
-                  <span className="font-medium text-red-700">Unsubscribed (STOP)</span>
+                  <span className="font-medium text-red-700">Refus de contact (STOP)</span>
                 </label>
               </div>
 
@@ -1194,7 +1203,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <button
                 type="submit"
                 disabled={isUpdatingComp}
-                className="w-full h-11 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0B2240] text-sm font-medium text-white transition-colors hover:bg-[#16365C]"
               >
                 <Check className="w-4 h-4" />
                 <span>{isUpdatingComp ? 'Enregistrement...' : 'Enregistrer les changements'}</span>
@@ -1207,10 +1216,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* CSV IMPORT / EXPORT MODAL */}
       {showCsvModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5">
+          <div className="w-full max-w-xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                   Importer ou exporter les sociétés vérifiées
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1219,23 +1228,24 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </div>
               <button
                 onClick={() => setShowCsvModal(false)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs">
               <div>
-                <strong className="text-[#0B2240] block">Export Current Directory</strong>
+                <strong className="block text-[#0B2240]">Exporter le répertoire actuel</strong>
                 <span className="text-slate-500">
-                  Formula-safe CSV with {companies.length} contractor records
+                  CSV protégé avec {companies.length} fiche{companies.length === 1 ? '' : 's'} société
                 </span>
               </div>
               <a
                 href="/api/companies/export-csv"
                 download
-                className="h-9 px-4 rounded-full bg-[#0B2240] hover:bg-[#16365C] text-white font-heading font-semibold text-xs inline-flex items-center gap-1.5"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#0B2240] px-4 text-xs font-medium text-white hover:bg-[#16365C]"
               >
                 <Download className="w-3.5 h-3.5" />
               <span>Télécharger CSV</span>
@@ -1245,7 +1255,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <form onSubmit={handleImportCsv} className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <label className="font-semibold text-slate-600">
-                  Paste CSV Rows or Upload .csv File
+                  Coller les lignes CSV ou choisir un fichier .csv
                 </label>
                 <input
                   type="file"
@@ -1268,13 +1278,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 placeholder={
                   'name,email,canton,phone,contact_person,city,language\nKibag AG,werkstatt@kibag.ch,ZH,+41 44 987 65 43,Hans Meier,Zürich,de'
                 }
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 font-mono text-xs text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 font-mono text-xs text-[#0B2240] focus:border-[#FF6B00] focus:outline-none"
               />
 
               <button
                 type="submit"
                 disabled={isImportingCsv}
-                className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0B2240] text-sm font-medium text-white transition-colors hover:bg-[#173863] disabled:opacity-50"
               >
                 <Upload className="w-4 h-4" />
                 <span>{isImportingCsv ? 'Importation…' : 'Importer les sociétés'}</span>
@@ -1287,11 +1297,11 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* SUPPRESSION & OPT-OUT REGISTRY MODAL */}
       {showSuppressionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                  Permanent Suppression &amp; Opt-Out Registry
+                <h3 className="font-heading text-lg font-medium text-[#0B2240]">
+                  Liste permanente des refus
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Les adresses et domaines de cette liste ne seront jamais contactés, même après un nouvel import.
@@ -1299,7 +1309,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </div>
               <button
                 onClick={() => setShowSuppressionModal(false)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1371,32 +1382,33 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       {/* DELETE COMPANY CONFIRMATION MODAL */}
       {companyToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-5">
+          <div className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600">
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                  <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                     Retirer cette société ?
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Prior contact cooldowns and opt-out suppressions are preserved in the registry.
+                    Les pauses de contact et refus déjà enregistrés sont conservés.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setCompanyToDelete(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer shrink-0"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
-              <div className="font-bold text-sm text-[#0B2240]">
+            <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
+              <div className="text-sm font-medium text-[#0B2240]">
                 {companyToDelete.name}
               </div>
               <div className="text-slate-600 font-mono">
@@ -1409,7 +1421,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 type="button"
                 onClick={() => setCompanyToDelete(null)}
                 disabled={isDeletingComp}
-                className="flex-1 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                className="h-11 flex-1 rounded-lg border border-slate-200 bg-white text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50 sm:text-sm"
               >
                 Annuler
               </button>
@@ -1417,7 +1429,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                 type="button"
                 onClick={handleConfirmDeleteCompany}
                 disabled={isDeletingComp}
-                className="flex-1 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:text-sm"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>{isDeletingComp ? 'Suppression…' : 'Oui, retirer'}</span>
