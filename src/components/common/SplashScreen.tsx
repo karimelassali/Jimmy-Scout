@@ -1,81 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { Compass, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import React from 'react';
+import { Building2, FolderKanban, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+
+const loadingItems = [
+  { icon: Building2, label: 'Sociétés' },
+  { icon: Mail, label: 'Courriels' },
+  { icon: FolderKanban, label: 'Dossiers' },
+];
 
 export const SplashScreen: React.FC = () => {
-  const steps = [
-    'Jimy vérifie les cantons actifs (ZH · BE · VD · GE · TI · VS)…',
-    'Mise à jour des sociétés vérifiées…',
-    'Préparation du rythme et des courriels…',
-    'Connexion au réseau suisse des sociétés…',
-  ];
-
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentStepIndex((prev) => (prev + 1) % steps.length);
-    }, 1800);
-    return () => clearInterval(timer);
-  }, [steps.length]);
-
   return (
-    <div className="min-h-[75vh] flex flex-col items-center justify-center p-4 relative selection:bg-[#FF6B00]/20">
-      {/* Soft Ambient Radial Background Glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center">
-        <div className="w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-orange-400/10 via-[#0B2240]/5 to-transparent blur-3xl animate-pulse" />
-      </div>
+    <section
+      className="jimy-splash relative isolate min-h-[calc(100vh-10.5rem)] overflow-hidden rounded-[2rem] bg-[#081D37] text-white shadow-[0_24px_80px_-36px_rgba(8,29,55,0.65)]"
+      aria-busy="true"
+      aria-live="polite"
+      aria-label="Chargement de votre espace JimyScout"
+    >
+      <div className="absolute inset-0 jimy-splash-grid opacity-40" aria-hidden="true" />
+      <div
+        className="absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-[#FF6B00]/20 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -right-20 -top-24 h-[28rem] w-[28rem] rounded-full bg-[#173D69]/80 blur-3xl"
+        aria-hidden="true"
+      />
 
-      {/* Main Glassmorphic Splash Card */}
-      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl shadow-slate-900/5 flex flex-col items-center max-w-sm w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
-        {/* Animated Radar Beacon & Transparent Logo */}
-        <div className="relative flex items-center justify-center py-2">
-          {/* Concentric Radar Ping Rings */}
-          <div className="absolute w-28 h-28 rounded-full bg-orange-500/10 animate-ping opacity-60 pointer-events-none" />
-          <div className="absolute w-36 h-36 rounded-full border border-orange-500/20 animate-pulse pointer-events-none" />
-
-          <img
-            src="/assets/jimiscout-logo.png"
-            alt="JimiScout"
-            className="w-48 h-auto object-contain relative z-10 drop-shadow-xs"
-          />
-        </div>
-
-        {/* Brand Badges */}
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200/80 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-pulse" />
-            <span>🇨🇭 Assistant suisse pour les machines</span>
+      <div className="relative z-10 grid min-h-[calc(100vh-10.5rem)] items-center gap-2 px-6 py-10 sm:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-16 lg:py-12">
+        <div className="order-2 mx-auto w-full max-w-xl text-center lg:order-1 lg:mx-0 lg:text-left">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3.5 py-2 text-xs font-semibold text-white/85 backdrop-blur-md">
+            <Sparkles className="h-3.5 w-3.5 text-[#FF8A33]" aria-hidden="true" />
+            <span>Votre assistant d’achat suisse</span>
           </div>
 
-          <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0B2240] tracking-tight">
-            Jimy se prépare
-          </h2>
-        </div>
+          <h1 className="font-heading text-4xl font-extrabold leading-[1.04] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
+            Bonjour, je suis <span className="text-[#FF7A1A]">Jimy.</span>
+          </h1>
 
-        {/* Smooth Shimmer Progress Bar */}
-        <div className="w-full max-w-[220px] space-y-2">
-          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
-            <div className="h-full bg-gradient-to-r from-[#FF6B00] via-[#FF8C33] to-[#FF6B00] rounded-full animate-[progress_1.6s_ease-in-out_infinite] w-2/3" />
-          </div>
-        </div>
-
-        {/* Dynamic Activity Status Text */}
-        <div className="min-h-[40px] flex items-center justify-center">
-          <p className="text-xs text-slate-600 font-medium leading-relaxed transition-all duration-300 animate-in fade-in">
-            {steps[currentStepIndex]}
+          <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-slate-300 sm:text-lg lg:mx-0">
+            Je prépare votre espace de travail et vos dernières informations.
           </p>
+
+          <div className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start" aria-hidden="true">
+            {loadingItems.map(({ icon: Icon, label }, index) => (
+              <div
+                key={label}
+                className="jimy-splash-chip flex items-center gap-2 rounded-xl border border-white/10 bg-white/7 px-3.5 py-2.5 text-xs font-semibold text-slate-200 backdrop-blur-sm"
+                style={{ animationDelay: `${index * 180}ms` }}
+              >
+                <Icon className="h-4 w-4 text-[#FF8A33]" />
+                <span>{label}</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-8 max-w-md lg:mx-0" role="status">
+            <div className="mb-2.5 flex items-center justify-between gap-4 text-xs font-medium text-slate-300">
+              <span>Chargement de votre espace…</span>
+              <span className="text-white/55">Un instant</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="jimy-splash-progress h-full rounded-full bg-gradient-to-r from-[#FF6B00] via-[#FF9C55] to-[#FF6B00]" />
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-2 text-[11px] font-medium text-white/55 lg:justify-start">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+            <span>Vos actions restent sous votre contrôle.</span>
+          </div>
         </div>
 
-        {/* Trust & Protocol Micro-Footer */}
-        <div className="pt-4 border-t border-slate-100 w-full flex items-center justify-center gap-3 text-[11px] text-slate-400 font-medium">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Assistant suisse pour entreprises</span>
-          </span>
-          <span>·</span>
-          <span>Bern · Zürich · Genève</span>
+        <div className="order-1 flex min-h-[230px] items-center justify-center lg:order-2 lg:min-h-[520px]">
+          <div className="relative flex h-[250px] w-[250px] items-center justify-center sm:h-[330px] sm:w-[330px] lg:h-[460px] lg:w-[460px]">
+            <div
+              className="absolute inset-[10%] rounded-full border border-white/10 bg-[radial-gradient(circle_at_50%_45%,rgba(255,107,0,0.22),rgba(255,255,255,0.04)_48%,transparent_70%)] shadow-[inset_0_0_80px_rgba(255,255,255,0.035)]"
+              aria-hidden="true"
+            />
+            <div className="jimy-splash-orbit absolute inset-[4%] rounded-full border border-dashed border-white/12" aria-hidden="true">
+              <span className="absolute left-[10%] top-[18%] h-2.5 w-2.5 rounded-full bg-[#FF7A1A] shadow-[0_0_18px_rgba(255,122,26,0.9)]" />
+              <span className="absolute bottom-[16%] right-[8%] h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]" />
+            </div>
+
+            <video
+              className="jimy-splash-mascot relative z-10 h-[112%] w-[112%] object-contain motion-reduce:hidden"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              aria-label="Jimy vous accueille"
+            >
+              <source src="/assets/illustrations/jimmymascut.webm" type="video/webm" />
+            </video>
+
+            <img
+              src="/assets/jimiscout-logo.png"
+              alt="JimyScout"
+              className="relative z-10 hidden w-44 object-contain motion-reduce:block"
+            />
+
+            <div className="absolute bottom-[4%] z-20 flex items-center gap-2 rounded-full border border-white/15 bg-[#0B2240]/80 px-3.5 py-2 text-[11px] font-semibold text-white shadow-lg backdrop-blur-md sm:bottom-[7%]">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400 motion-reduce:animate-none" />
+              Jimy se prépare
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
