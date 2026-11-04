@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { TopHeader } from './components/navigation/TopHeader.tsx';
 import { BottomBar, TabId } from './components/navigation/BottomBar.tsx';
 import { SplashScreen } from './components/common/SplashScreen.tsx';
@@ -60,6 +60,9 @@ const NotificationCenterModal = lazy(() =>
     default: m.NotificationCenterModal,
   }))
 );
+
+const MINIMUM_SPLASH_TIME_MS = 1250;
+const SPLASH_FADE_TIME_MS = 500;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>(() => {
@@ -201,6 +204,9 @@ export default function App() {
   const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null);
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoverySchedulerStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const splashStartedAt = useRef(Date.now());
+  const [showStartupSplash, setShowStartupSplash] = useState(true);
+  const [isSplashLeaving, setIsSplashLeaving] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -286,6 +292,23 @@ export default function App() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const elapsed = Date.now() - splashStartedAt.current;
+    const timeBeforeFade = Math.max(0, MINIMUM_SPLASH_TIME_MS - elapsed);
+    const fadeTimer = window.setTimeout(() => setIsSplashLeaving(true), timeBeforeFade);
+    const removeTimer = window.setTimeout(
+      () => setShowStartupSplash(false),
+      timeBeforeFade + SPLASH_FADE_TIME_MS
+    );
+
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [isLoading]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,11 +508,17 @@ export default function App() {
     setOpenInboundModal(true);
   };
 
+  const startupSplash = showStartupSplash ? (
+    <SplashScreen isLeaving={isSplashLeaving} />
+  ) : null;
+
   // Owner Authentication Gate when JIMISCOUT_ADMIN_TOKEN is enabled
   if (!isLoading && authRequired && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
+      <>
+        {startupSplash}
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-200 text-[#FF6B00] flex items-center justify-center">
               <Lock className="w-5 h-5" />
@@ -537,13 +566,16 @@ export default function App() {
               {isLoggingIn ? 'Connexion…' : 'Ouvrir mon espace'}
             </button>
           </form>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative overflow-x-hidden w-full max-w-full">
+      {startupSplash}
+
       {/* Offline Banner */}
       {!isOnline && (
         <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
@@ -567,10 +599,7 @@ export default function App() {
 
       {/* Responsive Workspace Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
-        {isLoading ? (
-          <SplashScreen />
-        ) : (
-          <Suspense fallback={<SplashScreen />}>
+          <Suspense fallback={null}>
             {activeTab === 'control' && (
               <ControlScreen
                 settings={settings}
@@ -655,7 +684,6 @@ export default function App() {
               <GuideScreen onNavigate={(tab) => selectTab(tab)} />
             )}
           </Suspense>
-        )}
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
