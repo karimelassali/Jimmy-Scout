@@ -21,56 +21,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="preload" href="/assets/illustrations/jimmymascut.webm" as="video" type="video/webm" />
 
     <!-- Google Fonts: Plus Jakarta Sans (Display), DM Sans (Body), JetBrains Mono (Tabular Data) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
-    <style>
-      @keyframes jimyPulse {
-        0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.08); }
-      }
-      @keyframes jimyBar {
-        0% { transform: translateX(-100%); }
-        50% { transform: translateX(50%); }
-        100% { transform: translateX(200%); }
-      }
-    </style>
   </head>
   <body class="bg-[#F8FAFC] text-[#0B2240] antialiased selection:bg-[#FF6B00]/15 min-h-screen">
-    <div id="root">
-      <!-- Instant Initial PWA Splash Screen -->
-      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #F8FAFC; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; padding: 24px;">
-        <div style="background: rgba(255, 255, 255, 0.95); padding: 36px 32px; border-radius: 28px; box-shadow: 0 16px 40px rgba(11, 34, 64, 0.08); border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; max-width: 340px; width: 100%; text-align: center; box-sizing: border-box;">
-          
-          <div style="position: relative; margin-bottom: 20px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; width: 90px; height: 90px; border-radius: 999px; background: rgba(255, 107, 0, 0.12); animation: jimyPulse 2s infinite ease-in-out;"></div>
-            <img src="/assets/jimiscout-logo.png" alt="JimiScout" style="width: 190px; height: auto; object-fit: contain; position: relative; z-index: 2;" />
-          </div>
-
-          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #FF6B00; background: #FFF4ED; border: 1px solid #FFD8BF; margin-bottom: 12px;">
-            <span>🇨🇭 Assistant suisse pour les machines</span>
-          </div>
-
-          <h2 style="font-size: 18px; font-weight: 800; color: #0B2240; margin: 0 0 8px 0; letter-spacing: -0.3px;">
-            Jimy is Getting Ready
-          </h2>
-
-          <div style="width: 160px; height: 4px; background: #f1f5f9; border-radius: 999px; overflow: hidden; position: relative; margin: 12px 0 16px 0;">
-            <div style="width: 45%; height: 100%; background: #FF6B00; border-radius: 999px; position: absolute; animation: jimyBar 1.5s infinite ease-in-out;"></div>
-          </div>
-
-          <div style="font-size: 12px; color: #64748b; font-weight: 500; line-height: 1.4; margin-bottom: 16px;">
-            Jimy vérifie les sociétés suisses (ZH · BE · VD · TI)…
-          </div>
-
-          <div style="padding-top: 14px; border-top: 1px solid #f1f5f9; width: 100%; font-size: 11px; color: #94a3b8; font-weight: 500;">
-            Swiss B2B Heavy Machinery Protocol
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
