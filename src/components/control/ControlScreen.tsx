@@ -330,15 +330,6 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const topLead = leads[0];
   const companyById = new Map(companies.map((c) => [c.id, c]));
 
-  const getDynamicGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'Bonjour';
-    if (hour >= 12 && hour < 17) return 'Bon après-midi';
-    if (hour >= 17 && hour < 22) return 'Bonsoir';
-    return 'Bonne nuit';
-  };
-
-  const timeGreeting = getDynamicGreeting();
   const adminName = settings.sender_name?.trim() || 'Jamal';
   const formattedDate = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -392,16 +383,17 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         </div>
       )}
 
-      {/* Welcome Header */}
+      {/* Page context */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
             <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
             <span>{formattedDate} · Espace d’achat suisse</span>
           </div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
-            {timeGreeting}, {adminName}
+          <h1 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
+            Poste de commande
           </h1>
+          <p className="mt-1 text-sm text-slate-500">{adminName} · vos recherches, envois et occasions au même endroit</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
@@ -428,153 +420,100 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
       <AgentActionsPanel />
 
-      {/* CONVERSATIONAL AGENT JIMY PANEL */}
+      {/* Jimy briefing */}
       <section
-        className={`bg-white rounded-[28px] border shadow-sm overflow-hidden transition-colors ${
+        className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-colors ${
           settings.is_active ? 'border-emerald-300/90' : 'border-orange-200/90'
         }`}
       >
         <div
           className={`h-1 w-full ${
             settings.is_active
-              ? 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500'
-              : 'bg-gradient-to-r from-[#FF6B00] via-orange-400 to-amber-400'
+              ? 'bg-emerald-500'
+              : 'bg-[#FF6B00]'
           }`}
         />
 
-        <div className="p-6 sm:p-10 flex flex-col items-center gap-7 text-center">
-          <div className="flex flex-col items-center gap-5 min-w-0 w-full">
-            <div
-              className="w-56 h-56 sm:w-72 sm:h-72 shrink-0 flex items-center justify-center overflow-visible"
-            >
-              <video
-                src="/assets/illustrations/jimmymascut.webm"
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-label="Mascotte Jimy"
-                className="w-full h-full object-contain select-none"
-              />
-            </div>
-
-            <div className="min-w-0 space-y-3 max-w-2xl">
-              <div className="flex items-center justify-center gap-2.5 flex-wrap">
-                <h2 className="font-heading font-bold text-xl sm:text-2xl text-[#0B2240] flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      settings.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF6B00]'
-                    }`}
-                  />
-                  <span>{settings.is_active ? 'Je m’en occupe' : 'Je suis prêt quand vous l’êtes'}</span>
-                </h2>
-
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${schedulerBadge.color}`}
-                >
-                  {schedulerBadge.label}
-                </span>
-
-                {/* Compact Inline Quota Pill */}
-                <div
-                  data-tour="daily-limit-slider"
-                  className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs"
-                >
-                  <span className="font-mono font-semibold text-[#FF6B00] tabular-nums">
-                    {todaySentCount}/{settings.daily_limit}
-                  </span>
-                  <span className="text-slate-500 text-[11px]">aujourd’hui (Zurich)</span>
-                  <div className="w-14 bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-[#FF6B00] h-full rounded-full transition-all duration-500"
-                      style={{ width: `${quotaPercent}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-base leading-7 text-slate-600 max-w-xl mx-auto">
-                <span>
-                  {settings.is_active
-                    ? `Je surveille ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.`
-                    : `Vous avez ${activeContractorsCount} sociétés vérifiées. Activez-moi et je chercherai les prochaines bonnes occasions pour vous.`}
-                </span>
-              </p>
-              <div className="flex flex-wrap justify-center items-center gap-2 text-[11px] text-slate-500">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">{todaySentCount} échanges aujourd’hui</span>
-                {schedulerStatus?.next_send_at && settings.is_active && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-orange-700">
-                    <Clock className="w-3 h-3" />
-                    Prochaine vérification {new Date(schedulerStatus.next_send_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
+        <div className="p-5 sm:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-[minmax(216px,0.8fr)_minmax(0,1.2fr)] items-center gap-6 sm:gap-8">
+          <div className="flex items-center justify-center min-w-0">
+            <div className="w-48 h-48 sm:w-60 sm:h-60 lg:w-72 lg:h-72 shrink-0 flex items-center justify-center overflow-visible">
+              <video src="/assets/illustrations/jimmymascut.webm" autoPlay loop muted playsInline aria-label="Mascotte Jimy" className="w-full h-full object-contain select-none" />
             </div>
           </div>
 
-          {/* Right: Action Controls */}
-          <div className="flex flex-wrap items-center justify-center gap-2 shrink-0">
-            <button
-              type="button"
-              data-tour="poll-imap-btn"
-              onClick={handlePollImap}
-              disabled={isPollingImap}
-              className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`}
-              />
-            <span>{isPollingImap ? 'Vérification...' : 'Vérifier les réponses'}</span>
-            </button>
+          <div className="min-w-0 space-y-5 md:text-left">
+            <div className="flex items-start gap-2.5 flex-wrap">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${settings.is_active ? 'bg-emerald-500' : 'bg-[#FF6B00]'}`} />
+                  <span className="text-xs font-medium text-slate-500">Mission Jimy</span>
+                </div>
+                <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[#0B2240] mt-1">
+                  {settings.is_active ? 'Jimy est en mission' : 'Jimy attend votre signal'}
+                </h2>
+              </div>
+              <span className={`ml-0 md:ml-auto px-2.5 py-1 rounded-lg text-[11px] font-medium ${schedulerBadge.color}`}>
+                {schedulerBadge.label}
+              </span>
+            </div>
 
-            <button
-              type="button"
-              data-tour="manual-dispatch-btn"
-              onClick={handleDispatchStep}
-              disabled={isDispatching || !canDispatchNow}
-              title={dispatchTitle}
-              className="h-9 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B00] border border-orange-200/90 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isDispatching ? 'Envoi...' : 'Envoyer 1 maintenant'}</span>
-            </button>
+            <p className="text-base leading-7 text-slate-600 max-w-xl">
+              {settings.is_active
+                ? `Je surveille ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.`
+                : `Vous avez ${activeContractorsCount} sociétés vérifiées. Lancez-moi quand vous voulez chercher les prochaines bonnes occasions.`}
+            </p>
 
-            <div data-tour="auto-scout-switch">
-              <button
-                type="button"
-                onClick={toggleActiveScouting}
-                className={`h-9 px-4 rounded-xl font-heading font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
-                  settings.is_active
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                    : 'bg-[#059669] hover:bg-[#047857] text-white'
-                }`}
-              >
-                {settings.is_active ? (
-                  <>
-                    <Pause className="w-3.5 h-3.5 fill-current" />
-                    <span>Mettre Jimy en pause</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Mettre Jimy au travail</span>
-                  </>
-                )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+              <span className="font-mono font-medium text-[#0B2240] tabular-nums">{todaySentCount}/{settings.daily_limit} envois aujourd’hui</span>
+              <span className="hidden sm:block h-3 w-px bg-slate-200" />
+              <span>{todaySentCount} échanges suivis</span>
+              {schedulerStatus?.next_send_at && settings.is_active && (
+                <span className="inline-flex items-center gap-1 text-slate-600">
+                  <Clock className="w-3.5 h-3.5 text-[#FF6B00]" />
+                  Prochain passage {new Date(schedulerStatus.next_send_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+
+            <div data-tour="daily-limit-slider" className="max-w-md">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+                <span>Rythme d’envoi</span>
+                <span className="font-mono tabular-nums">{quotaPercent}% de la limite</span>
+              </div>
+              <div className="h-1.5 bg-slate-200 overflow-hidden rounded-full">
+                <div className="bg-[#FF6B00] h-full rounded-full transition-[width] duration-300" style={{ width: `${quotaPercent}%` }} />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button type="button" data-tour="poll-imap-btn" onClick={handlePollImap} disabled={isPollingImap} className="h-10 px-3 rounded-lg bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`} />
+                <span>{isPollingImap ? 'Vérification...' : 'Vérifier les réponses'}</span>
               </button>
+              <button type="button" data-tour="manual-dispatch-btn" onClick={handleDispatchStep} disabled={isDispatching || !canDispatchNow} title={dispatchTitle} className="h-10 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#C94F00] border border-orange-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
+                <Send className="w-3.5 h-3.5" />
+                <span>{isDispatching ? 'Envoi...' : 'Envoyer 1 maintenant'}</span>
+              </button>
+              <div data-tour="auto-scout-switch">
+                <button type="button" onClick={toggleActiveScouting} className={`h-10 px-4 rounded-lg font-heading font-medium text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-2xs ${settings.is_active ? 'bg-[#0B2240] hover:bg-[#061529] text-white' : 'bg-[#FF6B00] hover:bg-[#E05E00] text-white'}`}>
+                  {settings.is_active ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                  <span>{settings.is_active ? 'Mettre Jimy en pause' : 'Mettre Jimy au travail'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="border-t border-slate-100 bg-slate-50/70 p-4 sm:px-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-blue-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                <Globe2 className={`w-5 h-5 ${discoveryStatus?.state === 'running' ? 'animate-pulse' : ''}`} />
+              <div className="w-10 h-10 rounded-lg bg-slate-100 text-[#0B2240] flex items-center justify-center shrink-0">
+                <Globe2 className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Recherche de sociétés</h3>
-                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                  <h3 className="font-heading font-medium text-sm text-[#0B2240]">Recherche de sociétés</h3>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
                     settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {settings.discovery_active ? statusFr(discoveryStatus?.state) : 'en pause'}
@@ -604,7 +543,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 type="button"
                 onClick={handleDiscoveryStep}
                 disabled={isDiscovering || !discoveryStatus?.provider_configured}
-                className="h-9 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="h-9 px-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Search className={`w-3.5 h-3.5 ${isDiscovering ? 'animate-spin' : ''}`} />
                 <span>{isDiscovering ? 'Recherche...' : 'Chercher maintenant'}</span>
@@ -623,15 +562,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 text-[#0B2240] flex items-center justify-center shrink-0">
                 <Database className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-heading font-bold text-sm text-[#0B2240]">Envoi automatique</h3>
-                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                  <h3 className="font-heading font-medium text-sm text-[#0B2240]">Envoi automatique</h3>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
                     settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
@@ -668,12 +607,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       >
         <div
           onClick={onNavigateToTargets}
-          className="bg-white rounded-2xl p-5 border border-slate-200/90 hover:border-blue-300 shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
+          className="bg-white rounded-xl p-5 border border-slate-200/90 hover:border-[#0B2240]/30 shadow-2xs hover:shadow-sm transition-[border-color,box-shadow] cursor-pointer flex flex-col justify-between group"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-500">Sociétés cibles</span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
                 <Building2 className="w-4 h-4" />
               </div>
             </div>
@@ -692,12 +631,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
         <div
           onClick={() => onNavigateToEmails && onNavigateToEmails()}
-          className="bg-white rounded-2xl p-5 border border-slate-200/90 hover:border-blue-400 shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
+          className="bg-white rounded-xl p-5 border border-slate-200/90 hover:border-[#0B2240]/30 shadow-2xs hover:shadow-sm transition-[border-color,box-shadow] cursor-pointer flex flex-col justify-between group"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-500">Courriels envoyés par Jimy</span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1A73E8] border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
                 <MailCheck className="w-4 h-4" />
               </div>
             </div>
@@ -716,12 +655,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
         <div
           onClick={() => onNavigateToLeads()}
-          className="bg-gradient-to-b from-white to-orange-50/30 rounded-2xl p-5 border border-orange-200 hover:border-[#FF6B00] shadow-2xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
+          className="bg-[#FFF8F3] rounded-xl p-5 border border-orange-200 hover:border-[#FF6B00] shadow-2xs hover:shadow-sm transition-[border-color,box-shadow] cursor-pointer flex flex-col justify-between group"
         >
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#FF6B00]">Machines proposées</span>
-              <div className="w-9 h-9 rounded-xl bg-orange-100/80 text-[#FF6B00] border border-orange-200/80 flex items-center justify-center">
+              <span className="text-xs font-medium text-[#C94F00]">Machines proposées</span>
+              <div className="w-9 h-9 rounded-lg bg-orange-100/80 text-[#FF6B00] border border-orange-200/80 flex items-center justify-center">
                 <Flame className="w-4 h-4" />
               </div>
             </div>
@@ -738,11 +677,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-500">Valeur totale des offres</span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-slate-100 text-[#0B2240] border border-slate-200 flex items-center justify-center">
                 <Coins className="w-4 h-4" />
               </div>
             </div>
@@ -763,14 +702,14 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-7 space-y-6">
           {topLead && (
-            <div className="bg-gradient-to-br from-white via-white to-orange-50/40 rounded-2xl p-6 border border-orange-200/90 shadow-2xs space-y-4">
+            <div className="bg-white rounded-xl p-6 border border-orange-200/90 shadow-2xs space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-orange-100/80 text-[#FF6B00] font-semibold text-xs border border-orange-200 flex items-center gap-1.5">
+                  <span className="px-2.5 py-1 rounded-md bg-orange-100/80 text-[#C94F00] font-medium text-xs border border-orange-200 flex items-center gap-1.5">
                     <Flame className="w-3 h-3 fill-[#FF6B00]" />
                     <span>Dernière offre du vendeur</span>
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-medium text-xs">
+                  <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-mono font-medium text-xs">
                     Canton {topLead.canton || 'CH'}
                   </span>
                 </div>
@@ -784,7 +723,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl bg-white border border-orange-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-4 rounded-lg bg-[#FFF8F3] border border-orange-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="font-heading font-bold text-base sm:text-lg text-[#0B2240]">
                     {topLead.machinery_detected[0]?.make_model || 'Machine de chantier'}
@@ -813,14 +752,14 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-[#FF6B00] font-bold font-mono text-sm">
+                  <div className="px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-[#C94F00] font-medium font-mono text-sm">
                     {topLead.machinery_detected[0]?.asking_price || 'Prix sur demande'}
                   </div>
 
                   {topLead.contact_phone && (
                     <a
                       href={`tel:${topLead.contact_phone.replace(/\s+/g, '')}`}
-                      className="h-9 px-4 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-medium text-xs flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-2xs"
+                      className="h-9 px-4 rounded-lg bg-[#0B2240] hover:bg-[#061529] text-white font-medium text-xs flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-2xs"
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
                       <span>Appeler le vendeur</span>
@@ -837,7 +776,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
           {/* Outbound Dispatch Stream */}
           <div
-            className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden"
+            className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden"
             data-tour="activity-log"
           >
             <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -974,7 +913,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
         {/* Right 5 Columns: Configuration Summary */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#FF6B00] border border-orange-200/80 flex items-center justify-center shrink-0">
@@ -992,7 +931,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToTargets}
-                className="h-8 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
                 <span>Gérer</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#FF6B00]" />
@@ -1015,7 +954,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     key={canton}
                     type="button"
                     onClick={onNavigateToTargets}
-                    className="p-2.5 rounded-xl bg-slate-50/90 hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-300 text-left transition-all cursor-pointer group"
+                    className="p-2.5 rounded-lg bg-slate-50/90 hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-300 text-left transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 group-hover:border-orange-200 font-mono font-bold text-[11px] text-[#0B2240]">
@@ -1052,7 +991,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-200/70 flex items-center justify-center">
