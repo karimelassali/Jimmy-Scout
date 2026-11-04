@@ -20,7 +20,25 @@ import {
   MessageSquare,
   Check,
   ClipboardList,
+  Inbox,
 } from 'lucide-react';
+
+const DEAL_STAGE_ORDER: DealStatus[] = [
+  'new',
+  'contacted',
+  'inspection_scheduled',
+  'inspecting',
+  'inspected',
+  'negotiating',
+  'purchased',
+];
+
+const getDealProgress = (status: DealStatus) => {
+  if (status === 'closed' || status === 'purchased') return 100;
+  if (status === 'passed' || status === 'archived' || status === 'deleted') return 0;
+  const index = DEAL_STAGE_ORDER.indexOf(status);
+  return index < 0 ? 0 : Math.max(4, Math.round((index / (DEAL_STAGE_ORDER.length - 1)) * 100));
+};
 
 interface LeadsScreenProps {
   leads: InboundLead[];
@@ -309,7 +327,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         await onRefreshLeads();
         showToast(
           data.messagesProcessed > 0
-            ? `Checked inbox: found ${data.messagesProcessed} new deal(s)!`
+            ? `${data.messagesProcessed} nouveau${data.messagesProcessed === 1 ? '' : 'x'} dossier${data.messagesProcessed === 1 ? '' : 's'} créé${data.messagesProcessed === 1 ? '' : 's'}`
             : 'Boîte mail vérifiée : tout est à jour'
         );
       }
@@ -350,7 +368,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         await onRefreshLeads();
         showToast(
           data.analysis?.intent === 'HOT_LEAD'
-            ? 'Bonne offre trouvée ! Elle est enregistrée et une alerte a été envoyée.'
+            ? 'Bonne offre trouvée. Elle est enregistrée et une alerte a été envoyée.'
             : `Courriel traité : ${data.analysis?.intent}`
         );
       }
@@ -428,7 +446,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-24 md:pb-12">
+    <div className="space-y-8 pb-24 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
         <div
@@ -445,23 +463,27 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
       )}
 
-      {/* Page Header & Live Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-        <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
-            Machines proposées
+      {/* Page heading and actions */}
+      <section className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-[#FF6B00]" aria-hidden="true" />
+            <span>{activeLeads.length} dossier{activeLeads.length === 1 ? '' : 's'} actif{activeLeads.length === 1 ? '' : 's'}</span>
+          </div>
+          <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
+            Dossiers de machines
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Jimy classe ici les offres reçues. Suivez les appels, les visites et vos réponses.
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Les réponses des vendeurs, les visites et les prix sont réunis ici, du premier contact à l’achat.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
           <button
             type="button"
             onClick={handlePollImap}
             disabled={isPollingImap}
-            className="h-11 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50 disabled:opacity-50 sm:flex-none sm:text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${isPollingImap ? 'animate-spin' : ''}`} />
             <span>{isPollingImap ? 'Vérification…' : 'Vérifier les réponses'}</span>
@@ -471,47 +493,51 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             type="button"
             data-tour="process-inbound-btn"
             onClick={() => setShowInboundModal(true)}
-            className="h-11 px-5 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0B2240] px-5 text-xs font-medium text-white transition-colors hover:bg-[#173863] sm:flex-none sm:text-sm"
           >
-            <Mail className="w-4 h-4 text-[#FF6B00]" />
+            <Mail className="w-4 h-4" />
             <span>Coller une réponse</span>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Search & Segmented Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-xl flex items-center bg-white rounded-full border border-slate-200 px-4 h-12 focus-within:border-[#0B2240] transition-colors">
+      {/* Search and dossier filters */}
+      <section className="space-y-4 border-b border-slate-200 pb-4">
+        <div className="relative flex h-11 max-w-xl items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:border-[#0B2240]">
           <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Chercher une machine, une société, un vendeur ou un canton…"
+            placeholder="Rechercher une machine, une société ou un canton"
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
+            aria-label="Rechercher dans les dossiers"
           />
           {searchTerm && (
             <button
+              type="button"
               onClick={() => setSearchTerm('')}
               className="text-slate-400 hover:text-[#0B2240] p-1 cursor-pointer"
+              aria-label="Effacer la recherche"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        <div className="w-full md:w-auto overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div
             data-tour="leads-status-tabs"
-            className="inline-flex items-center p-1 bg-white rounded-full border border-slate-200 shadow-2xs shrink-0 min-w-max"
+            className="inline-flex min-w-max items-center gap-1"
           >
             <button
               type="button"
               onClick={() => setSelectedFilter('all')}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+              aria-pressed={selectedFilter === 'all'}
+              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 selectedFilter === 'all'
                   ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
               }`}
             >
               Tous les dossiers ({activeLeads.length})
@@ -519,10 +545,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedFilter('pelles')}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+              aria-pressed={selectedFilter === 'pelles'}
+              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 selectedFilter === 'pelles'
                   ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
               }`}
             >
               Pelles
@@ -530,10 +557,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedFilter('camions')}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+              aria-pressed={selectedFilter === 'camions'}
+              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 selectedFilter === 'camions'
                   ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
               }`}
             >
               Chargeuses et camions
@@ -541,10 +569,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedFilter('new')}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+              aria-pressed={selectedFilter === 'new'}
+              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 selectedFilter === 'new'
                   ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
               }`}
             >
               Nouveaux
@@ -552,10 +581,11 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedFilter('saved')}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              aria-pressed={selectedFilter === 'saved'}
+              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 selectedFilter === 'saved'
                   ? 'bg-[#FF6B00] text-white'
-                  : 'text-slate-600 hover:text-[#0B2240]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
               }`}
             >
               <Bookmark className="w-3.5 h-3.5 fill-current" />
@@ -563,10 +593,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Responsive 2-Column Deal Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Responsive deal cards */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {filteredLeads.map((lead) => {
           const primaryMachine = lead.machinery_detected[0];
           const isBookmarked = bookmarkedIds.includes(lead.id);
@@ -583,24 +613,23 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
           const chfEquiv =
             primaryMachine?.asking_price_chf ??
             convertToChf(parsedPrice.amount, parsedPrice.currency);
+          const dealProgress = getDealProgress(lead.lead_status);
 
           return (
             <article
               key={lead.id}
-              className="bg-white rounded-3xl p-6 border border-slate-200/90 flex flex-col justify-between space-y-5 shadow-2xs"
+              className="flex flex-col justify-between gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-semibold text-[#0B2240]">
+              <div className="space-y-5">
+                <div className="flex items-start justify-between gap-3 text-xs text-slate-500">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-medium text-[#0B2240]">
                       {lead.company_name || lead.sender_email}
                     </span>
-                    <span>·</span>
                     <span>Canton {lead.canton || 'CH'}</span>
-                    <span>·</span>
                     <span className="tabular-nums">il y a {minutesAgo} min</span>
                     {lead.intent === 'NEEDS_REVIEW' && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                      <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
                         À vérifier
                       </span>
                     )}
@@ -611,9 +640,9 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       type="button"
                       onClick={() => toggleBookmark(lead.id)}
                       aria-label={isBookmarked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                      className={`h-8 px-2.5 rounded-full flex items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer border ${
+                      className={`flex h-8 items-center justify-center gap-1 rounded-md border px-2.5 text-xs font-medium transition-colors cursor-pointer ${
                         isBookmarked
-                          ? 'bg-[#FFF0E5] text-[#FF6B00] border-orange-200'
+                          ? 'border-orange-200 bg-orange-50 text-[#C44F00]'
                           : 'text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-[#0B2240]'
                       }`}
                     >
@@ -625,7 +654,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       type="button"
                       onClick={() => setLeadToDelete(lead)}
                       aria-label="Supprimer le dossier"
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -633,9 +662,9 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 </div>
 
                 {/* Primary Machine Make/Model & Asking Price */}
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-                  <div>
-                    <h2 className="font-heading font-bold text-xl text-[#0B2240]">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <div className="min-w-0">
+                    <h2 className="font-heading text-xl font-medium leading-7 text-[#0B2240]">
                       {primaryMachine?.make_model || 'Machine de chantier'}
                     </h2>
                     <div className="text-xs text-slate-500 mt-1">
@@ -657,8 +686,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <div className="font-mono font-bold text-xl text-[#FF6B00] tabular-nums">
+                  <div className="shrink-0 text-left sm:text-right">
+                    <div className="font-mono text-xl font-medium tabular-nums text-[#C44F00]">
                       {primaryMachine?.asking_price || 'Prix sur demande'}
                     </div>
                     {chfEquiv && parsedPrice.currency !== 'CHF' && (
@@ -669,9 +698,32 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                 </div>
 
+                <div className="space-y-2" aria-label={`Avancement du dossier : ${statusLabels[lead.lead_status]}`}>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500">Avancement</span>
+                    <span className="font-medium text-[#0B2240]">{statusLabels[lead.lead_status]}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-[#FF6B00]"
+                      style={{ width: `${dealProgress}%` }}
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={dealProgress}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 text-[10px] text-slate-400">
+                    <span>Reçu</span>
+                    <span className="text-center">Contact</span>
+                    <span className="text-center">Visite</span>
+                    <span className="text-right">Achat</span>
+                  </div>
+                </div>
+
                 {lead.machinery_detected.length > 1 && (
-                  <div className="text-xs text-slate-600 pt-1">
-                    <span className="font-semibold text-[#0B2240]">Autres machines : </span>
+                  <div className="border-l-2 border-slate-200 pl-3 text-xs text-slate-600">
+                    <span className="font-medium text-[#0B2240]">Autres machines : </span>
                     {lead.machinery_detected
                       .slice(1)
                       .map((m) => `${m.make_model} (${m.asking_price || 'Prix sur demande'})`)
@@ -679,8 +731,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                 )}
 
-                {/* AI French Executive Summary */}
-                <div className="bg-slate-50 rounded-2xl p-4 space-y-1">
+                {/* Jimy's concise reading of the reply */}
+                <div className="space-y-2 rounded-xl bg-slate-50 p-4">
                   <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between">
                     <span>Résumé de Jimy</span>
                     <span className="font-mono">
@@ -693,24 +745,24 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 </div>
 
                 {typeof lead.deal_score === 'number' && (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-3">
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div><div className="text-[11px] text-slate-500">Score de l’affaire</div><div className="text-2xl font-bold text-[#0B2240] tabular-nums">{lead.deal_score}/100</div></div>
-                      {lead.market_price_low_chf && lead.market_price_high_chf ? <div className="text-right"><div className="text-[11px] text-slate-500">Prix estimé</div><div className="text-sm font-bold text-[#0B2240] tabular-nums">CHF {lead.market_price_low_chf.toLocaleString('fr-CH')} – {lead.market_price_high_chf.toLocaleString('fr-CH')}</div><div className="text-[10px] text-slate-500">Confiance {lead.market_price_confidence === 'high' ? 'forte' : lead.market_price_confidence === 'medium' ? 'moyenne' : 'faible'}</div></div> : null}
+                      <div><div className="text-[11px] text-slate-500">Score de l’affaire</div><div className="text-2xl font-medium text-[#0B2240] tabular-nums">{lead.deal_score}/100</div></div>
+                      {lead.market_price_low_chf && lead.market_price_high_chf ? <div className="text-right"><div className="text-[11px] text-slate-500">Prix estimé</div><div className="text-sm font-medium text-[#0B2240] tabular-nums">CHF {lead.market_price_low_chf.toLocaleString('fr-CH')} – {lead.market_price_high_chf.toLocaleString('fr-CH')}</div><div className="text-[10px] text-slate-500">Confiance {lead.market_price_confidence === 'high' ? 'forte' : lead.market_price_confidence === 'medium' ? 'moyenne' : 'faible'}</div></div> : null}
                     </div>
                     {lead.negotiation_opening_chf && lead.negotiation_max_chf ? <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-white border border-blue-100 p-2.5"><span className="text-slate-500">Premier prix</span><div className="font-bold text-[#0B2240]">CHF {(lead.negotiation_opening_chf || 0).toLocaleString('fr-CH')}</div></div>
-                      <div className="rounded-xl bg-white border border-blue-100 p-2.5"><span className="text-slate-500">Prix maximum</span><div className="font-bold text-[#0B2240]">CHF {(lead.negotiation_max_chf || 0).toLocaleString('fr-CH')}</div></div>
+                      <div className="rounded-lg bg-slate-50 p-3"><span className="text-slate-500">Premier prix</span><div className="font-medium text-[#0B2240]">CHF {(lead.negotiation_opening_chf || 0).toLocaleString('fr-CH')}</div></div>
+                      <div className="rounded-lg bg-slate-50 p-3"><span className="text-slate-500">Prix maximum</span><div className="font-medium text-[#0B2240]">CHF {(lead.negotiation_max_chf || 0).toLocaleString('fr-CH')}</div></div>
                     </div> : null}
                     {typeof lead.seller_reliability_score === 'number' && <div className="text-[11px] text-slate-600">Vendeur : {lead.seller_reliability_score}/100 · {lead.seller_history_summary}</div>}
                     {!!lead.missing_information?.length && <div className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2.5 py-2">À demander : {lead.missing_information.join(', ')}</div>}
-                    {!!lead.watchlist_matches?.length && <div className="text-[11px] font-semibold text-emerald-700">Trouvé pour : {lead.watchlist_matches.join(', ')}</div>}
+                    {!!lead.watchlist_matches?.length && <div className="text-[11px] font-medium text-emerald-700">Trouvé pour : {lead.watchlist_matches.join(', ')}</div>}
                   </div>
                 )}
 
                 {/* Active Follow-up / Inspection Banner if scheduled */}
                 {(lead.next_action || lead.inspection_date) && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs bg-orange-50/70 border border-orange-200/80 rounded-xl px-3.5 py-2 text-[#0B2240]">
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border-l-2 border-[#FF6B00] bg-slate-50 px-3.5 py-2 text-xs text-[#0B2240]">
                     {lead.next_action && (
                       <span className="inline-flex items-center gap-1 font-medium">
                         <ClipboardList className="w-3.5 h-3.5 text-[#FF6B00]" />
@@ -728,23 +780,23 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               </div>
 
               {/* Footer: Seller Contact, Pipeline Stage & Actions */}
-              <div className="space-y-4 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <div className="text-slate-600 truncate">
+              <div className="space-y-4 border-t border-slate-100 pt-5">
+                <div className="flex flex-col gap-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <div className="truncate text-slate-600">
                     <span className="text-slate-400">Vendeur : </span>
-                    <span className="font-semibold text-[#0B2240]">
+                    <span className="font-medium text-[#0B2240]">
                       {lead.contact_name || lead.sender_email}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex shrink-0 items-center gap-2">
                     <span className="text-slate-400">Étape :</span>
                     <select
                       value={lead.lead_status}
                       onChange={(e) =>
                         onUpdateLeadStatus(lead.id, e.target.value as DealStatus)
                       }
-                      className="bg-slate-100 hover:bg-slate-200 rounded-full px-3 py-1.5 text-xs font-semibold text-[#0B2240] focus:outline-none cursor-pointer transition-colors"
+                      className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50 focus:outline-none"
                     >
                       {(Object.keys(statusLabels) as DealStatus[])
                         .filter((k) => k !== 'deleted')
@@ -757,10 +809,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                   <a
                     href={telHref}
-                    className="flex-1 min-w-[160px] h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors shadow-xs"
+                    className="col-span-2 flex h-11 min-w-[160px] flex-1 items-center justify-center gap-2 rounded-lg bg-[#FF6B00] text-xs font-medium text-white transition-colors hover:bg-[#E05E00] sm:col-span-1 sm:text-sm"
                   >
                     <PhoneCall className="w-4 h-4" />
                     <span>
@@ -771,7 +823,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => openLeadModal(lead, 'crm')}
-                    className="h-11 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
                   >
                     <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" />
                     <span>Suivi et visite</span>
@@ -780,17 +832,18 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => openLeadModal(lead, 'reply')}
-                    className="h-11 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                    <MessageSquare className="w-3.5 h-3.5" />
                     <span>Répondre</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => openLeadModal(lead, 'email')}
-                    className="h-11 px-3.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-heading font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="col-span-2 flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 sm:col-span-1 sm:h-11"
                     title="Voir le courriel reçu"
+                    aria-label="Voir le courriel reçu"
                   >
                     <FileText className="w-3.5 h-3.5" />
                   </button>
@@ -802,22 +855,35 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       </div>
 
       {filteredLeads.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
-          <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-            {leads.length === 0 ? 'Aucune offre reçue pour le moment' : 'Aucun dossier ne correspond'}
+        <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-12 text-center sm:py-16">
+          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#0B2240] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+            <Inbox className="h-5 w-5" strokeWidth={1.5} />
+          </div>
+          <h3 className="font-heading text-xl font-medium text-[#0B2240]">
+            {leads.length === 0 ? 'Le premier dossier arrivera ici' : 'Aucun dossier ne correspond'}
           </h3>
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
             {leads.length === 0
-              ? 'Vérifiez la boîte mail ou collez la réponse d’un vendeur. Jimy créera le dossier.'
-              : 'Effacez la recherche ou choisissez « Tous les dossiers ».'}
+              ? 'Quand un vendeur répond, Jimy rassemble la machine, le prix et le contact dans un dossier prêt à suivre.'
+              : 'Modifiez la recherche ou revenez à tous les dossiers.'}
           </p>
+          {leads.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowInboundModal(true)}
+              className="mt-6 flex h-10 items-center gap-2 rounded-lg bg-[#0B2240] px-4 text-sm font-medium text-white transition-colors hover:bg-[#173863]"
+            >
+              <Mail className="h-4 w-4" />
+              Coller une réponse
+            </button>
+          ) : null}
         </div>
       )}
 
       {/* UNIFIED DEAL SHEET, CRM FOLLOW-UP & REPLY COMPOSER MODAL */}
       {selectedModalLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <div className="text-xs text-slate-500">
@@ -825,7 +891,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <span className="mx-1.5">·</span>
                   <span>Canton {selectedModalLead.canton}</span>
                 </div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240] mt-1">
+                <h3 className="mt-1 font-heading text-lg font-medium text-[#0B2240]">
                   {selectedModalLead.machinery_detected[0]?.make_model ||
                     selectedModalLead.raw_subject ||
                     'Offre d’une société'}
@@ -833,18 +899,19 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               </div>
               <button
                 onClick={() => setSelectedModalLead(null)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer shrink-0"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Tabs */}
-            <div className="inline-flex items-center p-1 bg-slate-100 rounded-full text-xs font-semibold">
+            <div className="no-scrollbar flex overflow-x-auto rounded-lg bg-slate-100 p-1 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setModalTab('email')}
-                className={`px-4 py-1.5 rounded-full cursor-pointer transition-colors ${
+                className={`whitespace-nowrap rounded-md px-4 py-2 transition-colors ${
                   modalTab === 'email'
                     ? 'bg-[#0B2240] text-white'
                     : 'text-slate-600 hover:text-[#0B2240]'
@@ -855,7 +922,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setModalTab('crm')}
-                className={`px-4 py-1.5 rounded-full cursor-pointer transition-colors ${
+                className={`whitespace-nowrap rounded-md px-4 py-2 transition-colors ${
                   modalTab === 'crm'
                     ? 'bg-[#0B2240] text-white'
                     : 'text-slate-600 hover:text-[#0B2240]'
@@ -866,7 +933,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setModalTab('reply')}
-                className={`px-4 py-1.5 rounded-full cursor-pointer transition-colors ${
+                className={`whitespace-nowrap rounded-md px-4 py-2 transition-colors ${
                   modalTab === 'reply'
                     ? 'bg-[#0B2240] text-white'
                     : 'text-slate-600 hover:text-[#0B2240]'
@@ -884,23 +951,23 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     {selectedModalLead.sender_email}
                   </span>
                 </div>
-                <div className="bg-slate-50 rounded-2xl p-4 text-sm text-[#0B2240] leading-relaxed whitespace-pre-wrap font-body">
+                <div className="rounded-xl bg-slate-50 p-4 font-body text-sm leading-relaxed whitespace-pre-wrap text-[#0B2240]">
                   {selectedModalLead.raw_body}
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <button
                     onClick={handleCopyPitch}
-                    className="flex-1 h-11 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0B2240] text-xs font-medium text-white transition-colors hover:bg-[#173863] sm:text-sm"
                   >
                     <Copy className="w-4 h-4" />
-                    <span>{copiedId ? 'Résumé copié !' : 'Copier le résumé'}</span>
+                    <span>{copiedId ? 'Résumé copié' : 'Copier le résumé'}</span>
                   </button>
 
                   {selectedModalLead.contact_phone && (
                     <a
                       href={`tel:${selectedModalLead.contact_phone.replace(/\s+/g, '')}`}
-                      className="h-11 px-6 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors"
+                      className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#FF6B00] px-6 text-xs font-medium text-white transition-colors hover:bg-[#E05E00] sm:text-sm"
                     >
                       <PhoneCall className="w-4 h-4" />
                       <span>Appeler le vendeur</span>
@@ -1023,7 +1090,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <button
                     type="submit"
                     disabled={isSavingCrm}
-                    className="h-10 px-5 rounded-full bg-[#0B2240] hover:bg-[#173863] text-white font-heading font-semibold text-xs flex items-center gap-2 cursor-pointer"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[#0B2240] px-5 text-xs font-medium text-white hover:bg-[#173863]"
                   >
                     <Check className="w-4 h-4" />
                     <span>{isSavingCrm ? 'Enregistrement…' : 'Enregistrer le suivi et le prix'}</span>
@@ -1032,7 +1099,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
 
                 {/* Phone Call Log */}
                 <div className="pt-4 border-t border-slate-200 space-y-3">
-                  <h4 className="font-heading font-bold text-sm text-[#0B2240]">
+                  <h4 className="font-heading text-sm font-medium text-[#0B2240]">
                     Historique des appels
                   </h4>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -1127,7 +1194,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   <button
                     type="submit"
                     disabled={isSendingReply}
-                    className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B00] text-sm font-medium text-white hover:bg-[#E05E00] disabled:opacity-50"
                   >
                     <Send className="w-4 h-4" />
                     <span>
@@ -1164,10 +1231,10 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       {/* LIVE INBOUND EMAIL WEBHOOK & GEMINI TRIAGE MODAL */}
       {showInboundModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
-                <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                   Coller la réponse d’un vendeur
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1176,7 +1243,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               </div>
               <button
                 onClick={closeInboundModal}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer shrink-0"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1282,7 +1350,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <button
                 type="submit"
                 disabled={isAnalyzing}
-                className="w-full h-12 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B00] text-sm font-medium text-white transition-colors hover:bg-[#E05E00] disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 <span>
@@ -1314,14 +1382,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       {/* DELETE DEAL CONFIRMATION MODAL */}
       {leadToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-5">
+          <div className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600">
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-bold text-lg text-[#0B2240]">
+                  <h3 className="font-heading text-lg font-medium text-[#0B2240]">
                     Supprimer ce dossier ?
                   </h3>
                   <p className="text-xs text-slate-500">
@@ -1332,14 +1400,15 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setLeadToDelete(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer shrink-0"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
-              <div className="font-bold text-sm text-[#0B2240]">
+            <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
+              <div className="text-sm font-medium text-[#0B2240]">
                 {leadToDelete.machinery_detected[0]?.make_model || 'Machine de chantier'}{' '}
                 {leadToDelete.machinery_detected[0]?.asking_price && (
                   <span className="text-[#FF6B00] font-mono">
@@ -1363,7 +1432,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 type="button"
                 onClick={() => setLeadToDelete(null)}
                 disabled={isDeleting}
-                className="flex-1 h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-[#0B2240] font-heading font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                className="h-11 flex-1 rounded-lg border border-slate-200 bg-white text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50 sm:text-sm"
               >
                 Annuler
               </button>
@@ -1371,7 +1440,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="flex-1 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:text-sm"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>{isDeleting ? 'Suppression…' : 'Oui, supprimer'}</span>

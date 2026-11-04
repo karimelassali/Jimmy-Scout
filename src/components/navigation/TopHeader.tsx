@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Bell } from 'lucide-react';
+import { Compass, Bell, Mail } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton.tsx';
 import { TabId } from './BottomBar.tsx';
 
@@ -74,7 +74,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                isAgentActive ? 'bg-emerald-500 animate-pulse' : 'bg-[#FF6B00]'
+                isAgentActive ? 'bg-emerald-500' : 'bg-[#FF6B00]'
               }`}
             />
             <span>{isAgentActive ? 'Jimy travaille' : 'Jimy attend'}</span>
@@ -92,7 +92,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-white text-[#0B2240] shadow-2xs border border-slate-200/70 font-semibold'
                     : 'text-slate-600 hover:text-[#0B2240] hover:bg-white/60'
@@ -139,13 +139,17 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </button>
           )}
           <PWAInstallButton />
-          <button
-            data-tour="process-inbound-btn"
-            onClick={onPrimaryAction}
-            className="h-9 px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
-          >
-            Coller une réponse
-          </button>
+          {activeTab !== 'leads' && (
+            <button
+              data-tour="process-inbound-btn"
+              onClick={onPrimaryAction}
+              className="h-9 w-9 min-[430px]:w-auto min-[430px]:px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center justify-center gap-2"
+              aria-label="Coller une réponse"
+            >
+              <Mail className="w-4 h-4" />
+              <span className="hidden min-[430px]:inline">Coller une réponse</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
