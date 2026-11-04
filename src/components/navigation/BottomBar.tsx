@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gauge, Inbox, MapPin, Camera, SlidersHorizontal, MailCheck } from 'lucide-react';
 
-export type TabId = 'control' | 'leads' | 'emails' | 'targets' | 'scanner' | 'persona';
+export type TabId = 'control' | 'leads' | 'emails' | 'targets' | 'scanner' | 'persona' | 'guide';
 
 interface BottomBarProps {
   activeTab: TabId;

@@ -126,8 +126,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <button
               type="button"
               onClick={onOpenGuide}
-              className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className={`h-9 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                activeTab === 'guide'
+                  ? 'bg-[#0B2240] text-white'
+                  : 'bg-slate-100 hover:bg-slate-200 text-[#0B2240]'
+              }`}
               title="Ouvrir l’aide de Jimy"
+              aria-current={activeTab === 'guide' ? 'page' : undefined}
             >
               <Compass className="w-4 h-4 text-[#FF6B00]" />
               <span className="hidden sm:inline">Aide</span>

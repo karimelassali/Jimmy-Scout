@@ -4,7 +4,6 @@ import { localizeEquipmentFocus } from '@/packages/types/src/swiss.ts';
 import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
 import { generateDeTemplate } from '@/apps/worker/src/templates/de.template.ts';
 import { generateItTemplate } from '@/apps/worker/src/templates/it.template.ts';
-import { GoogleAppGuideModal } from '../guide/GoogleAppGuideModal.tsx';
 import { AgentControlsPanel } from './AgentControlsPanel.tsx';
 import {
   Send,
@@ -44,14 +43,9 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   const [testEmail, setTestEmail] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
-  const [isGuideOpenLocal, setIsGuideOpenLocal] = useState(false);
 
   const handleOpenGuide = () => {
-    if (onOpenGuide) {
-      onOpenGuide();
-    } else {
-      setIsGuideOpenLocal(true);
-    }
+    onOpenGuide?.();
   };
 
   const showToast = (msg: string, isError = false) => {
@@ -455,21 +449,21 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#1A73E8]">
-                      Guide interactif
+                      Cours simple
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Images et étapes
+                      Vrais écrans
                     </span>
                   </div>
                   <h2 className="font-heading font-bold text-base text-[#0B2240] leading-snug">
-                    4. Guide de l’application
+                    4. Comprendre l’application
                   </h2>
                 </div>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Découvrez les étapes, les images de l’application, les cantons et la lecture des offres.
+              Un cours de 10 minutes avec les vrais écrans et chaque bouton expliqué simplement.
             </p>
 
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-1">
@@ -497,7 +491,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               className="w-full h-11 px-5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               <Compass className="w-4 h-4 text-white" />
-              <span>Ouvrir le guide avec images</span>
+              <span>Ouvrir le cours rapide</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </button>
           </section>
@@ -773,12 +767,6 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
         </div>
       )}
 
-      {/* Google Style Interactive App Guide Modal */}
-      <GoogleAppGuideModal
-        isOpen={isGuideOpenLocal}
-        onClose={() => setIsGuideOpenLocal(false)}
-        initialTab="settings"
-      />
     </div>
   );
 };

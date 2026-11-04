@@ -45,9 +45,9 @@ const OutboundEmailsScreen = lazy(() =>
     default: m.OutboundEmailsScreen,
   }))
 );
-const GoogleAppGuideModal = lazy(() =>
-  import('./components/guide/GoogleAppGuideModal.tsx').then((m) => ({
-    default: m.GoogleAppGuideModal,
+const GuideScreen = lazy(() =>
+  import('./components/guide/GuideScreen.tsx').then((m) => ({
+    default: m.GuideScreen,
   }))
 );
 const SetupWizardModal = lazy(() =>
@@ -72,7 +72,8 @@ export default function App() {
         param === 'emails' ||
         param === 'targets' ||
         param === 'scanner' ||
-        param === 'persona'
+        param === 'persona' ||
+        param === 'guide'
       ) {
         return param;
       }
@@ -96,8 +97,18 @@ export default function App() {
     return null;
   });
 
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      if (tab !== 'leads') url.searchParams.delete('leadId');
+      if (tab !== 'emails') url.searchParams.delete('logId');
+      window.history.replaceState({}, '', url);
+    }
+  };
+
   const [openInboundModal, setOpenInboundModal] = useState(false);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -544,14 +555,14 @@ export default function App() {
       {/* Top Navigation Bar */}
       <TopHeader
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         unreadCount={unseenLeadsCount}
         sentCount={unseenLogsCount}
         notificationCount={unreadNotificationsCount}
         onOpenNotifications={() => setIsNotificationOpen(true)}
         onPrimaryAction={handlePrimaryTrigger}
         isAgentActive={settings.is_active}
-        onOpenGuide={() => setIsGuideOpen(true)}
+        onOpenGuide={() => selectTab('guide')}
       />
 
       {/* Responsive Workspace Container */}
@@ -635,9 +646,13 @@ export default function App() {
                 settings={settings}
                 companies={companies}
                 onUpdateSettings={handleUpdateSettings}
-                onOpenGuide={() => setIsGuideOpen(true)}
+                onOpenGuide={() => selectTab('guide')}
                 onOpenSetupWizard={() => setIsSetupWizardOpen(true)}
               />
+            )}
+
+            {activeTab === 'guide' && (
+              <GuideScreen onNavigate={(tab) => selectTab(tab)} />
             )}
           </Suspense>
         )}
@@ -646,7 +661,7 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar */}
       <BottomBar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         leadsCount={unseenLeadsCount}
         sentCount={unseenLogsCount}
       />
@@ -663,12 +678,6 @@ export default function App() {
             }
             setIsSetupWizardOpen(false);
           }}
-        />
-
-        {/* Interactive App Guide Modal */}
-        <GoogleAppGuideModal
-          isOpen={isGuideOpen}
-          onClose={() => setIsGuideOpen(false)}
         />
 
         {/* Activity & Notifications Modal */}
