@@ -1,5 +1,5 @@
 // JimiScout PWA Service Worker
-const CACHE_NAME = 'jimiscout-v4';
+const CACHE_NAME = 'jimiscout-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -79,6 +79,31 @@ self.addEventListener('fetch', (event) => {
         .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+self.addEventListener('push', (event) => {
+  const payload = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'JimiScout', {
+      body: payload.body || 'Nouvelle activité détectée.',
+      icon: '/pwa-192x192.png',
+      badge: '/favicon-32x32.png',
+      tag: payload.tag || 'jimiscout-update',
+      data: { url: payload.url || '/?tab=leads' },
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || '/?tab=leads', self.location.origin).href;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const existing = windows.find((client) => client.url.startsWith(self.location.origin));
+      return existing ? existing.focus() : clients.openWindow(targetUrl);
     })
   );
 });

@@ -22,6 +22,7 @@ import { outboundScheduler } from './apps/worker/src/services/outbound-scheduler
 import { companyDiscoveryService } from './apps/worker/src/services/company-discovery.service.ts';
 import { agentOrchestrator } from './apps/worker/src/services/agent-orchestrator.service.ts';
 import { dealIntelligenceService } from './apps/worker/src/services/deal-intelligence.service.ts';
+import { webPushService } from './apps/worker/src/services/web-push.service.ts';
 import { normalizeCantonCode } from './packages/types/src/swiss.ts';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
@@ -326,6 +327,8 @@ app.get('/api/health', async (_req, res) => {
       storage_mode: supabaseDataService.getStorageMode(),
       scheduler: schedulerStatus,
       discovery: discoveryStatus,
+      inbox: imapService.getStatus(),
+      browser_push_configured: webPushService.isConfigured(),
       integrations: {
         supabase_configured: Boolean(
           process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -1476,6 +1479,23 @@ const inboundWebhookHandler = async (req: express.Request, res: express.Response
 
 app.post('/api/webhooks/imap', rateLimit(30, 60_000), verifyWebhookAuth, inboundWebhookHandler);
 app.post('/api/simulate-inbound', rateLimit(20, 60_000), inboundWebhookHandler);
+
+// Native PWA notification registration. The browser grants permission and sends
+// an opaque subscription endpoint; no device or browser identity is stored.
+app.get('/api/push/public-key', async (_req, res) => {
+  const publicKey = webPushService.getPublicKey();
+  if (!publicKey) return res.status(503).json({ error: 'Browser push is not configured.' });
+  res.json({ publicKey });
+});
+
+app.post('/api/push/subscribe', async (req, res) => {
+  try {
+    await supabaseDataService.savePushSubscription(req.body);
+    res.status(201).json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || 'Unable to enable browser notifications.' });
+  }
+});
 
 // 14. Scheduler Status & Outbound Dispatch Execution Step
 app.get('/api/scheduler/status', async (_req, res) => {

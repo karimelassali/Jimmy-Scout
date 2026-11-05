@@ -83,6 +83,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const [isDispatching, setIsDispatching] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
 
   const showToast = (msg: string, isError = false) => {
@@ -183,6 +184,45 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       showToast(message, true);
     } finally {
       setIsPollingImap(false);
+    }
+  };
+
+  const handleEnablePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      showToast('Les notifications ne sont pas prises en charge par ce navigateur.', true);
+      return;
+    }
+    setIsEnablingPush(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Autorisez les notifications dans les réglages du navigateur pour recevoir les réponses.', true);
+        return;
+      }
+      const keyRes = await fetch('/api/push/public-key');
+      const keyData = await keyRes.json();
+      if (!keyRes.ok || !keyData.publicKey) throw new Error(keyData.error || 'Notifications not configured');
+      const publicKey = Uint8Array.from(
+        atob(keyData.publicKey.replace(/-/g, '+').replace(/_/g, '/')),
+        (char) => char.charCodeAt(0)
+      );
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      });
+      const saveRes = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || 'Unable to save notification settings');
+      showToast('Notifications activées : Jimy vous alertera même lorsque l’application est fermée.');
+    } catch (err: any) {
+      showToast(`Notifications impossibles : ${err?.message || 'erreur inconnue'}`, true);
+    } finally {
+      setIsEnablingPush(false);
     }
   };
 
@@ -489,6 +529,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <button type="button" data-tour="poll-imap-btn" onClick={handlePollImap} disabled={isPollingImap} className="h-10 px-3 rounded-lg bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
                 <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`} />
                 <span>{isPollingImap ? 'Vérification...' : 'Vérifier les réponses'}</span>
+              </button>
+              <button type="button" onClick={handleEnablePush} disabled={isEnablingPush} className="h-10 px-3 rounded-lg bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
+                <Bell className="w-3.5 h-3.5 text-[#FF6B00]" />
+                <span>{isEnablingPush ? 'Activation...' : 'Activer les alertes'}</span>
               </button>
               <button type="button" data-tour="manual-dispatch-btn" onClick={handleDispatchStep} disabled={isDispatching || !canDispatchNow} title={dispatchTitle} className="h-10 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#C94F00] border border-orange-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
                 <Send className="w-3.5 h-3.5" />

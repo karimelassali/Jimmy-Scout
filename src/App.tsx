@@ -293,6 +293,28 @@ export default function App() {
     fetchData();
   }, []);
 
+  // The server ingests replies continuously. Refresh the dashboard in the
+  // background so a newly triaged seller reply appears without a manual reload.
+  useEffect(() => {
+    const refreshTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void fetchData();
+      }
+    }, 30_000);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void fetchData();
+    };
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshWhenVisible);
+    };
+  }, []);
+
   useEffect(() => {
     if (isLoading) return;
 

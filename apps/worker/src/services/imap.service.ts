@@ -84,6 +84,23 @@ export class ImapService {
   private isPollingLoopActive = false;
   private isPollInFlight = false;
   private intervalHandle: NodeJS.Timeout | null = null;
+  private lastPoll: {
+    attemptedAt: string | null;
+    completedAt: string | null;
+    success: boolean | null;
+    processedCount: number;
+    error: string | null;
+  } = {
+    attemptedAt: null,
+    completedAt: null,
+    success: null,
+    processedCount: 0,
+    error: null,
+  };
+
+  getStatus() {
+    return { ...this.lastPoll, inFlight: this.isPollInFlight, active: this.isPollingLoopActive };
+  }
 
   async pollOnce(
     onNewEmail: (email: IncomingRawEmail) => Promise<void>
@@ -101,7 +118,16 @@ export class ImapService {
       };
     }
 
+    this.lastPoll.attemptedAt = new Date().toISOString();
+
     if (process.env.JIMISCOUT_STUB_EXTERNAL === 'true') {
+      this.lastPoll = {
+        ...this.lastPoll,
+        completedAt: new Date().toISOString(),
+        success: true,
+        processedCount: 0,
+        error: null,
+      };
       return {
         success: true,
         processedCount: 0,
@@ -109,10 +135,18 @@ export class ImapService {
     }
 
     if (!config.imap.host || !config.imap.user || !config.imap.pass) {
+      const error = 'IMAP credentials (IMAP_HOST, IMAP_USER, IMAP_PASS) are not configured.';
+      this.lastPoll = {
+        ...this.lastPoll,
+        completedAt: new Date().toISOString(),
+        success: false,
+        processedCount: 0,
+        error,
+      };
       return {
         success: false,
         processedCount: 0,
-        error: 'IMAP credentials (IMAP_HOST, IMAP_USER, IMAP_PASS) are not configured.',
+        error,
       };
     }
 
@@ -263,13 +297,28 @@ export class ImapService {
       }
 
       await client.logout();
+      this.lastPoll = {
+        ...this.lastPoll,
+        completedAt: new Date().toISOString(),
+        success: true,
+        processedCount,
+        error: null,
+      };
       return { success: true, processedCount };
     } catch (err: any) {
       console.error('[IMAP] Poll error:', err?.message);
+      const error = err?.responseText || err?.message || 'IMAP connection failed';
+      this.lastPoll = {
+        ...this.lastPoll,
+        completedAt: new Date().toISOString(),
+        success: false,
+        processedCount,
+        error,
+      };
       return {
         success: false,
         processedCount,
-        error: err?.responseText || err?.message || 'IMAP connection failed',
+        error,
       };
     } finally {
       this.isPollInFlight = false;
@@ -284,8 +333,15 @@ export class ImapService {
       `[IMAP] Live poller scheduled every ${intervalMs / 1000}s on ${config.imap.host}:${config.imap.port} for <${config.imap.user}>`
     );
 
-    this.intervalHandle = setInterval(async () => {
+    const runPoll = async () => {
       await this.pollOnce(onNewEmail);
+    };
+
+    // Do not leave new replies waiting for the first interval after a deploy/restart.
+    // Subsequent polls remain serialized by pollOnce's overlap guard.
+    void runPoll();
+    this.intervalHandle = setInterval(() => {
+      void runPoll();
     }, intervalMs);
   }
 

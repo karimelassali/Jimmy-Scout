@@ -6,6 +6,7 @@ import { InboundLead } from '@/packages/types/src/lead.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import { dealIntelligenceService } from './deal-intelligence.service.ts';
 import { agentOrchestrator } from './agent-orchestrator.service.ts';
+import { webPushService } from './web-push.service.ts';
 
 export interface ProcessInboundEmailInput {
   senderEmail: string;
@@ -336,6 +337,12 @@ export class InboundProcessingService {
           telegram_error: telegramResult.success ? null : telegramResult.error || 'Telegram failed',
         });
       }
+
+      // Native PWA alert: delivered by the browser even if the app is closed.
+      // Never let a notification provider issue prevent persistence of the reply.
+      await webPushService.notifyNewLead(enrichedLead).catch((error) =>
+        console.warn('[Web Push] Could not notify about new lead:', error?.message || error)
+      );
 
       await supabaseDataService.completeInboundMessage(messageKey, enrichedLead.id);
 

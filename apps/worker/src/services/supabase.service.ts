@@ -71,6 +71,12 @@ export interface PersistedState {
   discovery: PersistedDiscoveryMeta;
   agent_actions: AgentAction[];
   watchlists: WatchlistRule[];
+  push_subscriptions: StoredPushSubscription[];
+}
+
+export interface StoredPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
 }
 
 export class SupabaseDataService {
@@ -139,6 +145,7 @@ export class SupabaseDataService {
       discovery: {},
       agent_actions: [],
       watchlists: [],
+      push_subscriptions: [],
     };
     this.stateLoadPromise = null;
     this.activeInboundClaims.clear();
@@ -307,6 +314,11 @@ export class SupabaseDataService {
         parsed.discovery && typeof parsed.discovery === 'object' ? parsed.discovery : {},
       agent_actions: Array.isArray(parsed.agent_actions) ? parsed.agent_actions : [],
       watchlists: Array.isArray(parsed.watchlists) ? parsed.watchlists : [],
+      push_subscriptions: Array.isArray(parsed.push_subscriptions)
+        ? parsed.push_subscriptions.filter(
+            (item: any) => item?.endpoint && item?.keys?.p256dh && item?.keys?.auth
+          )
+        : [],
     };
   }
 
@@ -331,6 +343,7 @@ export class SupabaseDataService {
         discovery: {},
         agent_actions: [],
         watchlists: [],
+        push_subscriptions: [],
       };
 
       if (!this.client) {
@@ -1099,6 +1112,30 @@ export class SupabaseDataService {
     if (!clean) return null;
     const all = await this.getCompanies();
     return all.find((c) => c.email && c.email.toLowerCase() === clean) || null;
+  }
+
+  async savePushSubscription(subscription: StoredPushSubscription): Promise<void> {
+    if (!subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+      throw new Error('Invalid browser push subscription.');
+    }
+    const state = await this.ensureStorageState();
+    state.push_subscriptions = [
+      subscription,
+      ...state.push_subscriptions.filter((item) => item.endpoint !== subscription.endpoint),
+    ];
+    await this.saveStorageState(state);
+  }
+
+  async getPushSubscriptions(): Promise<StoredPushSubscription[]> {
+    const state = await this.ensureStorageState();
+    return state.push_subscriptions || [];
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    if (!endpoint) return;
+    const state = await this.ensureStorageState();
+    state.push_subscriptions = state.push_subscriptions.filter((item) => item.endpoint !== endpoint);
+    await this.saveStorageState(state);
   }
 
   // =========================================================
