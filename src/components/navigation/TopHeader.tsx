@@ -108,7 +108,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         {/* Zone 3: Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          <button onClick={onOpenJimmy} className="h-9 px-3 rounded-lg bg-[#0B2240] text-white text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#FF6B00]"/><span className="hidden sm:inline">Jimmy</span></button>
+          <button onClick={onOpenJimmy} className="h-9 px-3 rounded-lg bg-[#FFF4EC] border border-orange-100 text-[#B64A00] hover:bg-[#FFE8D7] text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#FF6B00]"/><span className="hidden sm:inline">Jimmy</span></button>
           {onOpenNotifications && (
             <button
               type="button"
