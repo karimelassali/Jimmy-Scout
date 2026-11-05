@@ -377,6 +377,23 @@ Classification Rules:
             `[Gemini] Attempt ${attempt} on ${model} failed:`,
             err?.message || err
           );
+          // A quota ban will not recover by retrying another model every minute.
+          // Persist the inbound reply as a manual-review dossier instead, so it
+          // remains visible and the IMAP message is not retried indefinitely.
+          if (/resource_exhausted|quota exceeded|rate limit/i.test(err?.message || '')) {
+            return validateReplyAnalysis(
+              {
+                intent: 'NEEDS_REVIEW',
+                confidence: 0.4,
+                equipment_fit_score: 0,
+                needs_review: true,
+                machinery_detected: [],
+                french_summary:
+                  'Réponse reçue — analyse IA temporairement indisponible, vérification manuelle requise.',
+              },
+              safeBody
+            );
+          }
           if (attempt < 2) {
             await new Promise((r) => setTimeout(r, 900));
           }

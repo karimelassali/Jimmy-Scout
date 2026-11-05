@@ -41,6 +41,11 @@ export class SmtpService {
       host: config.smtp.host.trim(),
       port,
       secure,
+      // Railway must never leave a dashboard request open for Nodemailer's
+      // multi-minute defaults when an SMTP port is unreachable.
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 25_000,
       auth: {
         user: config.smtp.user.trim(),
         pass: password.trim(),

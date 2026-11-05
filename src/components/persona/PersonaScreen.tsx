@@ -81,9 +81,12 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     e.preventDefault();
     setIsSendingTest(true);
     try {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 35_000);
       const res = await fetch('/api/test-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           targetEmail: testEmail.trim() || settings.sender_email,
           language: activeLang,
@@ -92,6 +95,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
           customHtml: renderedTemplate.html,
         }),
       });
+      window.clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok || !data.success) {
         showToast(`Envoi impossible : ${data.error || 'vérifiez les réglages'}`, true);
@@ -100,7 +104,12 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
         setShowTestModal(false);
       }
     } catch (err: any) {
-      showToast(`Erreur d’envoi : ${err?.message || 'erreur de connexion'}`, true);
+      showToast(
+        err?.name === 'AbortError'
+          ? 'Le serveur SMTP ne répond pas. Réessayez plus tard ou vérifiez les réglages SMTP.'
+          : `Erreur d’envoi : ${err?.message || 'erreur de connexion'}`,
+        true
+      );
     } finally {
       setIsSendingTest(false);
     }
