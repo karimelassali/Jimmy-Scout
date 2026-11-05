@@ -1480,6 +1480,21 @@ const inboundWebhookHandler = async (req: express.Request, res: express.Response
 app.post('/api/webhooks/imap', rateLimit(30, 60_000), verifyWebhookAuth, inboundWebhookHandler);
 app.post('/api/simulate-inbound', rateLimit(20, 60_000), inboundWebhookHandler);
 
+app.post('/api/jimmy/chat', rateLimit(30, 60_000), async (req, res) => {
+  const message = String(req.body?.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'Message requis.' });
+  const [settings, leads, companies, logs] = await Promise.all([supabaseDataService.getSettings(), supabaseDataService.getLeads(), supabaseDataService.getCompanies(), supabaseDataService.getOutboundLogs()]);
+  const context = `JimyScout: ${leads.length} dossiers, ${companies.length} sociétés, ${logs.length} emails. Agent ${settings.is_active ? 'actif':'en pause'}.`;
+  try {
+    const answer = await geminiService.chat(message, context);
+    res.json(answer);
+  } catch (err: any) {
+    const lower = message.toLowerCase();
+    const navigate = /réponse|dossier|offre/.test(lower) ? 'leads' : /email|envoy/.test(lower) ? 'emails' : /sociét|canton|région/.test(lower) ? 'targets' : /réglage|profil/.test(lower) ? 'persona' : 'control';
+    res.json({ navigate, reply: `Je suis prêt à vous aider. L’analyse Gemini est momentanément indisponible, mais je vous ouvre la page la plus utile pour votre demande. ${context}` });
+  }
+});
+
 // Native PWA notification registration. The browser grants permission and sends
 // an opaque subscription endpoint; no device or browser identity is stored.
 app.get('/api/push/public-key', async (_req, res) => {

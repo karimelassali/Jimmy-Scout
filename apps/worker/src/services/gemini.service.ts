@@ -246,6 +246,11 @@ export function stubAnalyzeReply(
 }
 
 export class GeminiTriageService {
+  async chat(message: string, context: string): Promise<{ reply: string; navigate?: string }> {
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini unavailable');
+    const response = await withTimeout(getAiClient().models.generateContent({ model: getConfiguredModels()[0], contents: `You are Jimmy, a concise helpful Swiss machinery procurement copilot. Context: ${context}\nUser: ${message}\nReply in French. End with one of these exact navigation tokens when useful: [NAV:control], [NAV:leads], [NAV:emails], [NAV:targets], [NAV:persona].`, config: { systemInstruction: 'Never claim you sent email or changed settings. Those actions require confirmation.' } }), 20_000);
+    const raw = response.text || 'Je n’ai pas pu préparer une réponse.'; const match = raw.match(/\[NAV:(control|leads|emails|targets|persona)\]/); return { reply: raw.replace(/\s*\[NAV:[^\]]+\]/g, '').trim(), navigate: match?.[1] };
+  }
   async analyzeReply(
     rawSubject: string,
     rawBody: string,

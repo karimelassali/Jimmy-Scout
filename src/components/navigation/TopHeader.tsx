@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Bell, Mail } from 'lucide-react';
+import { Compass, Bell, Mail, Sparkles } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton.tsx';
 import { TabId } from './BottomBar.tsx';
 
@@ -13,6 +13,7 @@ interface TopHeaderProps {
   onOpenGuide?: () => void;
   notificationCount?: number;
   onOpenNotifications?: () => void;
+  onOpenJimmy?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -25,6 +26,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenGuide,
   notificationCount = 0,
   onOpenNotifications,
+  onOpenJimmy,
 }) => {
   const navItems: Array<{ id: TabId; label: string }> = [
     { id: 'control', label: 'Accueil' },
@@ -106,6 +108,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         {/* Zone 3: Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <button onClick={onOpenJimmy} className="h-9 px-3 rounded-lg bg-[#0B2240] text-white text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#FF6B00]"/><span className="hidden sm:inline">Jimmy</span></button>
           {onOpenNotifications && (
             <button
               type="button"

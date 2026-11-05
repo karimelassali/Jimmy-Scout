@@ -13,6 +13,7 @@ import {
 } from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
 import { WifiOff, Lock, KeyRound, AlertCircle } from 'lucide-react';
+import { JimmyChatModal } from './components/jimmy/JimmyChatModal.tsx';
 
 // Code-split heavy screens & modals
 const ControlScreen = lazy(() =>
@@ -112,6 +113,7 @@ export default function App() {
   };
 
   const [openInboundModal, setOpenInboundModal] = useState(false);
+  const [isJimmyChatOpen, setIsJimmyChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -614,6 +616,7 @@ export default function App() {
         sentCount={unseenLogsCount}
         notificationCount={unreadNotificationsCount}
         onOpenNotifications={() => setIsNotificationOpen(true)}
+        onOpenJimmy={() => setIsJimmyChatOpen(true)}
         onPrimaryAction={handlePrimaryTrigger}
         isAgentActive={settings.is_active}
         onOpenGuide={() => selectTab('guide')}
@@ -749,6 +752,14 @@ export default function App() {
           onClearSeenCounters={handleClearSeenCounters}
         />
       </Suspense>
+      <JimmyChatModal
+        open={isJimmyChatOpen}
+        onClose={() => setIsJimmyChatOpen(false)}
+        onNavigate={(tab) => {
+          selectTab(tab);
+          setIsJimmyChatOpen(false);
+        }}
+      />
     </div>
   );
 }
