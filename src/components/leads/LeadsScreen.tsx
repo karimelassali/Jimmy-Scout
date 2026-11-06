@@ -383,7 +383,16 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     (l) => l.lead_status !== 'deleted' && !(l as any).is_deleted
   );
 
-  const filteredLeads = activeLeads.filter((lead) => {
+  // Older fallback analyses did not have the inbox flag. Treat every
+  // machine-less "needs review" reply the same way so historic test replies
+  // disappear from the deal pipeline immediately.
+  const isReviewInbox = (lead: InboundLead) =>
+    Boolean((lead as any).is_review_inbox) ||
+    (lead.intent === 'NEEDS_REVIEW' && lead.machinery_detected.length === 0);
+  const reviewLeads = activeLeads.filter(isReviewInbox);
+  const dealLeads = activeLeads.filter((lead) => !isReviewInbox(lead));
+
+  const filteredLeads = dealLeads.filter((lead) => {
     const q = searchTerm.toLowerCase();
     const matchesSearch =
       !q ||
@@ -419,9 +428,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     if (selectedFilter === 'new') {
       return lead.lead_status === 'new';
     }
-    if (selectedFilter === 'review') {
-      return lead.intent === 'NEEDS_REVIEW';
-    }
+    if (selectedFilter === 'review') return false;
     if (selectedFilter === 'saved') {
       return bookmarkedIds.includes(lead.id);
     }
@@ -429,7 +436,23 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     return true;
   });
 
-  const savedCount = activeLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
+  const savedCount = dealLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
+
+  const moveToDossiers = async (lead: InboundLead) => {
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_review_inbox: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Impossible de créer le dossier');
+      await onRefreshLeads();
+      showToast('Réponse déplacée vers les dossiers.');
+    } catch (err: any) {
+      showToast(err?.message || 'Impossible de créer le dossier', true);
+    }
+  };
 
   const statusLabels: Record<DealStatus, string> = {
     new: 'Nouvelle offre',
@@ -468,7 +491,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
             <span className="h-2 w-2 rounded-full bg-[#FF6B00]" aria-hidden="true" />
-            <span>{activeLeads.length} dossier{activeLeads.length === 1 ? '' : 's'} actif{activeLeads.length === 1 ? '' : 's'}</span>
+            <span>{dealLeads.length} dossier{dealLeads.length === 1 ? '' : 's'} actif{dealLeads.length === 1 ? '' : 's'}</span>
           </div>
           <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
             Dossiers de machines
@@ -580,6 +603,19 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => setSelectedFilter('review')}
+              aria-pressed={selectedFilter === 'review'}
+              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                selectedFilter === 'review'
+                  ? 'bg-amber-500 text-white'
+                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
+              }`}
+            >
+              <Inbox className="h-3.5 w-3.5" />
+              À vérifier ({reviewLeads.length})
+            </button>
+            <button
+              type="button"
               onClick={() => setSelectedFilter('saved')}
               aria-pressed={selectedFilter === 'saved'}
               className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
@@ -595,8 +631,44 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
       </section>
 
+      {selectedFilter === 'review' && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-heading text-xl font-medium text-[#0B2240]">Réponses à vérifier</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Jimy n’a pas identifié de machine précise dans ces messages. Elles n’affectent pas vos dossiers tant que vous ne les y placez pas.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {reviewLeads.map((lead) => (
+              <article key={lead.id} className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-semibold text-[#0B2240]">{lead.company_name || lead.sender_email}</span>
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">À lire</span>
+                    </div>
+                    <p className="mt-2 text-sm font-medium text-slate-700">{lead.raw_subject || 'Réponse reçue'}</p>
+                    <p className="mt-1 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      {lead.latest_reply_text || lead.raw_body || lead.ai_summary || 'Aperçu indisponible'}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button type="button" onClick={() => openLeadModal(lead, 'email')} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-[#0B2240] hover:bg-slate-50">Lire le message</button>
+                    <button type="button" onClick={() => moveToDossiers(lead)} className="h-10 rounded-lg bg-[#0B2240] px-3 text-xs font-medium text-white hover:bg-[#173863]">Créer un dossier</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {reviewLeads.length === 0 && (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">Aucune réponse en attente de vérification.</p>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Responsive deal cards */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      {selectedFilter !== 'review' && <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {filteredLeads.map((lead) => {
           const primaryMachine = lead.machinery_detected[0];
           const isBookmarked = bookmarkedIds.includes(lead.id);
@@ -852,9 +924,9 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             </article>
           );
         })}
-      </div>
+      </div>}
 
-      {filteredLeads.length === 0 && (
+      {selectedFilter !== 'review' && filteredLeads.length === 0 && (
         <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-12 text-center sm:py-16">
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#0B2240] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
             <Inbox className="h-5 w-5" strokeWidth={1.5} />

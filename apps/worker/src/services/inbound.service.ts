@@ -38,7 +38,8 @@ export interface ProcessInboundEmailResult {
     | 'unsubscribed'
     | 'not_interested_cooldown'
     | 'out_of_office'
-    | 'irrelevant';
+    | 'irrelevant'
+    | 'needs_review';
   analysis: any;
   lead: InboundLead | null;
   telegram?: any;
@@ -249,7 +250,15 @@ export class InboundProcessingService {
         };
       }
 
-      // 6d. HOT_LEAD or NEEDS_REVIEW -> Persist CRM Lead & Equipment Records
+      // A reply without an explicitly identified machine is useful, but it is
+      // not a deal yet. Keep it in the review inbox rather than inventing a
+      // generic "Machine de chantier" dossier with made-up pricing signals.
+      const isReviewInbox =
+        analysis.intent !== 'HOT_LEAD' ||
+        Boolean(analysis.needs_review) ||
+        (analysis.machinery_detected || []).length === 0;
+
+      // 6d. Persist the reply. Only confirmed equipment offers continue to CRM enrichment.
       if (existingCompany) {
         await supabaseDataService.updateCompany(existingCompany.id, {
           stock_status: 'active_seller',
@@ -279,10 +288,22 @@ export class InboundProcessingService {
         classification_confidence: analysis.confidence,
         equipment_fit_score: analysis.equipment_fit_score,
         needs_review: Boolean(analysis.needs_review),
+        is_review_inbox: isReviewInbox,
         message_id: messageKey,
         in_reply_to: params.inReplyTo || null,
         references: params.references || [],
       });
+
+      if (isReviewInbox) {
+        await supabaseDataService.completeInboundMessage(messageKey, createdLead.id);
+        return {
+          status: 'needs_review',
+          analysis,
+          lead: createdLead,
+          isDuplicate: false,
+          messageKey,
+        };
+      }
 
       const enrichedLead = await dealIntelligenceService.enrichLead(createdLead);
       await supabaseDataService.updateLead(createdLead.id, enrichedLead);

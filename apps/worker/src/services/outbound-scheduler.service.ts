@@ -144,6 +144,21 @@ export class OutboundSchedulerService {
       };
     }
 
+    // A transport failure means the configured mailbox is not currently
+    // reachable. The daemon must stop here instead of producing one failed
+    // outbound record every minute. A deliberate manual retry can still be
+    // used after SMTP has been fixed.
+    if (options?.respectNextSendAt) {
+      const meta = await supabaseDataService.getSchedulerMeta();
+      if (meta.last_error) {
+        return {
+          status: 'smtp_error',
+          error: meta.last_error,
+          message: `Envois suspendus : ${meta.last_error}`,
+        };
+      }
+    }
+
     // Enforce Swiss business hours consistently
     if (!bypassHours && !isSwissBusinessHours(refDate)) {
       const nextWindow = getNextSwissBusinessWindowStart(refDate).toISOString();

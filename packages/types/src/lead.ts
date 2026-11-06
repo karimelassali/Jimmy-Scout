@@ -60,6 +60,8 @@ export interface InboundLead {
   classification_confidence?: number;
   equipment_fit_score?: number;
   needs_review?: boolean;
+  /** A reply kept for a human decision, not yet an equipment deal dossier. */
+  is_review_inbox?: boolean;
   message_id?: string | null;
   in_reply_to?: string | null;
   references?: string[];

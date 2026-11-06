@@ -623,6 +623,7 @@ app.patch('/api/leads/:id', async (req, res) => {
     if (body.lead_status && validStatuses.includes(body.lead_status)) {
       patch.lead_status = body.lead_status;
     }
+    if ('is_review_inbox' in body) patch.is_review_inbox = Boolean(body.is_review_inbox);
     if ('next_action' in body) patch.next_action = body.next_action ? String(body.next_action) : null;
     if ('next_action_due_at' in body) patch.next_action_due_at = body.next_action_due_at || null;
     if ('inspection_date' in body) patch.inspection_date = body.inspection_date || null;
