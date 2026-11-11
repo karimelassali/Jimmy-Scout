@@ -225,9 +225,23 @@ export class CompanyDiscoveryService {
 
   private async searchOpenStreetMap(query: string, cantonCode: string): Promise<PlaceCandidate[]> {
     if (!config.openStreetMap.overpassUrl) return [];
-    const keyword = query.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // The query is "<keyword phrase> <canton> Schweiz". Use the most
+    // distinctive word of the keyword phrase for the name match: the longest
+    // word, ties going to the last one. E.g. "terrassement" from
+    // "entreprise de terrassement", "Baumaschinen" from "Baumaschinen
+    // Vermietung", "démolition" from "entreprise de démolition".
+    const keywordPhrase = query.split(' ').slice(0, -2).join(' ');
+    const words = keywordPhrase.split(/[^A-Za-zÀ-ÿ0-9]+/).filter(Boolean);
+    let term = '';
+    for (const word of words) {
+      if (word.length >= term.length) term = word;
+    }
+    const keyword = (term || query.split(' ')[0]).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const areaCode = `CH-${cantonCode}`;
-    const overpassQuery = `[out:json][timeout:25];area["ISO3166-2"="${areaCode}"][admin_level=4]->.searchArea;(nwr["name"~"${keyword}",i](area.searchArea);nwr["office"="company"](area.searchArea););out center tags;`;
+    // Search by name only, capped at 100 results. A previous version also
+    // returned every office=company in the canton — thousands of irrelevant
+    // rows that drowned the real matches and often timed Overpass out.
+    const overpassQuery = `[out:json][timeout:25];area["ISO3166-2"="${areaCode}"][admin_level=4]->.searchArea;nwr["name"~"${keyword}",i](area.searchArea);out center tags 100;`;
     const response = await fetch(config.openStreetMap.overpassUrl, {
       method: 'POST', signal: AbortSignal.timeout(30_000), headers: { 'Content-Type': 'text/plain', Accept: 'application/json' }, body: overpassQuery,
     });
@@ -271,12 +285,36 @@ export class CompanyDiscoveryService {
       ];
     }
 
-    const providers = await Promise.all([
+    // Run every provider at once and keep whatever succeeds. Previously the
+    // providers ran in sequence and a single failure (e.g. Google Places
+    // down) threw the whole discovery run away, including the good results
+    // from the providers that did answer. Only fail the run when every
+    // provider failed.
+    const attempts = await Promise.allSettled([
+      this.searchGooglePlaces(query),
       this.searchFoursquare(query, query.split(' ').slice(-2, -1)[0] || 'Switzerland'),
       this.searchOpenStreetMap(query, cantonCode),
     ]);
-    const alternativeResults = providers.flat();
-    if (!config.googlePlaces.apiKey) return alternativeResults;
+    const providerNames = ['Google Places', 'Foursquare', 'OpenStreetMap'];
+    const results: PlaceCandidate[] = [];
+    const failures: string[] = [];
+    attempts.forEach((attempt, index) => {
+      if (attempt.status === 'fulfilled') {
+        results.push(...attempt.value);
+      } else {
+        const reason = attempt.reason?.message || String(attempt.reason);
+        failures.push(`${providerNames[index]}: ${reason}`);
+        console.warn(`[Discovery] ${providerNames[index]} search failed:`, reason);
+      }
+    });
+    if (!results.length && failures.length) {
+      throw new Error(`All company search providers failed: ${failures.join(' | ')}`);
+    }
+    return results;
+  }
+
+  private async searchGooglePlaces(query: string): Promise<PlaceCandidate[]> {
+    if (!config.googlePlaces.apiKey) return [];
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       signal: AbortSignal.timeout(15_000),
@@ -295,7 +333,7 @@ export class CompanyDiscoveryService {
       throw new Error(`Google Places search failed (${response.status}): ${detail}`);
     }
     const payload = (await response.json()) as any;
-    const googleResults = (Array.isArray(payload.places) ? payload.places : []).map((place: any) => ({
+    return (Array.isArray(payload.places) ? payload.places : []).map((place: any) => ({
       id: String(place.id || ''),
       name: String(place.displayName?.text || '').trim(),
       website: place.websiteUri || null,
@@ -304,7 +342,6 @@ export class CompanyDiscoveryService {
       businessStatus: place.businessStatus || null,
       types: Array.isArray(place.types) ? place.types : [],
     })).filter((place: PlaceCandidate) => place.id && place.name);
-    return [...googleResults, ...alternativeResults];
   }
 
   async getStatus(referenceDate = new Date()): Promise<DiscoverySchedulerStatus> {
@@ -496,6 +533,9 @@ export class CompanyDiscoveryService {
         last_canton: cantonCode, canton_cursor: cantonIndex + 1,
         keyword_cursor: cantonIndex + 1 >= cantons.length ? keywordIndex + 1 : keywordIndex,
       });
+      console.log(
+        `[Discovery] ${query} (${cantonCode}): ${places.length} scanned, ${ready} ready, ${missingEmail} missing email, ${duplicates} duplicates, ${rejected} rejected. Next run ${nextRunAt}.`
+      );
       return {
         status: 'completed',
         message: `${places.length} sociétés vérifiées ; ${ready} prêtes pour les courriels.`,
@@ -504,6 +544,7 @@ export class CompanyDiscoveryService {
       };
     } catch (error: any) {
       const message = error?.message || 'Company discovery failed.';
+      console.warn('[Discovery] Step failed:', message);
       await supabaseDataService.updateDiscoveryMeta({
         last_run_at: now.toISOString(), last_error: message,
         next_run_at: new Date(now.getTime() + 30 * 60_000).toISOString(),

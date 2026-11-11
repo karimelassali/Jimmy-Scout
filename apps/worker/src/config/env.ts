@@ -49,7 +49,10 @@ export const config = {
     apiKey: process.env.GOOGLE_PLACES_API_KEY || '',
   },
   foursquare: { apiKey: process.env.FOURSQUARE_API_KEY || '' },
-  openStreetMap: { overpassUrl: process.env.OSM_OVERPASS_URL || '' },
+  // OpenStreetMap needs no key: default to the public Overpass endpoint so
+  // discovery has a second live source even without OSM_OVERPASS_URL set.
+  // Set OSM_OVERPASS_URL to use a different mirror.
+  openStreetMap: { overpassUrl: process.env.OSM_OVERPASS_URL || 'https://overpass-api.de/api/interpreter' },
   zefix: {
     username: process.env.ZEFIX_USERNAME || '',
     password: process.env.ZEFIX_PASSWORD || '',

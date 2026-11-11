@@ -25,7 +25,11 @@ function getAiClient() {
 
 function getConfiguredModels(): string[] {
   const custom = process.env.GEMINI_MODEL?.trim();
-  const defaults = ['gemini-3.8-flash', 'gemini-flash-latest'];
+  // gemini-3.8-flash is Google's current Flash model; gemini-flash-latest is
+  // the alias that always resolves to the current stable Flash. gemini-2.5-flash
+  // is a last-resort fallback (Google restricted it to prior active users in
+  // Sep 2026, so it may 404 for this key — the chain moves on when it does).
+  const defaults = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
   if (custom && !defaults.includes(custom)) {
     return [custom, ...defaults];
   }
@@ -248,8 +252,22 @@ export function stubAnalyzeReply(
 export class GeminiTriageService {
   async chat(message: string, context: string): Promise<{ reply: string; navigate?: string }> {
     if (!process.env.GEMINI_API_KEY) throw new Error('Gemini unavailable');
-    const response = await withTimeout(getAiClient().models.generateContent({ model: getConfiguredModels()[0], contents: `You are Jimmy, a concise helpful Swiss machinery procurement copilot. Context: ${context}\nUser: ${message}\nReply in French. End with one of these exact navigation tokens when useful: [NAV:control], [NAV:leads], [NAV:emails], [NAV:targets], [NAV:persona].`, config: { systemInstruction: 'Never claim you sent email or changed settings. Those actions require confirmation.' } }), 20_000);
-    const raw = response.text || 'Je n’ai pas pu préparer une réponse.'; const match = raw.match(/\[NAV:(control|leads|emails|targets|persona)\]/); return { reply: raw.replace(/\s*\[NAV:[^\]]+\]/g, '').trim(), navigate: match?.[1] };
+    // Try every configured model in order. The previous version used only
+    // models[0], so one slow or overloaded model killed the whole chat.
+    const modelsToTry = getConfiguredModels();
+    let lastError: any = null;
+    for (const model of modelsToTry) {
+      try {
+        const response = await withTimeout(getAiClient().models.generateContent({ model, contents: `You are Jimmy, a concise helpful Swiss machinery procurement copilot. Context: ${context}\nUser: ${message}\nReply in French. End with one of these exact navigation tokens when useful: [NAV:control], [NAV:leads], [NAV:emails], [NAV:targets], [NAV:persona].`, config: { systemInstruction: 'Never claim you sent email or changed settings. Those actions require confirmation.' } }), 20_000);
+        const raw = response.text || 'Je n’ai pas pu préparer une réponse.';
+        const match = raw.match(/\[NAV:(control|leads|emails|targets|persona)\]/);
+        return { reply: raw.replace(/\s*\[NAV:[^\]]+\]/g, '').trim(), navigate: match?.[1] };
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[Gemini] Chat on ${model} failed:`, err?.message || err);
+      }
+    }
+    throw lastError || new Error('Gemini chat failed');
   }
   async analyzeReply(
     rawSubject: string,
@@ -406,7 +424,27 @@ Classification Rules:
       }
     }
 
-    throw lastError || new Error('Gemini analysis failed');
+    // Every model and retry is exhausted (timeout, 503 overload or quota).
+    // Do not throw: the IMAP layer would leave the message unseen and retry
+    // it every minute, burning quota without ever succeeding — that retry
+    // storm is what produced the 429s in the Nov 2026 logs. Persist the
+    // reply as a manual-review dossier instead, like the quota path above.
+    console.warn(
+      '[Gemini] All models failed, keeping reply for manual review:',
+      lastError?.message || lastError
+    );
+    return validateReplyAnalysis(
+      {
+        intent: 'NEEDS_REVIEW',
+        confidence: 0.4,
+        equipment_fit_score: 0,
+        needs_review: true,
+        machinery_detected: [],
+        french_summary:
+          'Réponse reçue — analyse IA temporairement indisponible, vérification manuelle requise.',
+      },
+      safeBody
+    );
   }
 
   async extractBusinessCards(

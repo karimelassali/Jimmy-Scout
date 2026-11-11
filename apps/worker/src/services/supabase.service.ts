@@ -1936,7 +1936,10 @@ export class SupabaseDataService {
       isSameSwissDay(record.discovered_at, referenceDate)
     );
     return {
-      found_today: today.length,
+      // Duplicates are places already seen on an earlier run, not new finds.
+      // Counting them toward the daily limit let repeat encounters exhaust
+      // the day's discovery budget before any new company was found.
+      found_today: today.filter((r) => r.status !== 'duplicate').length,
       ready_today: today.filter((r) => r.status === 'ready').length,
       missing_email_today: today.filter((r) => r.status === 'missing_email').length,
       duplicates_today: today.filter((r) => r.status === 'duplicate').length,

@@ -178,7 +178,7 @@ sequenceDiagram
 
 ## 🧠 4. How Gemini AI Classifies Contractor Replies
 
-Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` (with automatic failover to `gemini-3-flash-preview`) using a strict JSON schema:
+Every incoming email to `info@jimyexport.ch` is evaluated by `gemini-3.8-flash` (with automatic failover to `gemini-flash-latest` and `gemini-2.5-flash`) using a strict JSON schema:
 
 <details>
 <summary><b>🔥 Click to view example JSON output produced by Gemini Triage</b></summary>
@@ -229,7 +229,7 @@ All 5 external services are pre-configured and verified in your environment:
 | :--- | :--- | :--- | :--- |
 | **Outbound SMTP** | `mail.infomaniak.com:587` (STARTTLS) | `info@jimyexport.ch` | 🟢 **LIVE** |
 | **Inbound IMAP** | `mail.infomaniak.com:993` (SSL/TLS) | `info@jimyexport.ch` | 🟢 **LIVE** |
-| **AI Triage Engine** | Google GenAI SDK | `gemini-3.8-flash` + `gemini-3-flash-preview` fallback | 🟢 **LIVE** |
+| **AI Triage Engine** | Google GenAI SDK | `gemini-3.8-flash` + `gemini-flash-latest` / `gemini-2.5-flash` fallback | 🟢 **LIVE** |
 | **Mobile Alerts** | Telegram Bot API | `@Jimy_scout_bot` | 🟢 **LIVE** |
 | **Database & CRM** | Supabase Cloud + Local Sync | PostgreSQL with RLS | 🟢 **LIVE** |
 

@@ -1490,6 +1490,7 @@ app.post('/api/jimmy/chat', rateLimit(30, 60_000), async (req, res) => {
     const answer = await geminiService.chat(message, context);
     res.json(answer);
   } catch (err: any) {
+    console.warn('[Jimmy chat] Gemini unavailable:', err?.message || err);
     const lower = message.toLowerCase();
     const navigate = /réponse|dossier|offre/.test(lower) ? 'leads' : /email|envoy/.test(lower) ? 'emails' : /sociét|canton|région/.test(lower) ? 'targets' : /réglage|profil/.test(lower) ? 'persona' : 'control';
     res.json({ navigate, reply: `Je suis prêt à vous aider. L’analyse Gemini est momentanément indisponible, mais je vous ouvre la page la plus utile pour votre demande. ${context}` });
