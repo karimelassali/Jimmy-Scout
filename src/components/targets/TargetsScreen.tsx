@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { AgentSettings, Company, SuppressionEntry } from '@/packages/types/src/database.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import {
@@ -354,17 +358,15 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     <div className="space-y-8 pb-24 pt-2 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 left-1/2 z-50 flex max-w-xl -translate-x-1/2 items-center gap-2.5 rounded-lg px-5 py-3 text-sm font-medium text-white shadow-lg md:bottom-6 ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 left-1/2 z-50 w-full max-w-xl -translate-x-1/2 px-4 md:bottom-6">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
@@ -372,7 +374,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-[#FF6B00]" aria-hidden="true" />
+            <StatusDot variant="warning" label="Cantons actifs" />
             <span>{settings.selected_cantons.length} cantons actifs · {activeContractorsTotal} sociétés prêtes</span>
           </div>
           <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
@@ -384,50 +386,45 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-
-          <button
-            type="button"
+          <Button
+            label="Refus"
+            variant="secondary"
+            size="sm"
             onClick={() => {
-              loadSuppressions();
+              void loadSuppressions();
               setShowSuppressionModal(true);
             }}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
-            <span>Refus</span>
-          </button>
+            icon={<ShieldAlert className="w-3.5 h-3.5 text-slate-500" />}
+          />
 
-          <button
-            type="button"
+          <Button
+            label="Importer / exporter CSV"
+            variant="secondary"
+            size="sm"
             onClick={() => setShowCsvModal(true)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>Importer / exporter CSV</span>
-          </button>
+            icon={<Upload className="w-3.5 h-3.5 text-[#FF6B00]" />}
+          />
 
           {onNavigateToScanner && (
-            <button
-              type="button"
+            <Button
+              label="Scanner des cartes"
+              variant="secondary"
+              size="sm"
               onClick={onNavigateToScanner}
-              className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50"
-            >
-              <Camera className="w-4 h-4 text-[#FF6B00]" />
-              <span>Scanner des cartes</span>
-            </button>
+              icon={<Camera className="w-4 h-4 text-[#FF6B00]" />}
+            />
           )}
 
-          <button
-            type="button"
+          <Button
+            label="Ajouter une société"
+            variant="primary"
+            size="sm"
             onClick={() => {
               setNewCompCanton(selectedCantonCode);
               setShowAddModal(true);
             }}
-            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0B2240] px-5 text-xs font-medium text-white transition-colors hover:bg-[#173863] sm:w-auto sm:text-sm"
-          >
-            <Plus className="w-4 h-4" />
-              <span>Ajouter une société</span>
-          </button>
+            icon={<Plus className="w-4 h-4" />}
+          />
         </div>
       </section>
 
@@ -466,21 +463,21 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               </div>
             </div>
 
-            <div className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg bg-slate-100 p-1 sm:self-center">
-              {[15, 25, 35, 50].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => handlePaceChange(preset)}
-                  className={`h-8 rounded-md px-2.5 text-xs font-medium transition-colors ${
-                    dailyPace === preset
-                      ? 'bg-[#0B2240] text-white'
-                      : 'text-slate-600 hover:text-[#0B2240]'
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
+            <div className="shrink-0 self-start sm:self-center">
+              <SegmentedControl
+                label="Rythme quotidien"
+                size="sm"
+                value={String(dailyPace)}
+                onChange={(val) => void handlePaceChange(Number(val))}
+              >
+                {[15, 25, 35, 50].map((preset) => (
+                  <SegmentedControlItem
+                    key={preset}
+                    value={String(preset)}
+                    label={String(preset)}
+                  />
+                ))}
+              </SegmentedControl>
             </div>
           </div>
         </div>

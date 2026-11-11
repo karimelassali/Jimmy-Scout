@@ -1,19 +1,173 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, Send, X } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import {
+  ChatComposer,
+  ChatLayout,
+  ChatMessage,
+  ChatMessageBubble,
+  ChatMessageList,
+} from '@astryxdesign/core/Chat';
+import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { TabId } from '../navigation/BottomBar.tsx';
 
 type Message = { role: 'user' | 'jimmy'; text: string };
-export function JimmyChatModal({ open, onClose, onNavigate }: { open: boolean; onClose: () => void; onNavigate: (tab: TabId) => void }) {
-  const [messages, setMessages] = useState<Message[]>([{ role: 'jimmy', text: 'Bonsoir, je suis Jimmy. Je peux analyser votre activité, retrouver une réponse, ouvrir une page ou préparer une action pour vous.' }]);
-  const [text, setText] = useState(''); const [loading, setLoading] = useState(false);
-  if (!open) return null;
-  const send = async (e: React.FormEvent) => { e.preventDefault(); const input = text.trim(); if (!input || loading) return; setText(''); setMessages(p => [...p, { role: 'user', text: input }]); setLoading(true);
-    try { const r = await fetch('/api/jimmy/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ message: input }) }); const d = await r.json(); if (d.navigate) onNavigate(d.navigate); setMessages(p => [...p, { role:'jimmy', text:d.reply || d.error || 'Je n’ai pas pu terminer cette action.' }]); }
-    catch { setMessages(p => [...p, { role:'jimmy', text:'Je ne peux pas joindre mon poste de contrôle pour le moment.' }]); } finally { setLoading(false); } };
-  const prompts = ['Montre les nouvelles réponses', 'Quel est le statut des envois ?', 'Ouvre les sociétés prêtes', 'Aide-moi à préparer demain'];
-  return <div className="fixed inset-0 z-[60] flex justify-end bg-[#0B2240]/10" onMouseDown={onClose}><section onMouseDown={e=>e.stopPropagation()} className="w-full max-w-[520px] h-full bg-[#FFFDFC] shadow-2xl flex flex-col border-l border-orange-100">
-    <header className="relative px-6 pt-5 pb-5 bg-white border-b border-orange-100 text-center"><button onClick={onClose} className="absolute right-5 top-5 w-9 h-9 grid place-items-center rounded-full text-slate-500 hover:bg-orange-50"><X className="w-4 h-4"/></button><div className="h-20 w-20 mx-auto"><video src="/assets/illustrations/jimmymascut.webm" autoPlay loop muted playsInline aria-label="Mascotte Jimmy" className="w-full h-full object-contain"/></div><h2 className="font-semibold text-lg text-[#0B2240] mt-1">Jimmy</h2><p className="text-xs text-slate-500">Votre éclaireur machines en Suisse</p><div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#FFF4EC] px-3 py-1 text-[11px] text-[#B64A00]"><span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]"/> En ligne et prêt</div></header>
-    <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-[#FFFCFA]">{messages.length===1&&<div><p className="text-xs font-medium text-slate-500 mb-3">Que voulez-vous faire ?</p><div className="grid grid-cols-2 gap-3">{prompts.map(p=><button key={p} onClick={()=>setText(p)} className="text-left bg-white border border-orange-100 rounded-2xl px-4 py-3 text-xs text-slate-700 hover:border-[#FF6B00] transition-colors">{p}<ArrowUpRight className="w-3.5 h-3.5 mt-3 text-[#FF6B00]"/></button>)}</div></div>}{messages.map((m,i)=><div key={i} className={`flex ${m.role==='user'?'justify-end':'justify-start'}`}><div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${m.role==='user'?'bg-[#E7F4FF] text-[#17466B] rounded-br-md':'bg-white border border-orange-100 text-slate-700 rounded-bl-md'}`}>{m.text}</div></div>)}{loading&&<div className="text-sm text-[#B64A00]">Jimmy vérifie le terrain…</div>}</div>
-    <form onSubmit={send} className="p-4 bg-white border-t border-orange-100 flex gap-2"><input value={text} onChange={e=>setText(e.target.value)} placeholder="Écrivez à Jimmy" className="flex-1 h-12 rounded-2xl bg-[#FFF8F3] border border-orange-100 px-4 text-sm outline-none focus:border-[#FF6B00]"/><button className="w-12 h-12 rounded-2xl bg-[#FF6B00] hover:bg-[#E05E00] text-white flex items-center justify-center shadow-sm"><Send className="w-4 h-4"/></button></form>
-  </section></div>;
+
+export function JimmyChatModal({
+  open,
+  onClose,
+  onNavigate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onNavigate: (tab: TabId) => void;
+}) {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'jimmy',
+      text: 'Bonsoir, je suis Jimmy. Je peux analyser votre activité, retrouver une réponse, ouvrir une page ou préparer une action pour vous.',
+    },
+  ]);
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submitMessage = async (rawInput: string) => {
+    const input = rawInput.trim();
+    if (!input || loading) return;
+    setText('');
+    setMessages((p) => [...p, { role: 'user', text: input }]);
+    setLoading(true);
+    try {
+      const r = await fetch('/api/jimmy/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input }),
+      });
+      const d = await r.json();
+      if (d.navigate) onNavigate(d.navigate);
+      setMessages((p) => [
+        ...p,
+        { role: 'jimmy', text: d.reply || d.error || 'Je n’ai pas pu terminer cette action.' },
+      ]);
+    } catch {
+      setMessages((p) => [
+        ...p,
+        { role: 'jimmy', text: 'Je ne peux pas joindre mon poste de contrôle pour le moment.' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const prompts = [
+    'Montre les nouvelles réponses',
+    'Quel est le statut des envois ?',
+    'Ouvre les sociétés prêtes',
+    'Aide-moi à préparer demain',
+  ];
+
+  return (
+    <Drawer
+      isOpen={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+      side="end"
+      width={520}
+      padding={0}
+      label="Assistant Jimmy"
+    >
+      <div className="flex flex-col h-full bg-[#FFFCFA]">
+        <div className="px-6 pt-4 pb-2 bg-white border-b border-orange-100">
+          <DrawerHeader
+            title="Jimmy"
+            subtitle="Votre éclaireur machines en Suisse"
+            onOpenChange={(isOpen) => {
+              if (!isOpen) onClose();
+            }}
+            endContent={
+              <div className="inline-flex items-center gap-1.5">
+                <StatusDot variant="success" isPulsing label="En ligne" />
+                <Badge label="En ligne et prêt" variant="orange" />
+              </div>
+            }
+          />
+        </div>
+
+        <div className="px-6 pt-3 pb-2 bg-white border-b border-orange-100 flex items-center gap-3">
+          <div className="h-14 w-14 shrink-0">
+            <video
+              src="/assets/illustrations/jimmymascut.webm"
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-label="Mascotte Jimmy"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="text-xs text-slate-600">
+            Posez une question à Jimmy sur vos dossiers machines, vos envois du jour ou vos cantons actifs.
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col">
+          <ChatLayout
+            composer={
+              <ChatComposer
+                value={text}
+                onChange={setText}
+                onSubmit={(val) => void submitMessage(val)}
+                placeholder="Écrivez à Jimmy…"
+                isDisabled={loading}
+                isStopShown={loading}
+              />
+            }
+          >
+            <ChatMessageList>
+              <div className="p-4 space-y-4">
+                {messages.length === 1 && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-2.5">
+                      Que voulez-vous faire ?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {prompts.map((p) => (
+                        <Button
+                          key={p}
+                          label={p}
+                          variant="secondary"
+                          size="sm"
+                          icon={<ArrowUpRight className="w-3.5 h-3.5 text-[#FF6B00]" />}
+                          onClick={() => void submitMessage(p)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {messages.map((m, i) => (
+                  <ChatMessage
+                    key={i}
+                    sender={m.role === 'user' ? 'user' : 'assistant'}
+                    name={m.role === 'user' ? 'Vous' : 'Jimmy'}
+                  >
+                    <ChatMessageBubble>{m.text}</ChatMessageBubble>
+                  </ChatMessage>
+                ))}
+
+                {loading && (
+                  <ChatMessage sender="assistant" name="Jimmy">
+                    <ChatMessageBubble>Jimmy vérifie le terrain…</ChatMessageBubble>
+                  </ChatMessage>
+                )}
+              </div>
+            </ChatMessageList>
+          </ChatLayout>
+        </div>
+      </div>
+    </Drawer>
+  );
 }

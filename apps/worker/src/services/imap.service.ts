@@ -84,6 +84,7 @@ export class ImapService {
   private isPollingLoopActive = false;
   private isPollInFlight = false;
   private intervalHandle: NodeJS.Timeout | null = null;
+  private processedSessionUids = new Set<string>();
   private lastPoll: {
     attemptedAt: string | null;
     completedAt: string | null;
@@ -162,6 +163,9 @@ export class ImapService {
       },
       logger: false,
     });
+    client.on('error', (err: any) => {
+      console.warn('[IMAP] Socket warning:', err?.message || err);
+    });
 
     const parsedEmails: Array<{ email: IncomingRawEmail; uid: number }> = [];
     let processedCount = 0;
@@ -169,15 +173,18 @@ export class ImapService {
     try {
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
+      let mailboxUidValidity = 'inbox';
 
       try {
-        const mailboxUidValidity = client.mailbox ? String(client.mailbox.uidValidity) : 'inbox';
+        mailboxUidValidity = client.mailbox ? String(client.mailbox.uidValidity) : 'inbox';
 
         const unseenUids = (await client.search({ seen: false })) || [];
         const allUids = (await client.search({ all: true })) || [];
         const recentUids = allUids.slice(-30);
 
-        const targetUids = Array.from(new Set([...unseenUids, ...recentUids]));
+        const targetUids = Array.from(new Set([...unseenUids, ...recentUids])).filter(
+          (uid) => !this.processedSessionUids.has(`${mailboxUidValidity}:${uid}`)
+        );
 
         if (targetUids.length > 0) {
           for await (const msg of client.fetch(targetUids, {
@@ -218,6 +225,7 @@ export class ImapService {
                 );
 
               if (isSelf || isProviderNoReply || !bodyText.trim()) {
+                this.processedSessionUids.add(`${mailboxUidValidity}:${msg.uid}`);
                 continue;
               }
 
@@ -271,32 +279,30 @@ export class ImapService {
           }
         }
 
-        // Process each message and ONLY mark as \Seen after successful processing
-        const succeededUids: number[] = [];
-        for (const item of parsedEmails) {
-          try {
-            await onNewEmail(item.email);
-            succeededUids.push(item.uid);
-            processedCount++;
-          } catch (procErr: any) {
-            console.error(
-              '[IMAP] Message processing failed (leaving unseen for retry):',
-              item.email.senderEmail,
-              procErr?.message
-            );
-          }
-        }
-
-        if (succeededUids.length > 0) {
+        if (unseenUids.length > 0) {
           await client
-            .messageFlagsAdd(succeededUids, ['\\Seen'], { uid: true })
+            .messageFlagsAdd(unseenUids, ['\\Seen'], { uid: true })
             .catch(() => {});
         }
       } finally {
         lock.release();
       }
 
-      await client.logout();
+      await client.logout().catch(() => {});
+
+      for (const item of parsedEmails) {
+        try {
+          await onNewEmail(item.email);
+          this.processedSessionUids.add(`${mailboxUidValidity}:${item.uid}`);
+          processedCount++;
+        } catch (procErr: any) {
+          console.error(
+            '[IMAP] Message processing failed (leaving unseen for retry):',
+            item.email.senderEmail,
+            procErr?.message
+          );
+        }
+      }
       this.lastPoll = {
         ...this.lastPoll,
         completedAt: new Date().toISOString(),

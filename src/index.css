@@ -1,6 +1,12 @@
-@import "tailwindcss";
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
 
-@theme {
+@import "tailwindcss";
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
+@import "./themes/jimy/jimy.css";
+
+@theme inline {
   --color-brand-orange: #FF6B00;
   --color-brand-orange-hover: #E05E00;
   --color-brand-orange-light: #FFF4ED;
@@ -30,9 +36,9 @@
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
-    font-family: var(--font-body);
-    background-color: var(--color-surface-canvas);
-    color: var(--color-text-primary);
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #F0F4F9;
+    color: #0B2240;
   }
 }
 

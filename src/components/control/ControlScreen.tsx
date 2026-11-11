@@ -1,4 +1,11 @@
 import React, { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { Switch } from '@astryxdesign/core/Switch';
 import {
   AgentSettings,
   Company,
@@ -377,25 +384,28 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     day: 'numeric',
   });
 
-  const getSchedulerBadge = () => {
+  const getSchedulerBadge = (): {
+    label: string;
+    variant: 'gray' | 'orange' | 'blue' | 'green';
+  } => {
     if (!settings.is_active || !settings.outreach_active) {
-      return { label: 'En pause', color: 'bg-slate-100 text-slate-700' };
+      return { label: 'En pause', variant: 'gray' };
     }
     if (schedulerStatus?.state === 'waiting_for_hours') {
       return {
         label: 'En attente jusqu’à 08 h 30 (Zurich)',
-        color: 'bg-amber-50 text-amber-800 border border-amber-200',
+        variant: 'orange',
       };
     }
     if (schedulerStatus?.state === 'quota_reached') {
       return {
         label: 'Limite du jour atteinte',
-        color: 'bg-blue-50 text-blue-800 border border-blue-200',
+        variant: 'blue',
       };
     }
     return {
       label: 'Actif pendant les heures suisses',
-      color: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      variant: 'green',
     };
   };
 
@@ -409,17 +419,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     <div className="space-y-6 pb-24 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-white shadow-lg flex items-center gap-2.5 text-xs sm:text-sm font-medium max-w-xl ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
@@ -427,7 +435,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+            <StatusDot variant={settings.is_active ? 'success' : 'warning'} isPulsing={settings.is_active} label="Statut" />
             <span>{formattedDate} · Espace d’achat suisse</span>
           </div>
           <h1 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
@@ -437,24 +445,22 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          <button
-            type="button"
+          <Button
+            label="Tester l’alerte"
+            variant="secondary"
+            size="sm"
             onClick={handleTestTelegram}
-            disabled={isTestingTelegram}
-            className="h-9 px-3.5 rounded-xl bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-[#0B2240] font-medium text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <Bell className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>{isTestingTelegram ? 'Envoi...' : 'Tester l’alerte'}</span>
-          </button>
+            isLoading={isTestingTelegram}
+            icon={<Bell className="w-3.5 h-3.5 text-[#FF6B00]" />}
+          />
 
-          <button
-            type="button"
+          <Button
+            label="Exporter CSV"
+            variant="secondary"
+            size="sm"
             onClick={handleExportCSV}
-            className="h-9 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-[#0B2240] font-medium text-xs flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Exporter CSV</span>
-          </button>
+            icon={<Download className="w-3.5 h-3.5 text-slate-500" />}
+          />
         </div>
       </div>
 
@@ -485,16 +491,20 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             <div className="flex items-start gap-2.5 flex-wrap">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${settings.is_active ? 'bg-emerald-500' : 'bg-[#FF6B00]'}`} />
+                  <StatusDot
+                    variant={settings.is_active ? 'success' : 'warning'}
+                    isPulsing={settings.is_active}
+                    label="Mission Jimy"
+                  />
                   <span className="text-xs font-medium text-slate-500">Mission Jimy</span>
                 </div>
                 <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[#0B2240] mt-1">
                   {settings.is_active ? 'Jimy est en mission' : 'Jimy attend votre signal'}
                 </h2>
               </div>
-              <span className={`ml-0 md:ml-auto px-2.5 py-1 rounded-lg text-[11px] font-medium ${schedulerBadge.color}`}>
-                {schedulerBadge.label}
-              </span>
+              <div className="ml-0 md:ml-auto">
+                <Badge label={schedulerBadge.label} variant={schedulerBadge.variant} />
+              </div>
             </div>
 
             <p className="text-base leading-7 text-slate-600 max-w-xl">
@@ -520,29 +530,59 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <span>Rythme d’envoi</span>
                 <span className="font-mono tabular-nums">{quotaPercent}% de la limite</span>
               </div>
-              <div className="h-1.5 bg-slate-200 overflow-hidden rounded-full">
-                <div className="bg-[#FF6B00] h-full rounded-full transition-[width] duration-300" style={{ width: `${quotaPercent}%` }} />
-              </div>
+              <ProgressBar
+                label="Rythme d’envoi"
+                value={quotaPercent}
+                max={100}
+                variant="accent"
+                isLabelHidden
+              />
             </div>
 
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button type="button" data-tour="poll-imap-btn" onClick={handlePollImap} disabled={isPollingImap} className="h-10 px-3 rounded-lg bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
-                <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isPollingImap ? 'animate-spin' : ''}`} />
-                <span>{isPollingImap ? 'Vérification...' : 'Vérifier les réponses'}</span>
-              </button>
-              <button type="button" onClick={handleEnablePush} disabled={isEnablingPush} className="h-10 px-3 rounded-lg bg-white hover:bg-slate-50 text-[#0B2240] border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
-                <Bell className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span>{isEnablingPush ? 'Activation...' : 'Activer les alertes'}</span>
-              </button>
-              <button type="button" data-tour="manual-dispatch-btn" onClick={handleDispatchStep} disabled={isDispatching || !canDispatchNow} title={dispatchTitle} className="h-10 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#C94F00] border border-orange-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
-                <Send className="w-3.5 h-3.5" />
-                <span>{isDispatching ? 'Envoi...' : 'Envoyer 1 maintenant'}</span>
-              </button>
+              <div data-tour="poll-imap-btn">
+                <Button
+                  label="Vérifier les réponses"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handlePollImap}
+                  isLoading={isPollingImap}
+                  icon={<RefreshCw className="w-3.5 h-3.5 text-slate-500" />}
+                />
+              </div>
+              <Button
+                label="Activer les alertes"
+                variant="secondary"
+                size="sm"
+                onClick={handleEnablePush}
+                isLoading={isEnablingPush}
+                icon={<Bell className="w-3.5 h-3.5 text-[#FF6B00]" />}
+              />
+              <div data-tour="manual-dispatch-btn" title={dispatchTitle}>
+                <Button
+                  label="Envoyer 1 maintenant"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleDispatchStep}
+                  isLoading={isDispatching}
+                  isDisabled={!canDispatchNow}
+                  icon={<Send className="w-3.5 h-3.5 text-[#FF6B00]" />}
+                />
+              </div>
               <div data-tour="auto-scout-switch">
-                <button type="button" onClick={toggleActiveScouting} className={`h-10 px-4 rounded-lg font-heading font-medium text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-2xs ${settings.is_active ? 'bg-[#0B2240] hover:bg-[#061529] text-white' : 'bg-[#FF6B00] hover:bg-[#E05E00] text-white'}`}>
-                  {settings.is_active ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                  <span>{settings.is_active ? 'Mettre Jimy en pause' : 'Mettre Jimy au travail'}</span>
-                </button>
+                <Button
+                  label={settings.is_active ? 'Mettre Jimy en pause' : 'Mettre Jimy au travail'}
+                  variant={settings.is_active ? 'secondary' : 'primary'}
+                  size="sm"
+                  onClick={toggleActiveScouting}
+                  icon={
+                    settings.is_active ? (
+                      <Pause className="w-3.5 h-3.5 fill-current" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    )
+                  }
+                />
               </div>
             </div>
           </div>
@@ -582,27 +622,22 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
+            <div className="flex items-center gap-3 shrink-0">
+              <Button
+                label="Chercher maintenant"
+                variant="secondary"
+                size="sm"
                 onClick={handleDiscoveryStep}
-                disabled={isDiscovering || !discoveryStatus?.provider_configured}
-                className="h-9 px-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <Search className={`w-3.5 h-3.5 ${isDiscovering ? 'animate-spin' : ''}`} />
-                <span>{isDiscovering ? 'Recherche...' : 'Chercher maintenant'}</span>
-              </button>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.discovery_active}
-                aria-label="Recherche automatique de sociétés"
-                onClick={() => toggleEngine('discovery_active')}
-                className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${settings.discovery_active ? 'bg-blue-600' : 'bg-slate-300'}`}
-                title="Activer ou arrêter la recherche automatique"
-              >
-                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.discovery_active ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+                isLoading={isDiscovering}
+                isDisabled={!discoveryStatus?.provider_configured}
+                icon={<Search className="w-3.5 h-3.5" />}
+              />
+              <Switch
+                label="Recherche automatique de sociétés"
+                isLabelHidden
+                value={settings.discovery_active}
+                onChange={() => void toggleEngine('discovery_active')}
+              />
             </div>
           </div>
 
@@ -614,11 +649,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-heading font-medium text-sm text-[#0B2240]">Envoi automatique</h3>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
-                    settings.outreach_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
-                  </span>
+                  <Badge
+                    label={settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
+                    variant={settings.outreach_active ? 'green' : 'gray'}
+                  />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Envoie des courriels aux sociétés vérifiées pendant les heures suisses.
@@ -629,17 +663,12 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings.outreach_active}
-              aria-label="Envoi automatique"
-              onClick={() => toggleEngine('outreach_active')}
-              className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${settings.outreach_active ? 'bg-emerald-600' : 'bg-slate-300'}`}
-              title="Activer ou arrêter l’envoi automatique"
-            >
-              <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.outreach_active ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
+            <Switch
+              label="Envoi automatique"
+              isLabelHidden
+              value={settings.outreach_active}
+              onChange={() => void toggleEngine('outreach_active')}
+            />
           </div>
         </div>
       </section>
@@ -865,13 +894,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
             </div>
 
             {logs.length === 0 ? (
-              <div className="p-8 text-center space-y-1.5">
-                <p className="text-sm font-semibold text-[#0B2240]">
-                  Jimy n’a encore envoyé aucun courriel
-                </p>
-                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                  Activez Jimy pour commencer les envois, ou cliquez sur « Envoyer 1 maintenant ».
-                </p>
+              <div className="p-6">
+                <EmptyState
+                  title="Jimy n’a encore envoyé aucun courriel"
+                  description="Activez Jimy pour commencer les envois, ou cliquez sur « Envoyer 1 maintenant »."
+                />
               </div>
             ) : (
               <div className="divide-y divide-slate-100">

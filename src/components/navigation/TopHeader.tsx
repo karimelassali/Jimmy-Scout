@@ -1,5 +1,10 @@
 import React from 'react';
-import { Compass, Bell, Mail, Sparkles } from 'lucide-react';
+import { Compass, Bell, Mail, Sparkles, Moon, Sun } from 'lucide-react';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Badge } from '@astryxdesign/core/Badge';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { PWAInstallButton } from '../pwa/PWAInstallButton.tsx';
 import { TabId } from './BottomBar.tsx';
 
@@ -14,6 +19,8 @@ interface TopHeaderProps {
   notificationCount?: number;
   onOpenNotifications?: () => void;
   onOpenJimmy?: () => void;
+  colorMode?: 'light' | 'dark';
+  onToggleColorMode?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -27,25 +34,23 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   notificationCount = 0,
   onOpenNotifications,
   onOpenJimmy,
+  colorMode = 'light',
+  onToggleColorMode,
 }) => {
-  const navItems: Array<{ id: TabId; label: string }> = [
+  const navItems: Array<{ id: TabId; label: string; count?: number }> = [
     { id: 'control', label: 'Accueil' },
-    {
-      id: 'leads',
-      label: unreadCount > 0 ? `Dossiers (${unreadCount})` : 'Dossiers',
-    },
-    {
-      id: 'emails',
-      label: sentCount > 0 ? `Courriels (${sentCount})` : 'Courriels',
-    },
+    { id: 'leads', label: 'Dossiers', count: unreadCount },
+    { id: 'emails', label: 'Courriels', count: sentCount },
     { id: 'targets', label: 'Régions' },
     { id: 'scanner', label: 'Scanner' },
     { id: 'persona', label: 'Réglages' },
   ];
 
+  const tabValue = activeTab === 'guide' ? 'control' : activeTab;
+
   return (
-    <header className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 pt-safe">
-      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 sm:gap-8">
+    <header className="sticky top-0 w-full z-40 bg-(--color-background-surface)/95 backdrop-blur-md border-b border-(--color-border-emphasized) pt-safe">
+      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6">
         {/* Zone 1: Official JimiScout Logo & Live Agent Status */}
         <div className="flex items-center gap-3 shrink-0">
           <a
@@ -64,94 +69,111 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             />
           </a>
 
-          <span className="hidden sm:inline-block h-4 w-px bg-slate-200" />
+          <span className="hidden sm:inline-block h-4 w-px bg-(--color-border-emphasized)" />
 
           <div
-            className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-              isAgentActive
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                : 'bg-orange-50 text-[#FF6B00] border-orange-200/80'
-            }`}
+            className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-(--color-background-muted) border border-(--color-border)"
             title={isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
           >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isAgentActive ? 'bg-emerald-500' : 'bg-[#FF6B00]'
-              }`}
+            <StatusDot
+              variant={isAgentActive ? 'success' : 'warning'}
+              isPulsing={isAgentActive}
+              label={isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
             />
-            <span>{isAgentActive ? 'Jimy travaille' : 'Jimy attend'}</span>
+            <span className="text-xs font-semibold text-(--color-text-primary)">
+              {isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
+            </span>
           </div>
         </div>
 
-        {/* Zone 2: Navigation tabs */}
-        <nav
-          data-tour="nav-tabs"
-          className="hidden md:flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/70"
-        >
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
+        {/* Zone 2: Astryx TabList Navigation */}
+        <div data-tour="nav-tabs" className="hidden md:flex items-center shrink-0">
+          <TabList
+            value={tabValue}
+            onChange={(val) => onSelectTab(val as TabId)}
+            size="sm"
+            overflow="visible"
+            aria-label="Navigation principale JimiScout"
+          >
+            {navItems.map((item) => (
+              <Tab
                 key={item.id}
-                onClick={() => onSelectTab(item.id)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-[#0B2240] shadow-2xs border border-slate-200/70 font-semibold'
-                    : 'text-slate-600 hover:text-[#0B2240] hover:bg-white/60'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+                value={item.id}
+                label={item.label}
+                endContent={
+                  item.count && item.count > 0 ? (
+                    <Badge
+                      label={String(item.count)}
+                      variant={item.id === 'leads' ? 'orange' : 'blue'}
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+          </TabList>
+        </div>
 
-        {/* Zone 3: Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          <button onClick={onOpenJimmy} className="h-9 px-3 rounded-lg bg-[#FFF4EC] border border-orange-100 text-[#B64A00] hover:bg-[#FFE8D7] text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#FF6B00]"/><span className="hidden sm:inline">Jimmy</span></button>
+        {/* Zone 3: Astryx Action Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {onOpenJimmy && (
+            <Button
+              label="Jimmy"
+              variant="secondary"
+              size="sm"
+              icon={<Sparkles className="w-4 h-4 text-[#FF6B00]" />}
+              onClick={onOpenJimmy}
+              tooltip="Discuter avec l’assistant IA Jimmy"
+            />
+          )}
+
           {onOpenNotifications && (
-            <button
-              type="button"
-              onClick={onOpenNotifications}
-              className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] flex items-center justify-center transition-colors cursor-pointer"
-              title="Activité et alertes"
-            >
-              <Bell className="w-4 h-4 text-slate-700" />
+            <div className="relative">
+              <IconButton
+                label="Activité et alertes"
+                tooltip="Activité et alertes"
+                variant="ghost"
+                size="sm"
+                icon={<Bell className="w-4 h-4" />}
+                onClick={onOpenNotifications}
+              />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 px-1 min-w-[17px] h-[17px] flex items-center justify-center bg-[#FF6B00] text-white text-[10px] font-mono font-bold rounded-full tabular-nums shadow-xs">
+                <span className="pointer-events-none absolute -top-1 -right-1 px-1 min-w-[17px] h-[17px] flex items-center justify-center bg-[#FF6B00] text-white text-[10px] font-mono font-bold rounded-full tabular-nums shadow-xs">
                   {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
               )}
-            </button>
+            </div>
           )}
 
           {onOpenGuide && (
-            <button
-              type="button"
+            <Button
+              label="Aide"
+              variant={activeTab === 'guide' ? 'primary' : 'ghost'}
+              size="sm"
+              icon={
+                <Compass
+                  className={`w-4 h-4 ${
+                    activeTab === 'guide' ? 'text-white' : 'text-[#FF6B00]'
+                  }`}
+                />
+              }
               onClick={onOpenGuide}
-              className={`h-9 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'guide'
-                  ? 'bg-[#0B2240] text-white'
-                  : 'bg-slate-100 hover:bg-slate-200 text-[#0B2240]'
-              }`}
-              title="Ouvrir l’aide de Jimy"
-              aria-current={activeTab === 'guide' ? 'page' : undefined}
-            >
-              <Compass className="w-4 h-4 text-[#FF6B00]" />
-              <span className="hidden sm:inline">Aide</span>
-            </button>
+              tooltip="Ouvrir le guide de Jimy"
+            />
           )}
+
           <PWAInstallButton />
-          {activeTab !== 'leads' && (
-            <button
-              data-tour="process-inbound-btn"
-              onClick={onPrimaryAction}
-              className="h-9 w-9 min-[430px]:w-auto min-[430px]:px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center justify-center gap-2"
-              aria-label="Coller une réponse"
-            >
-              <Mail className="w-4 h-4" />
-              <span className="hidden min-[430px]:inline">Coller une réponse</span>
-            </button>
+
+          {activeTab !== 'leads' && onPrimaryAction && (
+            <div data-tour="process-inbound-btn">
+              <Button
+                label="Coller une réponse"
+                variant="primary"
+                size="sm"
+                icon={<Mail className="w-4 h-4" />}
+                onClick={onPrimaryAction}
+                tooltip="Analyser et créer un dossier depuis une réponse reçue"
+              />
+            </div>
           )}
         </div>
       </div>

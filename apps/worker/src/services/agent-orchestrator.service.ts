@@ -170,13 +170,15 @@ export class AgentOrchestratorService {
           await supabaseDataService.updateAgentAction(action.id, { status: 'failed', error: err?.message || 'Action impossible.' });
         }
       }
+    } catch (err: any) {
+      console.warn('[AgentOrchestrator] Tick warning:', err?.message || err);
     } finally { this.running = false; }
   }
 
   startDaemonLoop(intervalMs = 60_000) {
     if (this.timer) return;
-    void this.tick();
-    this.timer = setInterval(() => void this.tick(), intervalMs);
+    void this.tick().catch(() => {});
+    this.timer = setInterval(() => void this.tick().catch(() => {}), intervalMs);
   }
 }
 

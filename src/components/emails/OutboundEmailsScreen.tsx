@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { OutboundLog, Company, AgentSettings } from '@/packages/types/src/database.ts';
 import {
   Search,
@@ -440,19 +444,17 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
   return (
     <div className="space-y-6 pb-24 md:pb-12 animate-in fade-in duration-300">
-      {/* Google-style Snackbar Toast */}
+      {/* Astryx Banner Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-white shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-medium max-w-xl transition-all ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
@@ -460,7 +462,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+            <StatusDot variant="warning" label="Journal des envois" />
             <span>Journal des envois · suivi SMTP</span>
           </div>
           <h1 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0B2240] tracking-tight mt-1">
@@ -471,38 +473,33 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons: Google Vivid Style */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
+          <Button
+            label="Actualiser"
+            variant="secondary"
+            size="sm"
             onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-9 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-            title="Actualiser l’historique"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Actualisation…' : 'Actualiser'}</span>
-          </button>
+            isLoading={isRefreshing}
+            icon={<RefreshCw className="w-3.5 h-3.5 text-slate-500" />}
+          />
 
-          <button
-            type="button"
+          <Button
+            label="Exporter"
+            variant="secondary"
+            size="sm"
             onClick={() => handleExportCSV(false)}
-            className="h-9 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Exporter les courriels filtrés"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Exporter</span>
-          </button>
+            icon={<Download className="w-3.5 h-3.5 text-slate-500" />}
+          />
 
-          <button
-            type="button"
+          <Button
+            label="Envoyer 1 courriel"
+            variant="primary"
+            size="sm"
             onClick={handleManualDispatch}
-            disabled={isDispatching}
-            className="h-9 px-4 rounded-lg bg-[#FF6B00] hover:bg-[#E05E00] text-white font-medium text-xs flex items-center gap-1.5 transition-[background-color,box-shadow] cursor-pointer shadow-2xs hover:shadow-sm disabled:opacity-50"
-          >
-            <Send className={`w-3.5 h-3.5 ${isDispatching ? 'animate-spin' : ''}`} />
-            <span>{isDispatching ? 'Envoi…' : 'Envoyer 1 courriel'}</span>
-          </button>
+            isLoading={isDispatching}
+            icon={<Send className="w-3.5 h-3.5" />}
+          />
         </div>
       </div>
 
@@ -543,12 +540,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             </span>
             <span className="text-xs text-slate-400 font-medium">/ {settings.daily_limit} maximum</span>
           </div>
-          <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div
-              className="bg-[#FF6B00] h-full rounded-full transition-[width] duration-300"
-              style={{
-                width: `${Math.min(100, Math.round((todaySentCount / Math.max(1, settings.daily_limit)) * 100))}%`,
-              }}
+          <div className="mt-2 w-full">
+            <ProgressBar
+              label="Limite du jour"
+              value={Math.min(100, Math.round((todaySentCount / Math.max(1, settings.daily_limit)) * 100))}
+              max={100}
+              variant="accent"
+              isLabelHidden
             />
           </div>
         </div>

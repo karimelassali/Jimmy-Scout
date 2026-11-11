@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { InboundLead, CallLogEntry } from '@/packages/types/src/lead.ts';
 import { Company, DealStatus } from '@/packages/types/src/database.ts';
 import { parsePriceString, convertToChf } from '@/packages/types/src/swiss.ts';
@@ -472,17 +476,15 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     <div className="space-y-8 pb-24 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-white shadow-lg flex items-center gap-2.5 text-sm font-medium max-w-xl ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
@@ -490,7 +492,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
       <section className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-[#FF6B00]" aria-hidden="true" />
+            <StatusDot variant="warning" label="Dossiers" />
             <span>{dealLeads.length} dossier{dealLeads.length === 1 ? '' : 's'} actif{dealLeads.length === 1 ? '' : 's'}</span>
           </div>
           <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
@@ -502,25 +504,24 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
 
         <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
-          <button
-            type="button"
+          <Button
+            label="Vérifier les réponses"
+            variant="secondary"
+            size="md"
             onClick={handlePollImap}
-            disabled={isPollingImap}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-[#0B2240] transition-colors hover:bg-slate-50 disabled:opacity-50 sm:flex-none sm:text-sm"
-          >
-            <RefreshCw className={`w-4 h-4 ${isPollingImap ? 'animate-spin' : ''}`} />
-            <span>{isPollingImap ? 'Vérification…' : 'Vérifier les réponses'}</span>
-          </button>
+            isLoading={isPollingImap}
+            icon={<RefreshCw className="w-4 h-4" />}
+          />
 
-          <button
-            type="button"
-            data-tour="process-inbound-btn"
-            onClick={() => setShowInboundModal(true)}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0B2240] px-5 text-xs font-medium text-white transition-colors hover:bg-[#173863] sm:flex-none sm:text-sm"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Coller une réponse</span>
-          </button>
+          <div data-tour="process-inbound-btn">
+            <Button
+              label="Coller une réponse"
+              variant="primary"
+              size="md"
+              onClick={() => setShowInboundModal(true)}
+              icon={<Mail className="w-4 h-4" />}
+            />
+          </div>
         </div>
       </section>
 
@@ -549,84 +550,33 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
 
         <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div
-            data-tour="leads-status-tabs"
-            className="inline-flex min-w-max items-center gap-1"
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('all')}
-              aria-pressed={selectedFilter === 'all'}
-              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'all'
-                  ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
+          <div data-tour="leads-status-tabs" className="min-w-max">
+            <SegmentedControl
+              label="Filtrer les dossiers"
+              size="sm"
+              value={selectedFilter}
+              onChange={(val) =>
+                setSelectedFilter(
+                  val as 'all' | 'pelles' | 'camions' | 'new' | 'review' | 'saved'
+                )
+              }
             >
-              Tous les dossiers ({activeLeads.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('pelles')}
-              aria-pressed={selectedFilter === 'pelles'}
-              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'pelles'
-                  ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
-            >
-              Pelles
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('camions')}
-              aria-pressed={selectedFilter === 'camions'}
-              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'camions'
-                  ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
-            >
-              Chargeuses et camions
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('new')}
-              aria-pressed={selectedFilter === 'new'}
-              className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'new'
-                  ? 'bg-[#0B2240] text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
-            >
-              Nouveaux
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('review')}
-              aria-pressed={selectedFilter === 'review'}
-              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'review'
-                  ? 'bg-amber-500 text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
-            >
-              <Inbox className="h-3.5 w-3.5" />
-              À vérifier ({reviewLeads.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('saved')}
-              aria-pressed={selectedFilter === 'saved'}
-              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                selectedFilter === 'saved'
-                  ? 'bg-[#FF6B00] text-white'
-                  : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
-              }`}
-            >
-              <Bookmark className="w-3.5 h-3.5 fill-current" />
-              <span>Favoris ({savedCount})</span>
-            </button>
+              <SegmentedControlItem
+                value="all"
+                label={`Tous les dossiers (${activeLeads.length})`}
+              />
+              <SegmentedControlItem value="pelles" label="Pelles" />
+              <SegmentedControlItem value="camions" label="Chargeuses et camions" />
+              <SegmentedControlItem value="new" label="Nouveaux" />
+              <SegmentedControlItem
+                value="review"
+                label={`À vérifier (${reviewLeads.length})`}
+              />
+              <SegmentedControlItem
+                value="saved"
+                label={`Favoris (${savedCount})`}
+              />
+            </SegmentedControl>
           </div>
         </div>
       </section>

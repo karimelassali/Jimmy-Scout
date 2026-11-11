@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import {
-  X,
-  Bell,
   CheckCheck,
   Check,
   Flame,
@@ -9,11 +13,8 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
-  Inbox,
-  Send,
   Eye,
   EyeOff,
-  Trash2,
 } from 'lucide-react';
 
 export interface NotificationItem {
@@ -54,18 +55,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   onClearSeenCounters,
 }) => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'offers' | 'emails'>('all');
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -108,132 +97,74 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-end sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={onClose}
+    <Drawer
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      side="end"
+      width={460}
+      padding={0}
+      label="Activité et alertes"
     >
-      <div
-        className="bg-white w-full sm:max-w-md h-full sm:h-auto sm:max-h-[90vh] sm:rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden sm:mt-14 sm:mr-4 animate-in slide-in-from-right duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Google Style Header */}
-        <div className="p-5 border-b border-slate-200/80 bg-white flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF6B00] border border-orange-200/80 flex items-center justify-center shrink-0">
-              <Bell className="w-5 h-5 text-[#FF6B00]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading font-bold text-base text-[#0B2240] leading-tight">
-                  Activity &amp; Notifications
-                </h2>
-                {unreadCount > 0 ? (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#FF6B00] text-white">
-                    {unreadCount} new
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    All seen
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Live contractor replies, offers &amp; dispatched emails
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
-            title="Fermer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+      <div className="flex flex-col h-full bg-white">
+        <div className="px-5 pt-4 pb-2 border-b border-slate-200/80">
+          <DrawerHeader
+            title="Activité et alertes"
+            subtitle="Réponses des vendeurs, offres et courriels envoyés"
+            onOpenChange={(open) => {
+              if (!open) onClose();
+            }}
+            endContent={
+              unreadCount > 0 ? (
+                <Badge label={`${unreadCount} nouv.`} variant="orange" />
+              ) : (
+                <Badge label="À jour" variant="green" />
+              )
+            }
+          />
         </div>
 
         {/* Action Controls & Filters */}
-        <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0">
-          {/* Segmented Filter Pills */}
-          <div className="inline-flex items-center p-0.5 bg-white rounded-xl border border-slate-200 text-xs shrink-0 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setFilter('all')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                filter === 'all'
-                  ? 'bg-[#0B2240] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-[#0B2240]'
-              }`}
-            >
-              All ({notifications.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('unread')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                filter === 'unread'
-                  ? 'bg-[#0B2240] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-[#0B2240]'
-              }`}
-            >
-              Unseen ({unreadCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('offers')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                filter === 'offers'
-                  ? 'bg-[#0B2240] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-[#0B2240]'
-              }`}
-            >
-              Offers
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter('emails')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                filter === 'emails'
-                  ? 'bg-[#0B2240] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-[#0B2240]'
-              }`}
-            >
-              Sent
-            </button>
-          </div>
+        <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+          <SegmentedControl
+            label="Filtrer les notifications"
+            size="sm"
+            value={filter}
+            onChange={(val) =>
+              setFilter(val as 'all' | 'unread' | 'offers' | 'emails')
+            }
+          >
+            <SegmentedControlItem value="all" label={`Tout (${notifications.length})`} />
+            <SegmentedControlItem value="unread" label={`Non lus (${unreadCount})`} />
+            <SegmentedControlItem value="offers" label="Offres" />
+            <SegmentedControlItem value="emails" label="Envoyés" />
+          </SegmentedControl>
 
-          {/* Mark All As Read */}
           {unreadCount > 0 && (
-            <button
-              type="button"
+            <Button
+              label="Tout marquer comme lu"
+              variant="ghost"
+              size="sm"
+              icon={<CheckCheck className="w-3.5 h-3.5" />}
               onClick={onMarkAllAsRead}
-              className="text-[11px] font-semibold text-[#1A73E8] hover:text-[#1557B0] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-              title="Tout marquer comme lu"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              <span>Tout marquer comme lu</span>
-            </button>
+            />
           )}
         </div>
 
         {/* Notifications List */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {filteredNotifications.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-                <Check className="w-6 h-6 text-emerald-500" />
-              </div>
-              <div>
-                <h4 className="font-heading font-semibold text-sm text-[#0B2240]">
-                  All caught up!
-                </h4>
-                <p className="text-xs text-slate-500 max-w-xs mt-0.5">
-                  {filter === 'unread'
+            <div className="p-8">
+              <EmptyState
+                icon={<Check className="w-6 h-6 text-emerald-500" />}
+                title="All caught up!"
+                description={
+                  filter === 'unread'
                     ? 'Aucune nouvelle alerte.'
-                    : 'Les actions de Jimy et les réponses des sociétés apparaîtront ici.'}
-                </p>
-              </div>
+                    : 'Les actions de Jimy et les réponses des sociétés apparaîtront ici.'
+                }
+              />
             </div>
           ) : (
             filteredNotifications.map((item) => {
@@ -248,7 +179,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                       : 'hover:bg-slate-50/80 bg-white'
                   }`}
                 >
-                  {/* Unread Blue Indicator Dot */}
                   {isUnread && (
                     <span
                       className="absolute top-4 right-3 w-2 h-2 rounded-full bg-[#1A73E8]"
@@ -256,7 +186,6 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                     />
                   )}
 
-                  {/* Icon Avatar */}
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                       item.type === 'offer'
@@ -275,21 +204,16 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                     )}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0 pr-4">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-heading font-bold text-xs text-[#0B2240]">
                         {item.title}
                       </span>
                       {item.canton && (
-                        <span className="px-1.5 py-0.2 rounded font-mono font-medium text-[10px] bg-slate-100 text-slate-700">
-                          {item.canton}
-                        </span>
+                        <Badge label={item.canton} variant="gray" />
                       )}
                       {item.price && (
-                        <span className="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] bg-orange-100/90 text-[#FF6B00]">
-                          {item.price}
-                        </span>
+                        <Badge label={item.price} variant="orange" />
                       )}
                     </div>
 
@@ -310,47 +234,49 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                     </div>
                   </div>
 
-                  {/* Mark as read/unread toggle button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (item.isRead) {
-                        onMarkAsUnread(item.id);
-                      } else {
-                        onMarkAsRead(item.id);
-                      }
-                    }}
-                    className="p-1 rounded text-slate-400 hover:text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={item.isRead ? 'Marquer comme non lu' : 'Marquer comme lu'}
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    {item.isRead ? (
-                      <EyeOff className="w-3.5 h-3.5" />
-                    ) : (
-                      <Eye className="w-3.5 h-3.5 text-[#1A73E8]" />
-                    )}
-                  </button>
+                    <IconButton
+                      label={item.isRead ? 'Marquer comme non lu' : 'Marquer comme lu'}
+                      variant="ghost"
+                      size="sm"
+                      icon={
+                        item.isRead ? (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5 text-[#1A73E8]" />
+                        )
+                      }
+                      onClick={() => {
+                        if (item.isRead) {
+                          onMarkAsUnread(item.id);
+                        } else {
+                          onMarkAsRead(item.id);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               );
             })
           )}
         </div>
 
-        {/* Google Style Footer: Reset Badge Counters */}
+        {/* Footer: Reset Badge Counters */}
         <div className="p-3 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-600 shrink-0">
-          <button
-            type="button"
+          <Button
+            label="Réinitialiser les alertes"
+            variant="ghost"
+            size="sm"
+            icon={<CheckCheck className="w-3.5 h-3.5 text-[#FF6B00]" />}
             onClick={onClearSeenCounters}
-            className="text-[11px] text-slate-500 hover:text-[#0B2240] flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Réinitialiser les alertes"
-          >
-            <CheckCheck className="w-3.5 h-3.5 text-[#FF6B00]" />
-            <span>Réinitialiser les alertes</span>
-          </button>
+          />
 
           <span className="text-[11px] text-slate-400">Activité de JimyScout</span>
         </div>
       </div>
-    </div>
+    </Drawer>
   );
 };

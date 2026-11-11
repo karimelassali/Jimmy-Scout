@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { Theme } from '@astryxdesign/core/theme';
+import { InternationalizationProvider } from '@astryxdesign/core/i18n';
+import frFR from '@astryxdesign/core/locales/fr-FR.generated.js';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { themes, defaultThemeSlug } from './astryx-themes.ts';
 import { TopHeader } from './components/navigation/TopHeader.tsx';
 import { BottomBar, TabId } from './components/navigation/BottomBar.tsx';
 import { SplashScreen } from './components/common/SplashScreen.tsx';
@@ -12,7 +20,7 @@ import {
   SchedulerStatus,
 } from '@/packages/types/src/database.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
-import { WifiOff, Lock, KeyRound, AlertCircle } from 'lucide-react';
+import { Lock, KeyRound } from 'lucide-react';
 import { JimmyChatModal } from './components/jimmy/JimmyChatModal.tsx';
 
 // Code-split heavy screens & modals
@@ -124,6 +132,8 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
+  const [colorMode] = useState<'light' | 'dark'>('light');
+  const toggleColorMode = undefined;
 
   // Authentication state (when JIMISCOUT_ADMIN_TOKEN is configured on backend)
   const [authRequired, setAuthRequired] = useState(false);
@@ -539,88 +549,95 @@ export default function App() {
   // Owner Authentication Gate when JIMISCOUT_ADMIN_TOKEN is enabled
   if (!isLoading && authRequired && !isAuthenticated) {
     return (
-      <>
-        {startupSplash}
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-200 text-[#FF6B00] flex items-center justify-center">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-heading font-bold text-xl text-[#0B2240]">
-                JimiScout Owner Access
-              </h1>
-              <p className="text-xs text-slate-500">
-                Espace privé d’achat de machines suisses — JIMY EXPORT
-              </p>
+      <InternationalizationProvider locale="fr-FR" messages={{ 'fr-FR': frFR }}>
+        <Theme theme={themes[defaultThemeSlug]} mode={colorMode}>
+          {startupSplash}
+          <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+              <Card>
+                <div className="p-4 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-200 text-[#FF6B00] flex items-center justify-center">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h1 className="font-heading font-bold text-xl text-[#0B2240]">
+                        JimiScout Owner Access
+                      </h1>
+                      <p className="text-xs text-slate-500">
+                        Espace privé d’achat de machines suisses — JIMY EXPORT
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    <TextInput
+                      label="Admin Access Token"
+                      type="password"
+                      isRequired
+                      value={loginToken}
+                      onChange={setLoginToken}
+                      placeholder="Entrez le code d’accès JimyScout…"
+                    />
+
+                    {loginError && (
+                      <Banner
+                        status="error"
+                        container="card"
+                        collapsible={false}
+                        title={loginError}
+                      />
+                    )}
+
+                    <Button
+                      label="Ouvrir mon espace"
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      isLoading={isLoggingIn}
+                      width="100%"
+                    />
+                  </form>
+                </div>
+              </Card>
             </div>
           </div>
-
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                Admin Access Token
-              </label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="password"
-                  required
-                  value={loginToken}
-                  onChange={(e) => setLoginToken(e.target.value)}
-                  placeholder="Entrez le code d’accès JimyScout…"
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3 text-sm text-[#0B2240] focus:outline-none focus:border-[#FF6B00]"
-                />
-              </div>
-            </div>
-
-            {loginError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isLoggingIn ? 'Connexion…' : 'Ouvrir mon espace'}
-            </button>
-          </form>
-          </div>
-        </div>
-      </>
+        </Theme>
+      </InternationalizationProvider>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative overflow-x-hidden w-full max-w-full">
-      {startupSplash}
+    <InternationalizationProvider locale="fr-FR" messages={{ 'fr-FR': frFR }}>
+      <Theme theme={themes[defaultThemeSlug]} mode={colorMode}>
+        <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-slate-900/10 relative overflow-x-hidden w-full max-w-full">
+          {startupSplash}
 
-      {/* Offline Banner */}
-      {!isOnline && (
-        <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
-          <WifiOff className="w-3.5 h-3.5" />
-          <span>Mode hors ligne — données suisses en cache</span>
-        </div>
-      )}
+          {/* Offline Banner */}
+          {!isOnline && (
+            <Banner
+              status="warning"
+              container="section"
+              collapsible={false}
+              title="Mode hors ligne — données suisses en cache"
+            />
+          )}
 
-      {/* Top Navigation Bar */}
-      <TopHeader
-        activeTab={activeTab}
-        onSelectTab={selectTab}
-        unreadCount={unseenLeadsCount}
-        sentCount={unseenLogsCount}
-        notificationCount={unreadNotificationsCount}
-        onOpenNotifications={() => setIsNotificationOpen(true)}
-        onOpenJimmy={() => setIsJimmyChatOpen(true)}
-        onPrimaryAction={handlePrimaryTrigger}
-        isAgentActive={settings.is_active}
-        onOpenGuide={() => selectTab('guide')}
-      />
+          {/* Top Navigation Bar */}
+          <TopHeader
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            unreadCount={unseenLeadsCount}
+            sentCount={unseenLogsCount}
+            notificationCount={unreadNotificationsCount}
+            onOpenNotifications={() => setIsNotificationOpen(true)}
+            onOpenJimmy={() => setIsJimmyChatOpen(true)}
+            onPrimaryAction={handlePrimaryTrigger}
+            isAgentActive={settings.is_active}
+            onOpenGuide={() => selectTab('guide')}
+            colorMode={colorMode}
+            onToggleColorMode={toggleColorMode}
+          />
 
       {/* Responsive Workspace Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
@@ -760,6 +777,8 @@ export default function App() {
           setIsJimmyChatOpen(false);
         }}
       />
-    </div>
+        </div>
+      </Theme>
+    </InternationalizationProvider>
   );
 }

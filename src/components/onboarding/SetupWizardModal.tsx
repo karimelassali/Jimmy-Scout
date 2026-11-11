@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Switch } from '@astryxdesign/core/Switch';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { AgentSettings, ToneType, PersonaHooks } from '@/packages/types/src/database.ts';
-import { Check, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export interface SetupWizardModalProps {
   isOpen: boolean;
@@ -84,7 +90,8 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
       if (settings.tone) setDraftTone(settings.tone);
       if (settings.daily_limit) setDraftLimit(settings.daily_limit);
     }
-  }, [isOpen, settings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -143,43 +150,33 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]"
-      onClick={onClose}
+    <Dialog
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open && onClose) onClose();
+      }}
+      width={520}
+      padding={0}
     >
-      <div
-        className="bg-white rounded-2xl w-full max-w-[480px] shadow-xl border border-[#DADCE0] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top thin Google progress indicator */}
-        <div className="h-1 w-full bg-[#F1F3F4]">
-          <div
-            className="h-full bg-[#1A73E8] transition-transform duration-200 origin-left"
-            style={{ transform: `scaleX(${step === 0 ? 0.5 : 1})` }}
+      <div className="bg-white flex flex-col overflow-hidden">
+        <div className="px-6 pt-4">
+          <ProgressBar
+            label="Progression de la configuration"
+            value={step === 0 ? 50 : 100}
+            max={100}
+            variant="accent"
+            isLabelHidden
           />
         </div>
 
-        {/* Clean Google Dialog Header */}
-        <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
-          <div>
-            <div className="text-xs font-medium text-[#5F6368]">
-              Step {step + 1} of 2 · Workspace Setup
-            </div>
-            <h2 className="text-lg font-semibold text-[#202124] mt-0.5 tracking-tight">
-              {step === 0 ? 'Votre profil et les machines' : 'Cantons et rythme des envois'}
-            </h2>
-          </div>
-
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full text-[#5F6368] hover:text-[#202124] hover:bg-[#F1F3F4] flex items-center justify-center transition-colors cursor-pointer shrink-0 -mr-1"
-              title="Fermer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+        <div className="px-6 pt-3">
+          <DialogHeader
+            title={step === 0 ? 'Votre profil et les machines' : 'Cantons et rythme des envois'}
+            subtitle={`Étape ${step + 1} sur 2 · Configuration JimiScout`}
+            onOpenChange={(open) => {
+              if (!open && onClose) onClose();
+            }}
+          />
         </div>
 
         {/* Body */}
@@ -187,46 +184,30 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
           {step === 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#3C4043] mb-1">
-                    Sender name
-                  </label>
-                  <input
-                    type="text"
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    placeholder="Ex. Jamal"
-                    autoFocus
-                    className="w-full h-10 px-3 rounded-lg bg-white border border-[#DADCE0] text-sm text-[#202124] placeholder:text-[#80868B] focus:outline-none focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/15 transition-colors"
-                  />
-                </div>
+                <TextInput
+                  label="Sender name"
+                  value={draftName}
+                  onChange={setDraftName}
+                  placeholder="Ex. Jamal"
+                  hasAutoFocus
+                />
 
-                <div>
-                  <label className="block text-xs font-medium text-[#3C4043] mb-1">
-                    Direct phone / WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    value={draftPhone}
-                    onChange={(e) => setDraftPhone(e.target.value)}
-                    placeholder="+41 79 123 45 67"
-                    className="w-full h-10 px-3 rounded-lg bg-white border border-[#DADCE0] text-sm text-[#202124] placeholder:text-[#80868B] focus:outline-none focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/15 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#3C4043] mb-1">
-                  Adresse courriel de réponse
-                </label>
-                <input
-                  type="email"
-                  value={draftEmail}
-                  onChange={(e) => setDraftEmail(e.target.value)}
-                  placeholder="info@jimyexport.ch"
-                  className="w-full h-10 px-3 rounded-lg bg-white border border-[#DADCE0] text-sm text-[#202124] placeholder:text-[#80868B] focus:outline-none focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/15 transition-colors"
+                <TextInput
+                  label="Direct phone / WhatsApp"
+                  type="tel"
+                  value={draftPhone}
+                  onChange={setDraftPhone}
+                  placeholder="+41 79 123 45 67"
                 />
               </div>
+
+              <TextInput
+                label="Adresse courriel de réponse"
+                type="email"
+                value={draftEmail}
+                onChange={setDraftEmail}
+                placeholder="info@jimyexport.ch"
+              />
 
               <div className="pt-2 border-t border-[#F1F3F4]">
                 <div className="flex items-center justify-between mb-2">
@@ -333,127 +314,99 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <label className="block text-xs font-medium text-[#3C4043] mb-1.5">
                     Limite de courriels par jour
                   </label>
-                  <div className="grid grid-cols-4 gap-1 p-1 bg-[#F1F3F4] rounded-lg">
+                  <SegmentedControl
+                    label="Limite de courriels par jour"
+                    size="sm"
+                    value={String(draftLimit)}
+                    onChange={(val) => setDraftLimit(Number(val))}
+                  >
                     {[15, 25, 35, 50].map((val) => (
-                      <button
+                      <SegmentedControlItem
                         key={val}
-                        type="button"
-                        onClick={() => setDraftLimit(val)}
-                        className={`h-7 rounded-md text-xs font-mono tabular-nums font-medium transition-colors cursor-pointer ${
-                          draftLimit === val
-                            ? 'bg-white text-[#202124] shadow-2xs'
-                            : 'text-[#5F6368] hover:text-[#202124]'
-                        }`}
-                      >
-                        {val}/d
-                      </button>
+                        value={String(val)}
+                        label={`${val}/j`}
+                      />
                     ))}
-                  </div>
+                  </SegmentedControl>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-[#3C4043] mb-1.5">
                     Ton des courriels
                   </label>
-                  <div className="grid grid-cols-3 gap-1 p-1 bg-[#F1F3F4] rounded-lg">
-                    {(
-                      [
-                        { id: 'swiss_formal', label: 'Formel' },
-                        { id: 'approachable_trade', label: 'Direct' },
-                        { id: 'fast_cash', label: 'Paiement rapide' },
-                      ] as const
-                    ).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setDraftTone(t.id)}
-                        className={`h-7 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                          draftTone === t.id
-                            ? 'bg-white text-[#202124] shadow-2xs'
-                            : 'text-[#5F6368] hover:text-[#202124]'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    label="Ton des courriels"
+                    size="sm"
+                    value={draftTone}
+                    onChange={(val) => setDraftTone(val as ToneType)}
+                  >
+                    <SegmentedControlItem value="swiss_formal" label="Formel" />
+                    <SegmentedControlItem value="approachable_trade" label="Direct" />
+                    <SegmentedControlItem value="fast_cash" label="Rapide" />
+                  </SegmentedControl>
                 </div>
               </div>
 
               {/* Clean Auto-Dispatch Toggle */}
               <div className="pt-3 border-t border-[#F1F3F4]">
-                <label className="flex items-center justify-between gap-3 py-1 cursor-pointer">
+                <div className="flex items-center justify-between gap-3 py-1">
                   <div>
                     <div className="text-xs font-medium text-[#202124]">
-                      Enable automated schedule
+                      Activer l’envoi automatique
                     </div>
                     <div className="text-[11px] text-[#5F6368]">
-                      Sends inquiries Mon–Fri during Swiss business hours (08:30–17:00)
+                      Envoie du lundi au vendredi pendant les heures suisses (08:30–17:00)
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={draftStartActive}
-                    onClick={() => setDraftStartActive(!draftStartActive)}
-                    className={`w-10 h-6 rounded-full transition-colors p-0.5 cursor-pointer shrink-0 ${
-                      draftStartActive ? 'bg-[#1A73E8]' : 'bg-[#DADCE0]'
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${
-                        draftStartActive ? 'translate-x-4' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </label>
+                  <Switch
+                    label="Activer l’envoi automatique"
+                    isLabelHidden
+                    value={draftStartActive}
+                    onChange={setDraftStartActive}
+                  />
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Clean Google Dialog Footer */}
+        {/* Clean Dialog Footer */}
         <div className="px-6 py-3.5 border-t border-[#F1F3F4] bg-white flex items-center justify-between gap-3">
           {step === 0 ? (
-            <button
-              type="button"
+            <Button
+              label="Passer pour l’instant"
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              className="h-9 px-3 rounded-lg text-xs font-medium text-[#5F6368] hover:text-[#202124] hover:bg-[#F1F3F4] transition-colors cursor-pointer"
-            >
-              Skip for now
-            </button>
+            />
           ) : (
-            <button
-              type="button"
+            <Button
+              label="Retour"
+              variant="ghost"
+              size="sm"
+              icon={<ChevronLeft className="w-3.5 h-3.5" />}
               onClick={() => setStep(0)}
-              className="h-9 px-3 rounded-lg text-xs font-medium text-[#5F6368] hover:text-[#202124] hover:bg-[#F1F3F4] flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Retour</span>
-            </button>
+            />
           )}
 
           {step === 0 ? (
-            <button
-              type="button"
+            <Button
+              label="Suivant"
+              variant="primary"
+              size="sm"
               onClick={() => setStep(1)}
-              className="h-9 px-4 rounded-lg bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <span>Suivant</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            />
           ) : (
-            <button
-              type="button"
-              onClick={handleFinish}
-              disabled={isSaving}
-              className="h-9 px-5 rounded-lg bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <span>{isSaving ? 'Enregistrement...' : 'Enregistrer la configuration'}</span>
-            </button>
+            <Button
+              label="Enregistrer la configuration"
+              variant="primary"
+              size="sm"
+              isLoading={isSaving}
+              onClick={() => void handleFinish()}
+            />
           )}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

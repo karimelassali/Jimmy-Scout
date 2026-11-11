@@ -1,4 +1,7 @@
 import React, { useState, useRef } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
 import { Company } from '@/packages/types/src/database.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import {
@@ -321,26 +324,23 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
     <div className="space-y-6 pb-24 md:pb-12">
       {/* Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-white shadow-lg flex items-center gap-2.5 text-sm font-medium max-w-xl ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-[#FF6B00] text-xs font-bold uppercase tracking-wider mb-2 border border-orange-200">
-            <Camera className="w-3.5 h-3.5" />
-              <span>Scanner de cartes de visite</span>
+          <div className="mb-2">
+            <Badge label="Scanner de cartes de visite" variant="orange" />
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0B2240] tracking-tight">
             Lire des cartes et ajouter plusieurs sociétés
@@ -350,15 +350,15 @@ export const BusinessCardScannerScreen: React.FC<BusinessCardScannerScreenProps>
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onNavigateToTargets}
-          className="self-start sm:self-auto h-10 px-4 rounded-xl bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-slate-300 text-[#0B2240] font-heading font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-        >
-          <Building2 className="w-4 h-4 text-[#FF6B00]" />
-          <span>Voir les sociétés ({existingCompanies.length})</span>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-        </button>
+        <div className="self-start sm:self-auto">
+          <Button
+            label={`Voir les sociétés (${existingCompanies.length})`}
+            variant="secondary"
+            size="sm"
+            onClick={onNavigateToTargets}
+            icon={<Building2 className="w-4 h-4 text-[#FF6B00]" />}
+          />
+        </div>
       </div>
 
       {/* Hidden file inputs */}

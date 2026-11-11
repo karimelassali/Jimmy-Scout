@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AgentFeatureControls, AgentSettings, AutomationMode, WatchlistRule } from '@/packages/types/src/database.ts';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { Bot, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -60,48 +65,97 @@ export const AgentControlsPanel: React.FC<Props> = ({ settings, onUpdateSettings
   };
 
   return (
-    <section className="bg-white rounded-3xl p-5 border border-slate-200/90 space-y-5">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF6B00] flex items-center justify-center shrink-0"><Bot className="w-5 h-5" /></div>
-        <div>
-          <h2 className="font-heading font-bold text-[#0B2240]">Ce que Jimy peut faire seul</h2>
-          <p className="text-xs text-slate-600 mt-1">Le bouton principal arrête tout. Ici, vous choisissez le niveau de liberté pour chaque travail.</p>
+    <Card>
+      <div className="space-y-5">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-50 text-[#FF6B00] flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-heading font-bold text-[#0B2240]">Ce que Jimy peut faire seul</h2>
+            <p className="text-xs text-slate-600 mt-1">
+              Le bouton principal arrête tout. Ici, vous choisissez le niveau de liberté pour chaque travail.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-3">
-        {features.map((feature) => (
-          <div key={feature.key} className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
-            <div className="font-semibold text-sm text-[#0B2240]">{feature.name}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{feature.text}</div>
-            <div className={`grid ${feature.canAsk ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 mt-3`} role="group" aria-label={`Mode pour ${feature.name}`}>
-              {modes.filter((mode) => feature.canAsk || mode.id !== 'approval').map((mode) => {
-                const active = settings.feature_controls[feature.key] === mode.id;
-                return <button key={mode.id} type="button" onClick={() => void changeMode(feature.key, mode.id)} className={`h-8 rounded-lg text-[11px] font-semibold border transition-colors ${active ? 'bg-[#0B2240] text-white border-[#0B2240]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>{mode.label}</button>;
-              })}
+        <div className="space-y-3">
+          {features.map((feature) => {
+            const availableModes = modes.filter((mode) => feature.canAsk || mode.id !== 'approval');
+            return (
+              <div key={feature.key} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <div>
+                  <div className="font-semibold text-sm text-[#0B2240]">{feature.name}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{feature.text}</div>
+                </div>
+                <SegmentedControl
+                  label={`Mode pour ${feature.name}`}
+                  size="sm"
+                  layout="fill"
+                  value={settings.feature_controls[feature.key]}
+                  onChange={(val) => void changeMode(feature.key, val as AutomationMode)}
+                >
+                  {availableModes.map((mode) => (
+                    <SegmentedControlItem
+                      key={mode.id}
+                      value={mode.id}
+                      label={mode.label}
+                    />
+                  ))}
+                </SegmentedControl>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-slate-200 pt-4 space-y-3">
+          <div>
+            <h3 className="font-bold text-sm text-[#0B2240]">Mes listes de recherche</h3>
+            <p className="text-xs text-slate-500">Exemple : pelle CAT, camion Volvo ou concasseur.</p>
+          </div>
+          {watchlists.map((rule) => (
+            <div key={rule.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-emerald-900 truncate">{rule.name}</div>
+                <div className="text-[11px] text-emerald-700 truncate">{rule.keywords.join(', ')}</div>
+              </div>
+              <IconButton
+                label={`Supprimer ${rule.name}`}
+                variant="ghost"
+                size="sm"
+                icon={<Trash2 className="w-4 h-4 text-slate-500" />}
+                onClick={() => void removeWatchlist(rule.id)}
+              />
             </div>
+          ))}
+          <div className="grid grid-cols-1 gap-2.5">
+            <TextInput
+              label="Nom de la liste"
+              isLabelHidden
+              value={name}
+              onChange={setName}
+              placeholder="Nom de la liste"
+            />
+            <TextInput
+              label="Mots-clés"
+              isLabelHidden
+              value={keywords}
+              onChange={setKeywords}
+              placeholder="Mots séparés par une virgule"
+            />
+            <Button
+              label="Ajouter la liste"
+              variant="primary"
+              size="md"
+              isLoading={saving}
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => void createWatchlist()}
+              width="100%"
+            />
           </div>
-        ))}
-      </div>
-
-      <div className="border-t border-slate-200 pt-4 space-y-3">
-        <div>
-          <h3 className="font-bold text-sm text-[#0B2240]">Mes listes de recherche</h3>
-          <p className="text-xs text-slate-500">Exemple : pelle CAT, camion Volvo ou concasseur.</p>
-        </div>
-        {watchlists.map((rule) => (
-          <div key={rule.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-100">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <div className="min-w-0 flex-1"><div className="text-xs font-bold text-emerald-900 truncate">{rule.name}</div><div className="text-[11px] text-emerald-700 truncate">{rule.keywords.join(', ')}</div></div>
-            <button type="button" aria-label={`Supprimer ${rule.name}`} onClick={() => void removeWatchlist(rule.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-          </div>
-        ))}
-        <div className="grid grid-cols-1 gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom de la liste" className="h-10 rounded-xl border border-slate-200 px-3 text-sm" />
-          <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Mots séparés par une virgule" className="h-10 rounded-xl border border-slate-200 px-3 text-sm" />
-          <button type="button" disabled={saving} onClick={() => void createWatchlist()} className="h-10 rounded-xl bg-[#FF6B00] text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"><Plus className="w-4 h-4" />{saving ? 'Ajout...' : 'Ajouter la liste'}</button>
         </div>
       </div>
-    </section>
+    </Card>
   );
 };

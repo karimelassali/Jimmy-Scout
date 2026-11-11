@@ -1,4 +1,10 @@
 import React, { useState } from 'react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Switch } from '@astryxdesign/core/Switch';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { AgentSettings, Company, ToneType } from '@/packages/types/src/database.ts';
 import { localizeEquipmentFocus } from '@/packages/types/src/swiss.ts';
 import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
@@ -10,11 +16,8 @@ import {
   Mail,
   Check,
   CheckCircle2,
-  AlertCircle,
-  X,
   Compass,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 interface PersonaScreenProps {
@@ -152,17 +155,15 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     <div className="space-y-6 pb-24 md:pb-12">
       {/* Snackbar Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-white shadow-lg flex items-center gap-2.5 text-sm font-medium max-w-xl ${
-            toast.isError ? 'bg-red-700' : 'bg-[#0B2240]'
-          }`}
-        >
-          {toast.isError ? (
-            <AlertCircle className="w-4 h-4 text-white shrink-0" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0" />
-          )}
-          <span>{toast.msg}</span>
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4">
+          <Banner
+            status={toast.isError ? 'error' : 'info'}
+            container="card"
+            collapsible={false}
+            isDismissable
+            title={toast.msg}
+            onDismiss={() => setToast(null)}
+          />
         </div>
       )}
 
@@ -179,24 +180,23 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           {onOpenSetupWizard && (
-            <button
-              type="button"
+            <Button
+              label="Réglage rapide"
+              variant="secondary"
+              size="sm"
               onClick={onOpenSetupWizard}
-              className="h-10 px-4 rounded-lg bg-white hover:bg-[#F8F9FA] text-[#3C4043] border border-[#DADCE0] font-medium text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <span>Réglage rapide</span>
-            </button>
+            />
           )}
 
-          <button
-            type="button"
-            data-tour="persona-test-email"
-            onClick={() => setShowTestModal(true)}
-            className="h-11 px-5 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-          >
-            <Send className="w-4 h-4" />
-            <span>Voir un exemple de courriel de Jimy</span>
-          </button>
+          <div data-tour="persona-test-email">
+            <Button
+              label="Voir un exemple de courriel de Jimy"
+              variant="primary"
+              size="sm"
+              icon={<Send className="w-4 h-4" />}
+              onClick={() => setShowTestModal(true)}
+            />
+          </div>
         </div>
       </div>
 
@@ -423,7 +423,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 return (
                   <div
                     key={hook.key}
-                    onClick={() => handleToggleHook(hook.key)}
+                    onClick={() => void handleToggleHook(hook.key)}
                     className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 cursor-pointer transition-colors"
                   >
                     <div className="pr-3">
@@ -433,14 +433,13 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                       <div className="text-xs text-slate-500 mt-0.5">{hook.desc}</div>
                     </div>
 
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                        isChecked
-                          ? 'bg-[#FF6B00] text-white'
-                          : 'border-2 border-slate-300 bg-white text-transparent'
-                      }`}
-                    >
-                      <Check className="w-4 h-4 stroke-[3]" />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label={hook.title}
+                        isLabelHidden
+                        value={isChecked}
+                        onChange={() => void handleToggleHook(hook.key)}
+                      />
                     </div>
                   </div>
                 );
@@ -522,29 +521,17 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
             </div>
 
             {/* Segmented Language Switcher */}
-            <div className="w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
-              <div className="inline-flex items-center p-1 bg-slate-100 rounded-full shrink-0 min-w-max">
-                {(
-                  [
-                    { id: 'fr', label: 'FR · Romandie' },
-                    { id: 'de', label: 'DE · Suisse alémanique' },
-                    { id: 'it', label: 'IT · Tessin' },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveLang(tab.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      activeLang === tab.id
-                        ? 'bg-white text-[#0B2240] shadow-2xs'
-                        : 'text-slate-600 hover:text-[#0B2240]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+            <div className="shrink-0">
+              <SegmentedControl
+                label="Langue d’aperçu"
+                size="sm"
+                value={activeLang}
+                onChange={(val) => setActiveLang(val as 'fr' | 'de' | 'it')}
+              >
+                <SegmentedControlItem value="fr" label="FR · Romandie" />
+                <SegmentedControlItem value="de" label="DE · Alémanique" />
+                <SegmentedControlItem value="it" label="IT · Tessin" />
+              </SegmentedControl>
             </div>
           </div>
 
@@ -729,52 +716,41 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
       </div>
 
       {/* TEST EMAIL MODAL */}
-      {showTestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-heading font-bold text-lg text-[#0B2240]">
-                M’envoyer un courriel de test
-              </h3>
-              <button
-                onClick={() => setShowTestModal(false)}
-                className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Dialog
+        isOpen={showTestModal}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setShowTestModal(false);
+        }}
+        width={460}
+      >
+        <DialogHeader
+          title="M’envoyer un courriel de test"
+          subtitle={`Envoie le courriel ${activeLang.toUpperCase()} dans votre boîte pour vérifier son apparence.`}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setShowTestModal(false);
+          }}
+        />
+        <form onSubmit={handleSendTestEmail} className="pt-4 space-y-4">
+          <TextInput
+            label="Envoyer à :"
+            type="email"
+            isRequired
+            value={testEmail}
+            onChange={setTestEmail}
+            placeholder={settings.sender_email}
+          />
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Envoie le courriel <strong>{activeLang.toUpperCase()}</strong> dans votre boîte pour vérifier son apparence.
-            </p>
-
-            <form onSubmit={handleSendTestEmail} className="space-y-4">
-              <div className="space-y-1.5 text-xs">
-                <label className="font-semibold text-slate-600 block">
-                  Envoyer à :
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  placeholder={settings.sender_email}
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm text-[#0B2240] focus:outline-none focus:border-[#0B2240]"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSendingTest}
-                className="w-full h-11 rounded-full bg-[#FF6B00] hover:bg-[#E05E00] text-white font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-                <span>{isSendingTest ? 'Envoi...' : 'Envoyer un test'}</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+          <Button
+            label="Envoyer un test"
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={isSendingTest}
+            icon={<Send className="w-4 h-4" />}
+            width="100%"
+          />
+        </form>
+      </Dialog>
 
     </div>
   );

@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import type { TabId } from '../navigation/BottomBar.tsx';
 import {
   ArrowRight,
@@ -73,23 +76,30 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
 
   return (
     <div className="pb-24 md:pb-12">
-      <section className="relative overflow-hidden rounded-[32px] bg-[#0B2240] px-5 py-9 text-white sm:px-10 sm:py-12">
+      <section className="relative overflow-hidden rounded-[32px] bg-[#0B2240] px-5 py-9 text-white [--color-text-primary:#FFFFFF] sm:px-10 sm:py-12">
         <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#FF6B00]/20 blur-3xl" />
         <div className="relative max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">
-            <Sparkles className="h-3.5 w-3.5 text-orange-300" /> Cours rapide · 10 minutes
+          <div className="inline-flex items-center gap-2">
+            <Badge label="Cours rapide · 10 minutes" variant="orange" />
           </div>
-          <h1 className="mt-5 font-heading text-3xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-5 font-heading text-3xl font-bold tracking-tight text-white sm:text-5xl">
             Comprendre Jimy, simplement
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
             Cette page montre le vrai écran de l’application. Lisez de haut en bas. À la fin, vous saurez quoi régler, quoi regarder et quand valider une action.
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <button type="button" onClick={() => jumpTo('commencer')} className="h-11 rounded-full bg-[#FF6B00] px-5 text-sm font-bold text-white hover:bg-[#E05E00]">
-              Commencer le cours
-            </button>
-            <button type="button" onClick={() => onNavigate('control')} className="h-11 rounded-full border border-white/25 bg-white/10 px-5 text-sm font-semibold text-white hover:bg-white/15">
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Button
+              label="Commencer le cours"
+              variant="primary"
+              size="lg"
+              onClick={() => jumpTo('commencer')}
+            />
+            <button
+              type="button"
+              onClick={() => onNavigate('control')}
+              className="h-10 px-5 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-colors cursor-pointer"
+            >
               Aller à l’accueil
             </button>
           </div>
@@ -322,22 +332,50 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="rounded-[30px] bg-[#0B2240] p-7 text-white sm:p-10">
+      <section className="rounded-[30px] bg-[#0B2240] p-7 text-white [--color-text-primary:#FFFFFF] sm:p-10">
         <Bot className="h-8 w-8 text-orange-300" />
-        <h2 className="mt-4 font-heading text-3xl font-bold">Vous êtes prêt</h2>
+        <h2 className="mt-4 font-heading text-3xl font-bold text-white">Vous êtes prêt</h2>
         <p className="mt-3 max-w-2xl leading-7 text-slate-200">Commencez avec « Me demander » pour les courriels importants. Quand vous connaissez bien le travail de Jimy, passez seulement les fonctions simples en « Auto ».</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={() => onNavigate('control')} className="h-11 rounded-full bg-[#FF6B00] px-5 text-sm font-bold">Aller à l’accueil</button>
-          <button type="button" onClick={() => onNavigate('persona')} className="h-11 rounded-full border border-white/25 bg-white/10 px-5 text-sm font-semibold">Vérifier mes réglages</button>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Button
+            label="Aller à l’accueil"
+            variant="primary"
+            size="lg"
+            onClick={() => onNavigate('control')}
+          />
+          <button
+            type="button"
+            onClick={() => onNavigate('persona')}
+            className="h-10 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 px-5 text-sm font-semibold text-white transition-colors cursor-pointer"
+          >
+            Vérifier mes réglages
+          </button>
         </div>
       </section>
 
-      {largeImage ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 p-3 sm:p-8" role="dialog" aria-modal="true" aria-label="Capture agrandie">
-          <button type="button" onClick={() => setLargeImage(null)} className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#0B2240]" aria-label="Fermer l’image"><X className="h-5 w-5" /></button>
-          <img src={largeImage} alt="Capture agrandie de l’application" className="max-h-full max-w-full rounded-xl object-contain" />
+      <Dialog
+        isOpen={Boolean(largeImage)}
+        onOpenChange={(open) => {
+          if (!open) setLargeImage(null);
+        }}
+        width={1100}
+      >
+        <DialogHeader
+          title="Capture agrandie de l’application"
+          onOpenChange={(open) => {
+            if (!open) setLargeImage(null);
+          }}
+        />
+        <div className="p-4 bg-slate-950 flex items-center justify-center">
+          {largeImage && (
+            <img
+              src={largeImage}
+              alt="Capture agrandie de l’application"
+              className="max-h-[80vh] max-w-full rounded-xl object-contain"
+            />
+          )}
         </div>
-      ) : null}
+      </Dialog>
     </div>
   );
 };

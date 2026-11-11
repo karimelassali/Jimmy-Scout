@@ -1,4 +1,5 @@
 import express from 'express';
+import net from 'net';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -1590,13 +1591,56 @@ app.post('/api/discovery/step', rateLimit(10, 60_000), async (req, res) => {
 // ----------------------------------------------------
 // Frontend Serving (Vite Middlewares in Dev, Static in Prod)
 // ----------------------------------------------------
+async function resolveAvailablePort(preferredPort: number): Promise<number> {
+  const isIpv4PortFree = (port: number) =>
+    new Promise<boolean>((resolve) => {
+      const tester = net.createServer();
+      tester.once('error', () => resolve(false));
+      tester.once('listening', () => {
+        tester.close(() => resolve(true));
+      });
+      tester.listen(port, '127.0.0.1');
+    });
+
+  if (await isIpv4PortFree(preferredPort)) {
+    return preferredPort;
+  }
+  for (const candidate of [5173, 3005, 3001]) {
+    if (await isIpv4PortFree(candidate)) {
+      console.warn(
+        `[Server] 127.0.0.1:${preferredPort} is occupied by another background service; binding JimiScout to port ${candidate}.`
+      );
+      return candidate;
+    }
+  }
+  return preferredPort;
+}
+
 export async function startServer() {
+  process.on('unhandledRejection', (reason: any) => {
+    console.warn('[Server] Unhandled promise rejection:', reason?.message || reason);
+  });
+  process.on('uncaughtException', (err: any) => {
+    console.warn('[Server] Uncaught exception:', err?.message || err);
+  });
   const isDev = process.env.NODE_ENV !== 'production';
+  const activePort = process.env.PORT ? PORT : await resolveAvailablePort(PORT);
+  const httpServer = app.listen(activePort, () => {
+    console.log(`🚀 JimiScout BTP server running at http://localhost:${activePort}`);
+  });
+  httpServer.on('error', (err: any) => {
+    console.warn('[Server] HTTP server warning:', err?.message || err);
+  });
+  httpServer.on('clientError', (_err, socket) => {
+    if (socket.writable) {
+      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+    }
+  });
 
   if (isDev) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: { server: httpServer } },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1647,9 +1691,7 @@ export async function startServer() {
     });
   }
 
-  return app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 JimiScout BTP server running at http://0.0.0.0:${PORT}`);
-  });
+  return httpServer;
 }
 
 // Only start listening automatically if server.ts is the main entrypoint (not imported by Vercel /api/index.ts or tests)
@@ -1659,5 +1701,14 @@ const isDirectRun =
     process.argv[1].endsWith('/server.ts'));
 
 if (isDirectRun) {
+  process.on('unhandledRejection', (reason: any) => {
+    console.warn('[Server] Unhandled promise rejection:', reason?.message || reason);
+  });
+  process.on('uncaughtException', (err: any) => {
+    console.warn('[Server] Uncaught exception:', err?.message || err);
+  });
+  process.on('exit', (code) => {
+    console.warn(`[Server] Process exiting with code ${code}`);
+  });
   startServer();
 }
