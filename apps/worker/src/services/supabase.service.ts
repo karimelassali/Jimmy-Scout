@@ -28,6 +28,26 @@ const STORAGE_BUCKET = 'jimiscout-data';
 const STATE_FILE = 'production-state.json';
 const LOCAL_FALLBACK_FILE = path.resolve(process.cwd(), '.jimiscout-local-state.json');
 
+/**
+ * True when a Supabase Storage download error means "no such object"
+ * (a fresh install with nothing saved yet). Any other error — a timeout,
+ * "too many connections", a gateway error — means the saved state could
+ * not be read, and must NOT be treated as "there is no saved state".
+ * Supabase reports a missing object with statusCode 404 / "Object not found".
+ */
+export function isNotFoundStorageError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  const status = record.statusCode ?? record.status;
+  if (status === 404 || status === '404') return true;
+  const message = typeof record.message === 'string' ? record.message.toLowerCase() : '';
+  return (
+    message.includes('object not found') ||
+    message.includes('not found') ||
+    message.includes('does not exist')
+  );
+}
+
 export interface ProcessedMessageRecord {
   message_key: string;
   sender_email: string;
@@ -86,6 +106,17 @@ export class SupabaseDataService {
   private discoverySqlAvailable: boolean | null = null;
   private cachedState: PersistedState | null = null;
   private stateLoadPromise: Promise<PersistedState> | null = null;
+
+  // Guard against the 12 Nov 2026 data loss: when the saved state cannot be
+  // loaded (Supabase timeout, too many connections, ...), the in-memory
+  // state is empty — but the file on disk may still hold the real data.
+  // While stateLoadFailed is set, no write to the saved state is allowed,
+  // so a transient outage can never persist an empty state over the real
+  // one. The flag clears on the next successful load. stateFileMissing
+  // covers the opposite case, a genuine first boot with no file yet, where
+  // creating the initial file is safe.
+  private stateLoadFailed = false;
+  private stateFileMissing = false;
 
   // Atomic in-memory locks for concurrent claim protection
   private activeInboundClaims = new Set<string>();
@@ -148,6 +179,8 @@ export class SupabaseDataService {
       push_subscriptions: [],
     };
     this.stateLoadPromise = null;
+    this.stateLoadFailed = false;
+    this.stateFileMissing = false;
     this.activeInboundClaims.clear();
     this.activeCompanyClaims.clear();
     this.isClaimingOutbound = false;
@@ -323,7 +356,10 @@ export class SupabaseDataService {
   }
 
   private async ensureStorageState(): Promise<PersistedState> {
-    if (this.cachedState) return this.cachedState;
+    // While the last load failed, retry the download on the next access
+    // instead of serving the empty fallback forever: once Supabase
+    // recovers, the real saved state comes back.
+    if (this.cachedState && !this.stateLoadFailed) return this.cachedState;
     if (this.stateLoadPromise) return this.stateLoadPromise;
 
     this.stateLoadPromise = (async () => {
@@ -354,8 +390,14 @@ export class SupabaseDataService {
           try {
             const raw = fs.readFileSync(LOCAL_FALLBACK_FILE, 'utf-8');
             this.cachedState = this.normalizeState(JSON.parse(raw), initial);
+            this.stateLoadFailed = false;
             return this.cachedState;
-          } catch {}
+          } catch (err) {
+            // The local file exists but cannot be read: same rule as the
+            // cloud path — never let a later save overwrite it blindly.
+            this.stateLoadFailed = true;
+            console.error('[Supabase] Local state file unreadable, refusing to overwrite it:', err);
+          }
         }
         this.cachedState = initial;
         return initial;
@@ -376,14 +418,35 @@ export class SupabaseDataService {
           const text = await fileData.text();
           const parsed = JSON.parse(text) as Partial<PersistedState>;
           this.cachedState = this.normalizeState(parsed, initial);
+          this.stateLoadFailed = false;
+          this.stateFileMissing = false;
           return this.cachedState;
         }
 
+        if (downloadErr && !isNotFoundStorageError(downloadErr)) {
+          // The file may still hold the real data — Supabase just could
+          // not be reached. Serve an empty state in memory only, and
+          // refuse every write until a load succeeds (see
+          // saveStorageState). Never save the empty fallback here.
+          this.stateLoadFailed = true;
+          console.error(
+            '[Supabase] Could not load saved state, serving empty state in memory only and refusing writes until a load succeeds:',
+            downloadErr
+          );
+          this.cachedState = initial;
+          return initial;
+        }
+
+        // Genuine first boot: no file exists yet, creating it is safe.
+        this.stateFileMissing = true;
         await this.saveStorageState(initial);
+        this.stateFileMissing = false;
+        this.stateLoadFailed = false;
         this.cachedState = initial;
         return initial;
       } catch (err) {
         console.error('[Supabase] Storage init error:', err);
+        this.stateLoadFailed = true;
         this.cachedState = initial;
         return initial;
       } finally {
@@ -395,6 +458,11 @@ export class SupabaseDataService {
   }
 
   private async saveStorageState(state: PersistedState): Promise<void> {
+    if (this.stateLoadFailed) {
+      throw new Error(
+        'Refusing to overwrite saved state: the last load from Supabase Storage failed, so the in-memory state may be empty. Not writing to avoid data loss.'
+      );
+    }
     this.cachedState = state;
     if (!this.client) {
       if (this.requireCloudStorage) {
