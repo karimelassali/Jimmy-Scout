@@ -6,6 +6,7 @@ import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { AgentSettings, Company, SuppressionEntry } from '@/packages/types/src/database.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import { POOL_SAMPLE } from '@/src/data/pool-sample.ts';
+import { CantonIcon } from '../common/CantonIcon.tsx';
 import {
   filterCompanies,
   filterPool,
@@ -631,7 +632,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                       <span className="flex items-center gap-1 text-sm text-slate-500">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         {entry.city}
-                        <span className="rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                          <CantonIcon code={entry.canton} size={16} />
                           {entry.canton}
                         </span>
                       </span>
@@ -787,7 +789,8 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                               <MapPin className="w-3.5 h-3.5 text-slate-400" />
                               {getDisplayCity(comp)}
                             </span>
-                            <span className="rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                              <CantonIcon code={comp.canton} size={16} />
                               {comp.canton}
                             </span>
                           </div>
@@ -965,12 +968,13 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                         onClick={() => void handleToggleCanton(canton.code)}
                         aria-pressed={isActive}
                         title={`${canton.name} (${canton.code})`}
-                        className={`min-w-12 rounded-lg border px-3 py-1.5 text-[13px] font-bold transition-colors ${
+                        className={`inline-flex min-w-12 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-bold transition-colors ${
                           isActive
                             ? 'border-[#0B2240] bg-[#0B2240] text-white'
                             : 'border-slate-200 bg-white text-slate-400 hover:border-[#0B2240] hover:text-[#0B2240]'
                         }`}
                       >
+                        <CantonIcon code={canton.code} size={20} />
                         {canton.code}
                       </button>
                     );

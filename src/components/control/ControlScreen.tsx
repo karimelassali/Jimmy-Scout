@@ -45,6 +45,7 @@ import {
   Database,
 } from 'lucide-react';
 import { AgentActionsPanel } from './AgentActionsPanel.tsx';
+import { CantonIcon } from '../common/CantonIcon.tsx';
 import {
   getJimmyMascotState,
   JIMMY_MASCOT_SRC,
@@ -1154,8 +1155,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                     className="p-2.5 rounded-lg bg-slate-50/90 hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-300 text-left transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 group-hover:border-orange-200 font-mono font-bold text-[11px] text-[#0B2240]">
-                        {canton}
+                      <span className="flex items-center gap-1.5">
+                        <CantonIcon code={canton} size={20} />
+                        <span className="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 group-hover:border-orange-200 font-mono font-bold text-[11px] text-[#0B2240]">
+                          {canton}
+                        </span>
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400 uppercase">
                         {info?.language || 'DE'}
