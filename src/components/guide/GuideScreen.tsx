@@ -35,9 +35,10 @@ interface ScreenshotProps {
   src: string;
   alt: string;
   onOpen: (src: string) => void;
+  caption?: string;
 }
 
-const Screenshot: React.FC<ScreenshotProps> = ({ src, alt, onOpen }) => (
+const Screenshot: React.FC<ScreenshotProps> = ({ src, alt, onOpen, caption }) => (
   <button
     type="button"
     onClick={() => onOpen(src)}
@@ -48,6 +49,9 @@ const Screenshot: React.FC<ScreenshotProps> = ({ src, alt, onOpen }) => (
     <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#0B2240]/90 px-3 py-1.5 text-xs font-semibold text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
       <ZoomIn className="h-3.5 w-3.5" /> Agrandir
     </span>
+    {caption && (
+      <span className="block px-4 py-2 text-xs text-slate-500">{caption}</span>
+    )}
   </button>
 );
 
@@ -86,7 +90,7 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
             Comprendre Jimy, simplement
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-            Cette page montre le vrai écran de l’application. Lisez de haut en bas. À la fin, vous saurez quoi régler, quoi regarder et quand valider une action.
+            Les captures ci-dessous sont des exemples : les chiffres, les noms et les dates peuvent différer de votre écran actuel. Lisez de haut en bas. À la fin, vous saurez quoi régler, quoi regarder et quand valider une action.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button
@@ -165,14 +169,13 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
             <p className="mt-3 leading-7 text-slate-600">C’est votre tableau de bord. Commencez toujours ici.</p>
             <div className="mt-6 space-y-3">
               <SimplePoint title="Mettre Jimy au travail">Démarre la recherche, les envois et les actions automatiques que vous avez autorisées.</SimplePoint>
-              <SimplePoint title="Actions de Jimy">Montre ce qui attend votre accord. « Valider » autorise une action. « Annuler » la supprime.</SimplePoint>
               <SimplePoint title="Chercher maintenant">Lance une seule recherche de sociétés, même si Jimy est en pause.</SimplePoint>
               <SimplePoint title="Envoyer 1 maintenant">Envoie la prochaine demande pendant les heures de travail suisses.</SimplePoint>
               <SimplePoint title="Vérifier les réponses">Regarde tout de suite la boîte mail. Jimy la vérifie aussi automatiquement.</SimplePoint>
             </div>
             <button type="button" onClick={() => onNavigate('control')} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#FF6B00]">Ouvrir l’accueil <ArrowRight className="h-4 w-4" /></button>
           </div>
-          <Screenshot src="/assets/guide/live/accueil.png" alt="Vrai écran Accueil de JimyScout" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/accueil.png" alt="Exemple d'écran Accueil de JimyScout" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
         </div>
         <div className="mt-7 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl bg-slate-100 p-4"><Bell className="h-5 w-5 text-[#0B2240]" /><div className="mt-2 font-bold text-[#0B2240]">Cloche</div><p className="mt-1 text-sm text-slate-600">Ouvre les alertes et l’activité récente.</p></div>
@@ -184,7 +187,7 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
 
       <section id="dossiers" className="scroll-mt-36 border-t border-slate-200 py-12">
         <div className="grid items-start gap-8 lg:grid-cols-[1.35fr_0.9fr]">
-          <Screenshot src="/assets/guide/live/dossiers.png" alt="Vrai écran Dossiers de JimyScout" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/dossiers.png" alt="Exemple d'écran Dossiers de JimyScout" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-purple-700"><Inbox className="h-4 w-4" /> Écran 2</div>
             <h2 className="mt-3 font-heading text-3xl font-bold text-[#0B2240]">Dossiers : étudier les offres</h2>
@@ -215,13 +218,13 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
             </div>
             <button type="button" onClick={() => onNavigate('emails')} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#FF6B00]">Voir les courriels <ArrowRight className="h-4 w-4" /></button>
           </div>
-          <Screenshot src="/assets/guide/live/envoyes.png" alt="Vrai écran des courriels envoyés" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/envoyes.png" alt="Exemple d'écran des courriels envoyés" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
         </div>
       </section>
 
       <section id="regions" className="scroll-mt-36 border-t border-slate-200 py-12">
         <div className="grid items-start gap-8 lg:grid-cols-[1.35fr_0.9fr]">
-          <Screenshot src="/assets/guide/live/regions.png" alt="Vrai écran Régions de JimyScout" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/regions.png" alt="Exemple d'écran Régions de JimyScout" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700"><MapPin className="h-4 w-4" /> Écran 4</div>
             <h2 className="mt-3 font-heading text-3xl font-bold text-[#0B2240]">Régions : choisir qui contacter</h2>
@@ -250,13 +253,13 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
             </div>
             <button type="button" onClick={() => onNavigate('scanner')} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#FF6B00]">Ouvrir le scanner <ArrowRight className="h-4 w-4" /></button>
           </div>
-          <Screenshot src="/assets/guide/live/scanner.png" alt="Vrai écran Scanner de JimyScout" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/scanner.png" alt="Exemple d'écran Scanner de JimyScout" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
         </div>
       </section>
 
       <section id="reglages" className="scroll-mt-36 border-t border-slate-200 py-12">
         <div className="grid items-start gap-8 lg:grid-cols-[1.35fr_0.9fr]">
-          <Screenshot src="/assets/guide/live/reglages.png" alt="Vrai écran Réglages de JimyScout" onOpen={setLargeImage} />
+          <Screenshot src="/assets/guide/live/reglages.png" alt="Exemple d'écran Réglages de JimyScout" caption="Exemple d'écran — les chiffres et les noms peuvent différer de votre écran actuel." onOpen={setLargeImage} />
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FF6B00]"><Settings2 className="h-4 w-4" /> Écran 6</div>
             <h2 className="mt-3 font-heading text-3xl font-bold text-[#0B2240]">Réglages : décider ce que Jimy peut faire</h2>
@@ -295,12 +298,11 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
           <h2 className="mt-3 font-heading text-3xl font-bold text-[#0B2240]">Que faire chaque jour ?</h2>
           <div className="mt-7 grid gap-3 md:grid-cols-2">
             {[
-              ['1', 'Ouvrez Accueil', 'Regardez si Jimy travaille ou attend.'],
-              ['2', 'Lisez Actions de Jimy', 'Validez ou annulez ce qui demande votre accord.'],
-              ['3', 'Ouvrez Dossiers', 'Commencez par les meilleurs scores.'],
-              ['4', 'Appelez le vendeur', 'Confirmez l’état, les heures, le prix et les documents.'],
-              ['5', 'Changez l’étape', 'Notez visite, négociation, achat ou refus.'],
-              ['6', 'Laissez une note', 'Écrivez la prochaine action et sa date.'],
+              ['1', 'Ouvrez Accueil', 'Regardez si Jimy est actif ou en pause.'],
+              ['2', 'Ouvrez Dossiers', 'Commencez par les meilleurs scores.'],
+              ['3', 'Appelez le vendeur', 'Confirmez l’état, les heures, le prix et les documents.'],
+              ['4', 'Changez l’étape', 'Notez visite, négociation, achat ou refus.'],
+              ['5', 'Laissez une note', 'Écrivez la prochaine action et sa date.'],
             ].map(([number, title, text]) => (
               <div key={number} className="flex gap-3 rounded-2xl bg-white p-4 shadow-sm">
                 <StepNumber number={Number(number)} />
@@ -321,7 +323,7 @@ export const GuideScreen: React.FC<GuideScreenProps> = ({ onNavigate }) => {
             ['Est-ce que Jimy peut envoyer sans moi ?', 'Oui, seulement si Jimy travaille et si la fonction est sur « Auto ». En mode « Me demander », vous devez valider.'],
             ['Que veut dire « accepté » ?', 'Le serveur du destinataire a accepté le courriel. Cela ne veut pas encore dire que la personne l’a lu.'],
             ['Le prix estimé est-il garanti ?', 'Non. C’est une aide prudente. Vérifiez toujours la machine, les documents et le marché avant un achat.'],
-            ['Pourquoi aucune société ne part ?', 'Jimy peut être en pause, hors des heures suisses, à la limite du jour, ou sans société prête.'],
+            ['Pourquoi aucun courriel ne part ?', 'Jimy peut être en pause, hors des heures suisses, à la limite du jour, ou sans société prête.'],
             ['Comment arrêter immédiatement ?', 'Sur Accueil, cliquez sur le grand bouton pour mettre Jimy en pause.'],
           ].map(([question, answer]) => (
             <details key={question} className="group rounded-2xl border border-slate-200 bg-white p-4">

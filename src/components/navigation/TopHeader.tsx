@@ -74,15 +74,15 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
           <div
             className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-(--color-background-muted) border border-(--color-border)"
-            title={isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
+            title={isAgentActive ? 'Actif' : 'En pause'}
           >
             <StatusDot
               variant={isAgentActive ? 'success' : 'warning'}
               isPulsing={isAgentActive}
-              label={isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
+              label={isAgentActive ? 'Actif' : 'En pause'}
             />
             <span className="text-xs font-semibold text-(--color-text-primary)">
-              {isAgentActive ? 'Jimy travaille' : 'Jimy attend'}
+              {isAgentActive ? 'Actif' : 'En pause'}
             </span>
           </div>
         </div>

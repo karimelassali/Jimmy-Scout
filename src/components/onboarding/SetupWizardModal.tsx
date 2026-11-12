@@ -6,6 +6,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { Switch } from '@astryxdesign/core/Switch';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { AgentSettings, ToneType, PersonaHooks } from '@/packages/types/src/database.ts';
+import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export interface SetupWizardModalProps {
@@ -21,20 +22,20 @@ interface CantonOption {
   regionGroup: 'fr' | 'de' | 'it';
 }
 
-const SWISS_CANTON_OPTIONS: CantonOption[] = [
-  { code: 'VD', name: 'Vaud', regionGroup: 'fr' },
-  { code: 'GE', name: 'Genève', regionGroup: 'fr' },
-  { code: 'VS', name: 'Valais', regionGroup: 'fr' },
-  { code: 'FR', name: 'Fribourg', regionGroup: 'fr' },
-  { code: 'NE', name: 'Neuchâtel', regionGroup: 'fr' },
-  { code: 'BE', name: 'Bern', regionGroup: 'de' },
-  { code: 'ZH', name: 'Zürich', regionGroup: 'de' },
-  { code: 'AG', name: 'Aargau', regionGroup: 'de' },
-  { code: 'SG', name: 'St. Gallen', regionGroup: 'de' },
-  { code: 'LU', name: 'Luzern', regionGroup: 'de' },
-  { code: 'ZG', name: 'Zug', regionGroup: 'de' },
-  { code: 'TI', name: 'Ticino', regionGroup: 'it' },
-];
+// All 26 cantons — the same list as the Régions screen (QA #27).
+const SWISS_CANTON_OPTIONS: CantonOption[] = ALL_SWISS_CANTONS.map((c) => ({
+  code: c.code,
+  name: c.name,
+  regionGroup: c.defaultLanguage,
+}));
+
+/** Daily sending pace: the same four options as the Régions slider (QA #26). */
+const DAILY_LIMIT_OPTIONS = [
+  { value: 5, label: '5 / jour (doux)' },
+  { value: 15, label: '15 / jour' },
+  { value: 25, label: '25 / jour (conseillé)' },
+  { value: 50, label: '50 / jour (rapide)' },
+] as const;
 
 const QUICK_MACHINES = [
   'Pelles 15–30t',
@@ -67,7 +68,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
       : ['VD', 'GE', 'VS', 'BE', 'ZH', 'TI']
   );
   const [draftTone, setDraftTone] = useState<ToneType>(settings.tone || 'swiss_formal');
-  const [draftHooks] = useState<PersonaHooks>(
+  const [draftHooks, setDraftHooks] = useState<PersonaHooks>(
     settings.hooks || {
       cash_settlement: true,
       transport_covered: true,
@@ -75,8 +76,12 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
     }
   );
   const [draftLimit, setDraftLimit] = useState<number>(settings.daily_limit || 25);
-  const [draftStartActive, setDraftStartActive] = useState<boolean>(
-    settings.is_active ?? true
+  // "Envoi automatique" is the outreach switch (settings.outreach_active),
+  // the same one Home shows — NOT the master switch is_active (QA #28).
+  // Reading is_active here showed OFF while Home showed ON, and saving it
+  // could have flipped the master switch.
+  const [draftAutoSend, setDraftAutoSend] = useState<boolean>(
+    settings.outreach_active ?? true
   );
 
   useEffect(() => {
@@ -88,12 +93,33 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
       if (settings.equipment_focus) setDraftFocus(settings.equipment_focus);
       if (settings.selected_cantons?.length > 0) setDraftCantons(settings.selected_cantons);
       if (settings.tone) setDraftTone(settings.tone);
+      if (settings.hooks) setDraftHooks(settings.hooks);
       if (settings.daily_limit) setDraftLimit(settings.daily_limit);
+      // Always re-read the live value on open: a draft kept from a previous
+      // opening (or from mount time) goes stale when the setting changes
+      // elsewhere (QA #28).
+      setDraftAutoSend(settings.outreach_active ?? true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Real setup progress (QA #38): how many of the wizard's own fields are
+  // actually filled in — not the step number. A fully configured app scores
+  // 100% and the bar is hidden instead of claiming "50%".
+  const setupFieldsFilled = [
+    draftName.trim().length > 0,
+    draftEmail.trim().length > 0,
+    // The '+41 ' stub the field starts with does not count as a phone number.
+    draftPhone.trim().length > 4,
+    draftFocus.trim().length > 0,
+    draftCantons.length > 0,
+  ].filter(Boolean).length;
+  const setupCompletion = Math.round(
+    (setupFieldsFilled / 5) * 100
+  );
+  const showSetupProgress = setupCompletion < 100;
 
   const toggleCanton = (code: string) => {
     setDraftCantons((prev) =>
@@ -138,7 +164,9 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
         tone: draftTone,
         hooks: draftHooks,
         daily_limit: draftLimit,
-        is_active: draftStartActive,
+        // The auto-send switch only — never the master switch (is_active):
+        // the app must stay paused until Karim turns it on himself (QA #28).
+        outreach_active: draftAutoSend,
       });
       if (typeof window !== 'undefined') {
         localStorage.setItem('jimiscout_setup_completed', 'true');
@@ -159,15 +187,17 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
       padding={0}
     >
       <div className="bg-white flex flex-col overflow-hidden">
-        <div className="px-6 pt-4">
-          <ProgressBar
-            label="Progression de la configuration"
-            value={step === 0 ? 50 : 100}
-            max={100}
-            variant="accent"
-            isLabelHidden
-          />
-        </div>
+        {showSetupProgress && (
+          <div className="px-6 pt-4">
+            <ProgressBar
+              label="Progression de la configuration"
+              value={setupCompletion}
+              max={100}
+              variant="accent"
+              isLabelHidden
+            />
+          </div>
+        )}
 
         <div className="px-6 pt-3">
           <DialogHeader
@@ -185,7 +215,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <TextInput
-                  label="Sender name"
+                  label="Nom de l'expéditeur"
                   value={draftName}
                   onChange={setDraftName}
                   placeholder="Ex. Jamal"
@@ -193,7 +223,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 />
 
                 <TextInput
-                  label="Direct phone / WhatsApp"
+                  label="Téléphone direct / WhatsApp"
                   type="tel"
                   value={draftPhone}
                   onChange={setDraftPhone}
@@ -212,9 +242,9 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <div className="pt-2 border-t border-[#F1F3F4]">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-[#3C4043]">
-                    Target machinery
+                    Machines ciblées
                   </label>
-                  <span className="text-[11px] text-[#5F6368]">Cliquer pour changer</span>
+                  <span className="text-[11px] text-[#5F6368]">Cliquer pour modifier</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -263,7 +293,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       onClick={() => selectRegionGroup('all')}
                       className="px-2 py-0.5 rounded text-[#1A73E8] hover:bg-[#E8F0FE] font-medium transition-colors cursor-pointer"
                     >
-                      All
+                      Tous
                     </button>
                     <span className="text-[#DADCE0]">·</span>
                     <button
@@ -314,20 +344,40 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <label className="block text-xs font-medium text-[#3C4043] mb-1.5">
                     Limite de courriels par jour
                   </label>
-                  <SegmentedControl
-                    label="Limite de courriels par jour"
-                    size="sm"
-                    value={String(draftLimit)}
-                    onChange={(val) => setDraftLimit(Number(val))}
+                  <div
+                    role="radiogroup"
+                    aria-label="Limite de courriels par jour"
+                    className="space-y-1.5"
                   >
-                    {[15, 25, 35, 50].map((val) => (
-                      <SegmentedControlItem
-                        key={val}
-                        value={String(val)}
-                        label={`${val}/j`}
-                      />
-                    ))}
-                  </SegmentedControl>
+                    {DAILY_LIMIT_OPTIONS.map((opt) => {
+                      const isSelected = draftLimit === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          onClick={() => setDraftLimit(opt.value)}
+                          className={`w-full h-9 px-3 rounded-lg border text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#E8F0FE] border-[#D2E3FC] text-[#1A73E8]'
+                              : 'bg-white border-[#DADCE0] text-[#3C4043] hover:bg-[#F8F9FA]'
+                          }`}
+                        >
+                          <span
+                            className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? 'bg-[#1A73E8] text-white'
+                                : 'border border-[#DADCE0]'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </span>
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div>
@@ -361,8 +411,8 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <Switch
                     label="Activer l’envoi automatique"
                     isLabelHidden
-                    value={draftStartActive}
-                    onChange={setDraftStartActive}
+                    value={draftAutoSend}
+                    onChange={setDraftAutoSend}
                   />
                 </div>
               </div>

@@ -25,6 +25,9 @@ export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  // The name actually searched. The empty state quotes this, not the live
+  // field — otherwise clearing the field after a search renders « ».
+  const [searchedName, setSearchedName] = useState('');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +35,7 @@ export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
     if (!name) return;
     setIsSearching(true);
     setError(null);
+    setSearchedName(name);
     try {
       const res = await fetch('/api/zefix/search', {
         method: 'POST',
@@ -89,6 +93,11 @@ export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
                 placeholder="Nom de la société (ex. Implenia)"
                 hasAutoFocus
               />
+              {!query.trim() && (
+                <p className="text-sm text-slate-500">
+                  Saisissez un nom de société pour lancer la recherche.
+                </p>
+              )}
               <Button
                 label="Vérifier dans Zefix"
                 type="submit"
@@ -112,13 +121,13 @@ export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
           )}
 
           {/* Empty state */}
-          {!error && hasSearched && entries.length === 0 && (
+          {!error && hasSearched && entries.length === 0 && searchedName && (
             <Banner
               status="info"
               container="card"
               collapsible={false}
               title="Aucune société active trouvée"
-              description={`Aucune inscription active ne correspond à « ${query.trim()} » dans le registre du commerce suisse.`}
+              description={`Aucune inscription active ne correspond à « ${searchedName} » dans le registre du commerce suisse.`}
             />
           )}
 
