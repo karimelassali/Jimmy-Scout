@@ -45,6 +45,11 @@ import {
   Database,
 } from 'lucide-react';
 import { AgentActionsPanel } from './AgentActionsPanel.tsx';
+import {
+  getJimmyMascotState,
+  JIMMY_MASCOT_SRC,
+  JIMMY_MASCOT_ALT,
+} from '../jimmy/jimmy-mascot.ts';
 
 interface ControlScreenProps {
   settings: AgentSettings;
@@ -410,6 +415,11 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   };
 
   const schedulerBadge = getSchedulerBadge();
+  const mascotState = getJimmyMascotState({
+    isActive: settings.is_active,
+    schedulerState: schedulerStatus?.state,
+    discoveryState: discoveryStatus?.state,
+  });
   const statusFr = (value?: string | null) => ({
     paused: 'en pause', enabled: 'activée', waiting: 'en attente', running: 'en cours',
     waiting_for_hours: 'en attente des heures', quota_reached: 'limite atteinte', failed: 'erreur',
@@ -482,8 +492,8 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
         <div className="p-5 sm:p-8 lg:p-10 grid grid-cols-1 md:grid-cols-[minmax(216px,0.8fr)_minmax(0,1.2fr)] items-center gap-6 sm:gap-8">
           <div className="flex items-center justify-center min-w-0">
-            <div className="w-48 h-48 sm:w-60 sm:h-60 lg:w-72 lg:h-72 shrink-0 flex items-center justify-center overflow-visible">
-              <video src="/assets/illustrations/jimmymascut.webm" autoPlay loop muted playsInline aria-label="Mascotte Jimy" className="w-full h-full object-contain select-none" />
+            <div className="w-40 h-40 sm:w-48 sm:h-48 lg:w-56 lg:h-56 shrink-0 flex items-center justify-center overflow-visible">
+              <img src={JIMMY_MASCOT_SRC[mascotState]} alt={JIMMY_MASCOT_ALT[mascotState]} aria-label="Mascotte Jimy" className="w-full h-full object-contain select-none" />
             </div>
           </div>
 

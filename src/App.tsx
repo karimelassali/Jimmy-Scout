@@ -22,6 +22,7 @@ import {
 import { InboundLead } from '@/packages/types/src/lead.ts';
 import { Lock, KeyRound } from 'lucide-react';
 import { JimmyChatModal } from './components/jimmy/JimmyChatModal.tsx';
+import { getJimmyMascotState } from './components/jimmy/jimmy-mascot.ts';
 
 // Code-split heavy screens & modals
 const ControlScreen = lazy(() =>
@@ -790,6 +791,11 @@ export default function App() {
           selectTab(tab);
           setIsJimmyChatOpen(false);
         }}
+        mascotState={getJimmyMascotState({
+          isActive: settings.is_active,
+          schedulerState: schedulerStatus?.state,
+          discoveryState: discoveryStatus?.state,
+        })}
       />
         </div>
       </Theme>

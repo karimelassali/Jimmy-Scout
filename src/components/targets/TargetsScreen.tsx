@@ -5,6 +5,13 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { AgentSettings, Company, SuppressionEntry } from '@/packages/types/src/database.ts';
 import { ALL_SWISS_CANTONS } from '@/packages/types/src/swiss.ts';
+import { POOL_SAMPLE } from '@/src/data/pool-sample.ts';
+import {
+  filterCompanies,
+  filterPool,
+  getCompanyStatus,
+  type StatusFilter,
+} from './targets-helpers.ts';
 import {
   Search,
   Sliders,
@@ -21,6 +28,12 @@ import {
   Upload,
   Download,
   ShieldAlert,
+  ChevronDown,
+  Mail,
+  Phone,
+  Globe,
+  Wrench,
+  Settings,
 } from 'lucide-react';
 
 interface TargetsScreenProps {
@@ -31,6 +44,10 @@ interface TargetsScreenProps {
   onNavigateToScanner?: () => void;
 }
 
+type ScreenView = 'ready' | 'pool';
+
+const DEV_MODE_KEY = 'jimyscout-dev-mode';
+
 export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   settings,
   companies,
@@ -39,10 +56,25 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   onNavigateToScanner,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [regionFilter, setRegionFilter] = useState<'all' | 'de' | 'fr' | 'it'>('all');
-  const [selectedCantonCode, setSelectedCantonCode] = useState('ZH');
+  const [cantonFilter, setCantonFilter] = useState('all');
+  const [languageFilter, setLanguageFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [dailyPace, setDailyPace] = useState(settings.daily_limit);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
+
+  // Developer mode: OFF by default, persisted locally. Only ever shows the
+  // raw harvest pool; normal users never see it.
+  const [devMode, setDevMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DEV_MODE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [view, setView] = useState<ScreenView>('ready');
+  const [poolSearch, setPoolSearch] = useState('');
 
   // Add Contractor Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -84,6 +116,22 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleToggleDevMode = () => {
+    const next = !devMode;
+    setDevMode(next);
+    try {
+      if (next) {
+        localStorage.setItem(DEV_MODE_KEY, '1');
+      } else {
+        localStorage.removeItem(DEV_MODE_KEY);
+      }
+    } catch {
+      // localStorage unavailable: dev mode stays in-memory only.
+    }
+    if (!next) setView('ready');
+    showToast(next ? 'Mode développeur activé — visible uniquement pour vous' : 'Mode développeur désactivé');
   };
 
   const loadSuppressions = async () => {
@@ -168,7 +216,6 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         showToast(data.error || 'Impossible d’ajouter la société', true);
       } else {
         await onRefreshCompanies();
-        setSelectedCantonCode(newCompCanton);
         setNewCompName('');
         setNewCompEmail('');
         setNewCompPhone('');
@@ -309,12 +356,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
     }
   };
 
-  const selectedCantonMeta =
-    ALL_SWISS_CANTONS.find((c) => c.code === selectedCantonCode) || ALL_SWISS_CANTONS[0];
-
-  const contractorsInSelectedCanton = companies.filter(
-    (c) => c.canton.toUpperCase() === selectedCantonMeta.code
-  );
+  const isPoolView = devMode && view === 'pool';
 
   const activeContractorsTotal = companies.filter(
     (c) =>
@@ -324,35 +366,35 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
       c.verified_email !== false
   ).length;
 
-  const filteredCantons = ALL_SWISS_CANTONS.filter((c) => {
-    if (regionFilter !== 'all' && c.language !== regionFilter) return false;
-    const q = searchTerm.toLowerCase().trim();
-    if (!q) return true;
-    const cantonCompanyMatch = companies.some(
-      (comp) =>
-        comp.canton === c.code &&
-        (comp.name.toLowerCase().includes(q) ||
-          (comp.email && comp.email.toLowerCase().includes(q)) ||
-          (comp.city && comp.city.toLowerCase().includes(q)))
-    );
-    return (
-      c.code.toLowerCase().includes(q) ||
-      c.name.toLowerCase().includes(q) ||
-      c.plz.includes(q) ||
-      c.primarySector.toLowerCase().includes(q) ||
-      cantonCompanyMatch
-    );
-  });
+  const readyCount = companies.filter((c) => getCompanyStatus(c) === 'ready').length;
+  const toVerifyCount = companies.filter((c) => getCompanyStatus(c) === 'to_verify').length;
+  const noEmailCount = companies.filter((c) => getCompanyStatus(c) === 'no_email').length;
 
-  // Keep the dossier aligned with the visible canton grid. Without this, a
-  // French/Italian filter could leave a German canton open in the side panel.
-  const filteredCantonCodes = filteredCantons.map((canton) => canton.code).join(',');
-  useEffect(() => {
-    const visibleCodes = filteredCantonCodes ? filteredCantonCodes.split(',') : [];
-    if (visibleCodes.length > 0 && !visibleCodes.includes(selectedCantonCode)) {
-      setSelectedCantonCode(visibleCodes[0]);
-    }
-  }, [filteredCantonCodes, selectedCantonCode]);
+  const filteredCompanies = filterCompanies(
+    companies,
+    searchTerm,
+    cantonFilter,
+    languageFilter,
+    statusFilter
+  );
+
+  const cantonsPresent = Array.from(
+    new Set(companies.map((c) => c.canton.toUpperCase()))
+  ).sort();
+
+  const filteredPool = filterPool(POOL_SAMPLE, poolSearch);
+
+  const openAddModal = () => {
+    setNewCompCanton(settings.selected_cantons[0] || 'ZH');
+    setShowAddModal(true);
+  };
+
+  const statusChips: { id: StatusFilter; label: string; count: number }[] = [
+    { id: 'all', label: 'Toutes', count: companies.length },
+    { id: 'ready', label: 'Prêtes', count: readyCount },
+    { id: 'to_verify', label: 'À vérifier', count: toVerifyCount },
+    { id: 'no_email', label: 'Sans e-mail', count: noEmailCount },
+  ];
 
   return (
     <div className="space-y-8 pb-24 pt-2 md:pb-12">
@@ -370,7 +412,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
         </div>
       )}
 
-      {/* Page heading and territory tools */}
+      {/* Page heading */}
       <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
@@ -378,463 +420,544 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
             <span>{settings.selected_cantons.length} cantons actifs · {activeContractorsTotal} sociétés prêtes</span>
           </div>
           <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
-            Couverture des cantons
+            {isPoolView ? (
+              <>
+                Pool (récolte){' '}
+                <span className="ml-1 inline-flex items-center rounded-full bg-[#0B2240] px-3 py-1 align-middle text-sm font-bold text-white">
+                  {POOL_SAMPLE.length}
+                </span>
+              </>
+            ) : (
+              <>
+                Entreprises prêtes{' '}
+                <span className="ml-1 inline-flex items-center rounded-full bg-[#0B2240] px-3 py-1 align-middle text-sm font-bold text-white">
+                  {companies.length}
+                </span>
+              </>
+            )}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-            Activez les régions où Jimy cherche, puis gardez les sociétés et leurs refus au même endroit.
+            {isPoolView
+              ? 'Liste brute récoltée, sans e-mail pour l’instant. Jimmy vérifie chaque entreprise avant qu’elle apparaisse dans « Entreprises prêtes ».'
+              : 'Les sociétés vérifiées, avec leur ville et leur canton — prêtes à être contactées.'}
           </p>
+          {!isPoolView && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-slate-400">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>La ville de chaque entreprise vient du registre des entreprises (LINDAS / Zefix).</span>
+            </p>
+          )}
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-          <Button
-            label="Refus"
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              void loadSuppressions();
-              setShowSuppressionModal(true);
-            }}
-            icon={<ShieldAlert className="w-3.5 h-3.5 text-slate-500" />}
-          />
-
-          <Button
-            label="Importer / exporter CSV"
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowCsvModal(true)}
-            icon={<Upload className="w-3.5 h-3.5 text-[#FF6B00]" />}
-          />
-
-          {onNavigateToScanner && (
-            <Button
-              label="Scanner des cartes"
-              variant="secondary"
-              size="sm"
-              onClick={onNavigateToScanner}
-              icon={<Camera className="w-4 h-4 text-[#FF6B00]" />}
-            />
-          )}
-
-          <Button
-            label="Ajouter une société"
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              setNewCompCanton(selectedCantonCode);
-              setShowAddModal(true);
-            }}
-            icon={<Plus className="w-4 h-4" />}
-          />
-        </div>
-      </section>
-
-      {/* DAILY SPEED LIMIT BAR */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[#0B2240]">
-              <Sliders className="w-5 h-5" strokeWidth={1.5} />
-            </div>
-            <div>
-              <h2 className="font-heading text-base font-medium text-[#0B2240]">
-                Rythme d’envoi
-              </h2>
-              <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                Envoi automatique du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:w-[52%]">
-            <div className="flex-1 space-y-2">
-              <input
-                type="range"
-                min="10"
-                max="50"
-                step="1"
-                value={dailyPace}
-                onChange={(e) => handlePaceChange(Number(e.target.value))}
-                className="w-full accent-[#FF6B00] cursor-pointer h-2 bg-slate-200 rounded-full"
-              />
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>10 / jour (doux)</span>
-                <span>25 / jour (conseillé)</span>
-                <span>50 / jour (rapide)</span>
-              </div>
-            </div>
-
-            <div className="shrink-0 self-start sm:self-center">
-              <SegmentedControl
-                label="Rythme quotidien"
-                size="sm"
-                value={String(dailyPace)}
-                onChange={(val) => void handlePaceChange(Number(val))}
-              >
-                {[15, 25, 35, 50].map((preset) => (
-                  <SegmentedControlItem
-                    key={preset}
-                    value={String(preset)}
-                    label={String(preset)}
-                  />
-                ))}
-              </SegmentedControl>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Search and language filters */}
-      <section className="space-y-4 border-b border-slate-200 pb-4">
-        <div className="relative flex h-11 max-w-md items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:border-[#0B2240]">
-          <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher un canton ou une société"
-            className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
-            aria-label="Rechercher dans les cantons et sociétés"
-          />
-          {searchTerm && (
+          {/* Developer toggle — OFF by default, local only. */}
+          <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3">
+            <Wrench className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-xs font-medium text-slate-600">Développeur</span>
             <button
               type="button"
-              onClick={() => setSearchTerm('')}
-              className="text-slate-400 hover:text-[#0B2240] p-1 cursor-pointer"
-              aria-label="Effacer la recherche"
+              role="switch"
+              aria-checked={devMode}
+              aria-label="Mode développeur"
+              onClick={handleToggleDevMode}
+              className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors ${
+                devMode ? 'bg-[#FF6B00]' : 'bg-slate-300'
+              }`}
             >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <button
-            type="button"
-            onClick={handleSelectAllCantons}
-            className="h-9 shrink-0 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-medium text-[#C44F00] transition-colors hover:bg-orange-100"
-          >
-            Activer les 26 cantons
-          </button>
-
-          <div className="inline-flex min-w-max items-center gap-1">
-            {(
-              [
-                { id: 'all', label: `Tous (${ALL_SWISS_CANTONS.length})` },
-                {
-                  id: 'de',
-                  label: `DE (${ALL_SWISS_CANTONS.filter((c) => c.language === 'de').length})`,
-                },
-                {
-                  id: 'fr',
-                  label: `FR (${ALL_SWISS_CANTONS.filter((c) => c.language === 'fr').length})`,
-                },
-                {
-                  id: 'it',
-                  label: `IT (${ALL_SWISS_CANTONS.filter((c) => c.language === 'it').length})`,
-                },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setRegionFilter(tab.id);
-                  const firstVisibleCanton = tab.id === 'all'
-                    ? ALL_SWISS_CANTONS[0]
-                    : ALL_SWISS_CANTONS.find((canton) => canton.language === tab.id);
-                  if (firstVisibleCanton) setSelectedCantonCode(firstVisibleCanton.code);
-                }}
-                aria-pressed={regionFilter === tab.id}
-                className={`h-9 rounded-lg px-3 text-xs font-medium transition-colors whitespace-nowrap ${
-                  regionFilter === tab.id
-                    ? 'bg-[#0B2240] text-white'
-                    : 'text-slate-600 hover:bg-white hover:text-[#0B2240]'
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                  devMode ? 'left-[22px]' : 'left-0.5'
                 }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+              />
+            </button>
           </div>
+
+          {!isPoolView && (
+            <>
+              <Button
+                label="Refus"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  void loadSuppressions();
+                  setShowSuppressionModal(true);
+                }}
+                icon={<ShieldAlert className="w-3.5 h-3.5 text-slate-500" />}
+              />
+
+              <Button
+                label="Importer / exporter CSV"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCsvModal(true)}
+                icon={<Upload className="w-3.5 h-3.5 text-[#FF6B00]" />}
+              />
+
+              {onNavigateToScanner && (
+                <Button
+                  label="Scanner des cartes"
+                  variant="secondary"
+                  size="sm"
+                  onClick={onNavigateToScanner}
+                  icon={<Camera className="w-4 h-4 text-[#FF6B00]" />}
+                />
+              )}
+
+              <Button
+                label="Ajouter une société"
+                variant="primary"
+                size="sm"
+                onClick={openAddModal}
+                icon={<Plus className="w-4 h-4" />}
+              />
+            </>
+          )}
         </div>
       </section>
 
-      {/* 2-COLUMN WORKSPACE: 26 Cantons Grid + Regional Contractor Dossier */}
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
-        <div
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:col-span-8"
-          data-tour="canton-selection"
-        >
-          {filteredCantons.map((canton) => {
-            const isSelected = settings.selected_cantons.includes(canton.code);
-            const isFocused = selectedCantonCode === canton.code;
-            const cantonCompanies = companies.filter((c) => c.canton === canton.code);
-            const cantonEligible = cantonCompanies.filter(
-              (c) => !c.unsubscribed && c.email && c.verified_email !== false
-            ).length;
-
-            return (
-              <article
-                key={canton.code}
-                onClick={() => setSelectedCantonCode(canton.code)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setSelectedCantonCode(canton.code);
-                  }
-                }}
-                tabIndex={0}
-                role="group"
-                aria-label={`Canton ${canton.name}${isFocused ? ', dossier ouvert' : ''}`}
-                className={`flex cursor-pointer flex-col justify-between space-y-4 rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00]/40 ${
-                  isFocused
-                    ? 'border-[#FF6B00] bg-white shadow-[inset_3px_0_0_#FF6B00]'
-                    : isSelected
-                    ? 'border-slate-200 bg-white hover:border-orange-200'
-                    : 'border-slate-200/80 bg-slate-50/70 text-slate-600 hover:bg-white'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-heading text-base font-medium leading-tight text-[#0B2240]">
-                        {canton.name}
-                      </span>
-                      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
-                        {canton.code}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                      <span className="font-medium text-slate-600">
-                        {canton.language.toUpperCase()}
-                      </span>
-                      <span>·</span>
-                      <span className="tabular-nums">NPA {canton.plz}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    aria-label={`Activer ou arrêter le canton ${canton.name}`}
-                    aria-pressed={isSelected}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleCanton(canton.code);
-                    }}
-                    className={`flex h-7 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition-colors ${
-                      isSelected
-                        ? 'bg-[#0B2240] text-white'
-                        : 'bg-white text-slate-500 border border-slate-200 hover:border-[#0B2240] hover:text-[#0B2240]'
-                    }`}
-                  >
-                    {isSelected ? (
-                      <>
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        <span>Active</span>
-                      </>
-                    ) : (
-                        <span>Arrêtée</span>
-                    )}
-                  </button>
-                </div>
-
-                <div className="space-y-1.5 border-t border-slate-100 pt-3">
-                  <div className="text-xs font-medium text-slate-700 truncate">
-                    {canton.primarySector}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium tabular-nums ${
-                        cantonEligible > 0 ? 'text-[#C44F00]' : 'text-slate-400'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          cantonEligible > 0 ? 'bg-[#FF6B00]' : 'bg-slate-300'
-                        }`}
-                      />
-                      {cantonEligible} vérifiée(s) ({cantonCompanies.length} au total)
-                    </span>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        {/* Right 4 Columns: Regional Contractor Dossier */}
-        <div
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-24 xl:col-span-4"
-          data-tour="company-database"
-        >
-          <div className="space-y-5 border-b border-slate-100 p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-medium text-slate-500">
-                  <span>{selectedCantonMeta.region === 'Deutschschweiz (DE)' ? 'Suisse alémanique (DE)' : selectedCantonMeta.region === 'Ticino (IT)' ? 'Tessin (IT)' : selectedCantonMeta.region}</span>
-                  <span className="mx-1.5">·</span>
-                  <span>NPA {selectedCantonMeta.plz}</span>
-                </div>
-                <h3 className="mt-0.5 font-heading text-xl font-medium text-[#0B2240]">
-                  Canton {selectedCantonMeta.name} ({selectedCantonMeta.code})
-                </h3>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setNewCompCanton(selectedCantonMeta.code);
-                  setShowAddModal(true);
-                }}
-                className="flex h-8 shrink-0 items-center gap-1 rounded-md bg-[#0B2240] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#173863]"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Ajouter</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <span className="text-[11px] text-slate-500 block">Sociétés dans la liste</span>
-                <span className="mt-0.5 block font-heading text-xl font-medium tabular-nums text-[#0B2240]">
-                  {contractorsInSelectedCanton.length}
-                </span>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                <span className="block text-[11px] text-slate-500">
-                  Vérifiées et prêtes
-                </span>
-                <span className="mt-0.5 block font-heading text-xl font-medium tabular-nums text-[#C44F00]">
-                  {
-                    contractorsInSelectedCanton.filter(
-                      (c) => !c.unsubscribed && c.email && c.verified_email !== false
-                    ).length
-                  }
-                </span>
-              </div>
-            </div>
+      {/* Developer banner + view switch — only visible in dev mode. */}
+      {devMode && (
+        <section className="space-y-3">
+          <div className="rounded-xl bg-[#FF6B00] px-4 py-2.5 text-sm font-medium text-white">
+            Mode développeur activé — visible uniquement pour vous
           </div>
+          <SegmentedControl
+            label="Vue développeur"
+            size="sm"
+            value={view}
+            onChange={(val) => setView(val as ScreenView)}
+          >
+            <SegmentedControlItem value="ready" label="Entreprises prêtes" />
+            <SegmentedControlItem value="pool" label={`Pool (récolte) · ${POOL_SAMPLE.length}`} />
+          </SegmentedControl>
+        </section>
+      )}
 
-          <div className="space-y-3 p-5">
-            <div className="flex items-center justify-between text-xs font-medium text-[#0B2240]">
-              <span>Sociétés dans le canton de {selectedCantonMeta.name}</span>
-              <span className="font-mono text-[11px] text-slate-400">
-                Langue : {selectedCantonMeta.language.toUpperCase()}
-              </span>
-            </div>
+      {isPoolView ? (
+        <>
+          {/* POOL VIEW — raw harvest, developer only */}
+          <section className="rounded-xl border border-amber-200 bg-[#FFF4E8] p-4 text-sm leading-6 text-slate-700">
+            <strong className="text-[#0B2240]">Échantillon LINDAS — {POOL_SAMPLE.length} sociétés.</strong>{' '}
+            Liste brute récoltée (LINDAS) — sans e-mail pour l’instant. Jimmy vérifie chaque
+            entreprise avant qu’elle apparaisse dans « Entreprises prêtes ».
+          </section>
 
-            {contractorsInSelectedCanton.length === 0 ? (
-              <div className="bg-slate-50 rounded-2xl p-6 text-center space-y-2 border border-dashed border-slate-200">
-                <Building2 className="w-6 h-6 text-slate-400 mx-auto" />
-                <p className="text-xs text-slate-600">
-                  Aucune société enregistrée dans {selectedCantonMeta.name}.
-                </p>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="relative flex h-11 max-w-md items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:border-[#0B2240]">
+              <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+              <input
+                type="text"
+                value={poolSearch}
+                onChange={(e) => setPoolSearch(e.target.value)}
+                placeholder="Rechercher dans le pool (nom, ville, UID)…"
+                className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
+                aria-label="Rechercher dans le pool"
+              />
+              {poolSearch && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setNewCompCanton(selectedCantonMeta.code);
-                    setShowAddModal(true);
-                  }}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6B00] hover:underline cursor-pointer pt-1"
+                  onClick={() => setPoolSearch('')}
+                  className="text-slate-400 hover:text-[#0B2240] p-1 cursor-pointer"
+                  aria-label="Effacer la recherche"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Ajouter une société dans {selectedCantonMeta.name}</span>
+                  <X className="w-4 h-4" />
                 </button>
+              )}
+            </div>
+            <p className="mt-3 text-[13px] text-slate-400">
+              {filteredPool.length} entreprise{filteredPool.length === 1 ? '' : 's'} affichée{filteredPool.length === 1 ? '' : 's'} sur {POOL_SAMPLE.length}
+            </p>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            {filteredPool.length === 0 ? (
+              <div className="p-11 text-center">
+                <p className="text-sm font-medium text-[#0B2240]">Aucune entreprise ne correspond à cette recherche.</p>
+                <p className="mt-1 text-xs text-slate-500">Essayez un autre mot, ou effacez la recherche.</p>
               </div>
             ) : (
-              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-                {contractorsInSelectedCanton.map((comp) => {
-                  const hasVerifiedEmail = Boolean(
-                    comp.email && comp.verified_email !== false
-                  );
+              <ul className="divide-y divide-slate-100">
+                {filteredPool.map((entry) => (
+                  <li key={entry.uid} className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-bold text-[#0B2240]">{entry.name}</div>
+                      <div className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{entry.purpose}</div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end">
+                      <span className="font-mono text-xs text-slate-400">{entry.uid}</span>
+                      <span className="flex items-center gap-1 text-sm text-slate-500">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        {entry.city}
+                        <span className="rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                          {entry.canton}
+                        </span>
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      ) : (
+        <>
+          {/* FILTERS CARD */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <h2 className="font-heading text-base font-medium text-[#0B2240]">Recherche et filtres</h2>
+            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
+              <div className="relative flex h-11 flex-1 items-center rounded-lg border border-slate-200 bg-white px-3 focus-within:border-[#0B2240]">
+                <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher une entreprise…"
+                  className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
+                  aria-label="Rechercher une entreprise ou une ville"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="text-slate-400 hover:text-[#0B2240] p-1 cursor-pointer"
+                    aria-label="Effacer la recherche"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-500">Canton</label>
+                <select
+                  value={cantonFilter}
+                  onChange={(e) => setCantonFilter(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-[#0B2240] focus:border-[#FF6B00] focus:outline-none lg:w-44"
+                  aria-label="Filtrer par canton"
+                >
+                  <option value="all">Tous les cantons</option>
+                  {cantonsPresent.map((code) => (
+                    <option key={code} value={code}>
+                      Canton {code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-500">Langue</label>
+                <select
+                  value={languageFilter}
+                  onChange={(e) => setLanguageFilter(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-[#0B2240] focus:border-[#FF6B00] focus:outline-none lg:w-44"
+                  aria-label="Filtrer par langue"
+                >
+                  <option value="all">Toutes les langues</option>
+                  <option value="de">Allemand (DE)</option>
+                  <option value="fr">Français (FR)</option>
+                  <option value="it">Italien (IT)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {statusChips.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.id)}
+                  aria-pressed={statusFilter === chip.id}
+                  className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium transition-colors ${
+                    statusFilter === chip.id
+                      ? 'bg-[#0B2240] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {chip.label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+                      statusFilter === chip.id ? 'bg-white/20 text-white' : 'bg-white text-slate-500'
+                    }`}
+                  >
+                    {chip.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-3 text-[13px] text-slate-400">
+              {filteredCompanies.length} entreprise{filteredCompanies.length === 1 ? '' : 's'} affichée{filteredCompanies.length === 1 ? '' : 's'} sur {companies.length}
+            </p>
+          </section>
+
+          {/* READY COMPANIES LIST */}
+          <section
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            data-tour="company-database"
+          >
+            {filteredCompanies.length === 0 ? (
+              <div className="p-11 text-center">
+                <Building2 className="w-6 h-6 text-slate-400 mx-auto" />
+                {statusFilter === 'to_verify' || statusFilter === 'no_email' ? (
+                  <>
+                    <p className="mt-2 text-sm font-medium text-[#0B2240]">Rien à vérifier pour le moment.</p>
+                    <p className="mt-1 text-xs text-slate-500">Toutes les entreprises prêtes sont dans la liste ci-dessus.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2 text-sm font-medium text-[#0B2240]">Aucune entreprise ne correspond à ces critères.</p>
+                    <p className="mt-1 text-xs text-slate-500">Essayez un autre mot, ou effacez les filtres.</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {filteredCompanies.map((comp) => {
+                  const status = getCompanyStatus(comp);
+                  const hasVerifiedEmail = Boolean(comp.email && comp.verified_email !== false);
+                  const isExpanded = expandedCompanyId === comp.id;
                   return (
-                    <div
-                      key={comp.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs transition-colors hover:bg-white"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate font-medium text-[#0B2240]">
-                            {comp.name}
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded bg-slate-200/70 text-[10px] font-mono uppercase text-slate-700">
-                            {comp.language || selectedCantonMeta.language}
-                          </span>
-                        </div>
-                        <div className="font-mono text-[11px] text-slate-500 truncate mt-0.5">
-                          {comp.email || 'Pas de courriel, téléphone seulement'}
-                        </div>
-                        {comp.contact_person && (
-                          <div className="text-[11px] text-slate-500 truncate">
-                            {comp.contact_person} {comp.phone ? `· ${comp.phone}` : ''}
+                    <li key={comp.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        onClick={() => setExpandedCompanyId(isExpanded ? null : comp.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setExpandedCompanyId(isExpanded ? null : comp.id);
+                          }
+                        }}
+                        className="flex w-full cursor-pointer flex-col gap-3 px-4 py-4 text-left transition-colors hover:bg-[#EAF0F8] sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-base font-bold text-[#0B2240]">{comp.name}</div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                              {comp.city || 'Ville inconnue'}
+                            </span>
+                            <span className="rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
+                              {comp.canton}
+                            </span>
                           </div>
-                        )}
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          {comp.unsubscribed && (
-                            <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
-                              Refus (STOP)
+                        </div>
+
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                            <Mail className="w-4 h-4 text-slate-400" />
+                            <span className="max-w-56 truncate font-mono text-[13px]">
+                              {comp.email || 'Pas de courriel, téléphone seulement'}
+                            </span>
+                          </span>
+                          {hasVerifiedEmail && (
+                            <span className="text-xs font-bold text-[#178A5B]">✓ vérifié</span>
+                          )}
+                          <span className="rounded-md bg-[#EEF2F7] px-2 py-0.5 text-[11px] font-bold uppercase text-slate-600">
+                            {comp.language || 'de'}
+                          </span>
+                          {status === 'ready' && (
+                            <span className="rounded-full bg-[#E6F5EE] px-2.5 py-1 text-xs font-bold text-[#178A5B]">
+                              ● Prête
                             </span>
                           )}
-                          {!hasVerifiedEmail && !comp.unsubscribed && (
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                          {status === 'to_verify' && (
+                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
                               Courriel à vérifier
                             </span>
                           )}
+                          {status === 'no_email' && (
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                              Sans e-mail
+                            </span>
+                          )}
+                          {status === 'refused' && (
+                            <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                              Refus (STOP)
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCompany({ ...comp });
+                            }}
+                            title="Modifier la société"
+                            aria-label={`Modifier ${comp.name}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-[#0B2240]"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompanyToDelete(comp);
+                            }}
+                            aria-label={`Retirer ${comp.name}`}
+                            title="Supprimer la société"
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <ChevronDown
+                            className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="mx-4 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:mx-5">
+                          <div className="flex flex-col gap-3 text-sm sm:flex-row sm:gap-8">
+                            <div>
+                              <div className="text-[11px] font-medium text-slate-400">Téléphone</div>
+                              <div className="mt-0.5 flex items-center gap-1.5 font-medium text-[#0B2240]">
+                                <Phone className="w-3.5 h-3.5 text-[#FF6B00]" />
+                                {comp.phone || '—'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-medium text-slate-400">Site web</div>
+                              <div className="mt-0.5 flex items-center gap-1.5 font-medium">
+                                <Globe className="w-3.5 h-3.5 text-[#FF6B00]" />
+                                {comp.website ? (
+                                  <a
+                                    href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-[#0B2240] hover:underline"
+                                  >
+                                    {comp.website}
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </div>
+                            </div>
+                            {comp.contact_person && (
+                              <div>
+                                <div className="text-[11px] font-medium text-slate-400">Contact</div>
+                                <div className="mt-0.5 font-medium text-[#0B2240]">{comp.contact_person}</div>
+                              </div>
+                            )}
+                          </div>
+                          {!comp.phone && !comp.website && (
+                            <p className="mt-3 text-xs text-slate-400">
+                              Pas de téléphone ni de site web dans le registre.
+                            </p>
+                          )}
                           {comp.stock_status === 'no_stock_temporarily' && (
-                            <span className="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] text-slate-600">
+                            <span className="mt-3 inline-block rounded bg-slate-200/70 px-1.5 py-0.5 text-[11px] text-slate-600">
                               Pas de stock, pause de 30 jours
                             </span>
                           )}
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setEditingCompany({ ...comp })}
-                          title="Modifier la société"
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-[#0B2240]"
-                        aria-label={`Modifier ${comp.name}`}
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCompanyToDelete(comp)}
-                          aria-label={`Retirer ${comp.name}`}
-                          title="Supprimer la société"
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                      )}
+                    </li>
                   );
                 })}
+              </ul>
+            )}
+          </section>
+
+          {/* COLLAPSED SEARCH SETTINGS */}
+          <section
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            data-tour="canton-selection"
+          >
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              aria-expanded={settingsOpen}
+              className="flex min-h-13 w-full items-center gap-3 px-5 py-4 text-left"
+            >
+              <Settings className="w-5 h-5 shrink-0 text-slate-400" />
+              <span className="font-heading text-base font-bold text-[#0B2240]">
+                Réglages de la recherche
+              </span>
+              <span className="ml-auto hidden text-[13px] text-slate-400 sm:block">
+                Cantons actifs et rythme quotidien
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${
+                  settingsOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {settingsOpen && (
+              <div className="border-t border-slate-100 px-5 pb-5 pt-4">
+                <h3 className="text-sm font-bold text-slate-600">Cantons où Jimmy cherche</h3>
+                <p className="mt-1 text-[13px] text-slate-400">
+                  Touchez un canton pour l’activer ou le désactiver. Les cantons en bleu sont actifs.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSelectAllCantons}
+                  className="mt-3 h-9 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-medium text-[#C44F00] transition-colors hover:bg-orange-100"
+                >
+                  Activer les 26 cantons
+                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ALL_SWISS_CANTONS.map((canton) => {
+                    const isActive = settings.selected_cantons.includes(canton.code);
+                    return (
+                      <button
+                        key={canton.code}
+                        type="button"
+                        onClick={() => void handleToggleCanton(canton.code)}
+                        aria-pressed={isActive}
+                        title={`${canton.name} (${canton.code})`}
+                        className={`min-w-12 rounded-lg border px-3 py-1.5 text-[13px] font-bold transition-colors ${
+                          isActive
+                            ? 'border-[#0B2240] bg-[#0B2240] text-white'
+                            : 'border-slate-200 bg-white text-slate-400 hover:border-[#0B2240] hover:text-[#0B2240]'
+                        }`}
+                      >
+                        {canton.code}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 max-w-md">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-medium text-[#0B2240]">
+                      <Sliders className="w-4 h-4 text-slate-400" />
+                      Rythme quotidien
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      <b className="text-lg text-[#FF6B00]">{dailyPace}</b> e-mails / jour
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="50"
+                    step="5"
+                    value={dailyPace}
+                    onChange={(e) => void handlePaceChange(Number(e.target.value))}
+                    className="mt-3 w-full cursor-pointer accent-[#FF6B00]"
+                    aria-label="Rythme quotidien d’envoi"
+                  />
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>5 / jour (doux)</span>
+                    <span>25 / jour (conseillé)</span>
+                    <span>50 / jour (rapide)</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Envoi automatique du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich
+                  </p>
+                </div>
               </div>
             )}
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => handleToggleCanton(selectedCantonMeta.code)}
-                aria-pressed={settings.selected_cantons.includes(selectedCantonMeta.code)}
-                className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  settings.selected_cantons.includes(selectedCantonMeta.code)
-                    ? 'border border-slate-200 bg-white text-[#0B2240] hover:bg-slate-50'
-                    : 'bg-[#0B2240] text-white hover:bg-[#173863]'
-                }`}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>
-                  {settings.selected_cantons.includes(selectedCantonMeta.code)
-                    ? `Arrêter la région ${selectedCantonMeta.name} (${selectedCantonMeta.code})`
-                    : `Activer la région ${selectedCantonMeta.name} (${selectedCantonMeta.code})`}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+          </section>
+        </>
+      )}
 
       {/* ADD CONTRACTOR MODAL */}
       {showAddModal && (
@@ -1110,6 +1233,35 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Ville
+                  </label>
+                  <input
+                    type="text"
+                    value={editingCompany.city || ''}
+                    onChange={(e) =>
+                      setEditingCompany({ ...editingCompany, city: e.target.value })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm text-[#0B2240]"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 block mb-1">
+                    Code postal
+                  </label>
+                  <input
+                    type="text"
+                    value={editingCompany.postal_code || ''}
+                    onChange={(e) =>
+                      setEditingCompany({ ...editingCompany, postal_code: e.target.value })
+                    }
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-sm text-[#0B2240]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">
                     Langue du courriel

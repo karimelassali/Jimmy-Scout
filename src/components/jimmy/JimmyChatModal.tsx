@@ -12,6 +12,11 @@ import {
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer';
 import { StatusDot } from '@astryxdesign/core/StatusDot';
 import { TabId } from '../navigation/BottomBar.tsx';
+import {
+  JIMMY_MASCOT_SRC,
+  JIMMY_MASCOT_ALT,
+  type JimmyMascotState,
+} from './jimmy-mascot.ts';
 
 type Message = { role: 'user' | 'jimmy'; text: string };
 
@@ -19,10 +24,12 @@ export function JimmyChatModal({
   open,
   onClose,
   onNavigate,
+  mascotState = 'waiting',
 }: {
   open: boolean;
   onClose: () => void;
   onNavigate: (tab: TabId) => void;
+  mascotState?: JimmyMascotState;
 }) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -98,12 +105,9 @@ export function JimmyChatModal({
 
         <div className="px-6 pt-3 pb-2 bg-white border-b border-orange-100 flex items-center gap-3">
           <div className="h-14 w-14 shrink-0">
-            <video
-              src="/assets/illustrations/jimmymascut.webm"
-              autoPlay
-              loop
-              muted
-              playsInline
+            <img
+              src={JIMMY_MASCOT_SRC[mascotState]}
+              alt={JIMMY_MASCOT_ALT[mascotState]}
               aria-label="Mascotte Jimmy"
               className="w-full h-full object-contain"
             />
