@@ -17,6 +17,18 @@ interface ZefixCheckerScreenProps {
   zefixConfigured: boolean;
 }
 
+// The API returns raw status codes ("ACTIVE", …) — display them in French.
+// Unknown codes are shown as returned, never hidden.
+const ZEFIX_STATUS_FR: Record<string, string> = {
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive',
+  IN_LIQUIDATION: 'En liquidation',
+  DELETED: 'Radiée',
+};
+
+const formatZefixStatus = (status?: string): string | undefined =>
+  status ? (ZEFIX_STATUS_FR[status] ?? status) : undefined;
+
 export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
   zefixConfigured,
 }) => {
@@ -152,7 +164,7 @@ export const ZefixCheckerScreen: React.FC<ZefixCheckerScreenProps> = ({
                             '—'}
                         </p>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {[entry.uid ? `UID ${entry.uid}` : null, entry.status]
+                          {[entry.uid ? `UID ${entry.uid}` : null, formatZefixStatus(entry.status)]
                             .filter(Boolean)
                             .join(' · ') || '—'}
                         </p>

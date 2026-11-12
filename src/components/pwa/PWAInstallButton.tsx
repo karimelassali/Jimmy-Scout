@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePWAInstall } from '../../hooks/usePWAInstall.ts';
 import { Download, Share2, X, Smartphone, Monitor, CheckCircle2 } from 'lucide-react';
 
@@ -33,8 +34,16 @@ export const PWAInstallButton: React.FC = () => {
         <span className="hidden sm:inline">Installer</span>
       </button>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-xs p-4">
+      {/* Rendered in a portal at document.body: the button lives inside the
+          sticky header, which has backdrop-blur — and backdrop-filter makes
+          an ancestor the containing block for `fixed` descendants, so the
+          overlay used to be squeezed into the header's box and its top was
+          clipped off the viewport (follow-up 12 Nov 2026). In the portal,
+          `fixed inset-0` is relative to the viewport. The panel itself
+          keeps max-h 85vh + its own scroll for short screens. */}
+      {showModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 text-[#0B2240] space-y-5 my-auto">
             <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3.5">
@@ -144,8 +153,9 @@ export const PWAInstallButton: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 };

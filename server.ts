@@ -471,8 +471,24 @@ app.patch('/api/settings', async (req, res) => {
     ) {
       allowed.tone = body.tone;
     }
-    if (Array.isArray(body.hooks)) {
-      allowed.hooks = body.hooks.map((h: unknown) => String(h).trim()).filter(Boolean);
+    // `hooks` is a PersonaHooks object { cash_settlement, transport_covered,
+    // as_is } — that is what the client sends. The old array-of-strings form
+    // is still accepted for back-compat and mapped onto the same keys.
+    // (12 Nov 2026: the handler only accepted the array form, so every
+    // hooks toggle PATCH was silently dropped and the response carried the
+    // stale value back, flipping the switch to its old state.)
+    if (body.hooks && typeof body.hooks === 'object' && !Array.isArray(body.hooks)) {
+      const current = await supabaseDataService.getSettings();
+      const merged = { ...current.hooks };
+      for (const key of ['cash_settlement', 'transport_covered', 'as_is'] as const) {
+        if (typeof body.hooks[key] === 'boolean') merged[key] = body.hooks[key];
+      }
+      allowed.hooks = merged;
+    } else if (Array.isArray(body.hooks)) {
+      const known = ['cash_settlement', 'transport_covered', 'as_is'] as const;
+      const hooks: Record<string, boolean> = {};
+      for (const key of known) hooks[key] = body.hooks.includes(key);
+      allowed.hooks = hooks;
     }
     if (typeof body.equipment_focus === 'string') {
       allowed.equipment_focus = body.equipment_focus.trim();

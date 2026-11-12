@@ -5,6 +5,7 @@ import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { formatRelativeTimeFr } from '@/src/utils/format-relative-time.ts';
 import {
   CheckCheck,
   Check,
@@ -71,23 +72,8 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     return true;
   });
 
-  const formatRelativeTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-
-      if (diffMins < 1) return 'À l’instant';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      return `${diffDays}d ago`;
-    } catch {
-      return 'Récemment';
-    }
-  };
+  // Timestamps in French (same formatter as the dossier list) — the old
+  // local version returned English "2h ago" / "3d ago" (follow-up 12 Nov 2026).
 
   const handleItemClick = (item: NotificationItem) => {
     if (!item.isRead) {
@@ -248,7 +234,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                     <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
                       <span className="flex items-center gap-1 tabular-nums">
                         <Clock className="w-3 h-3" />
-                        {formatRelativeTime(item.timestamp)}
+                        {formatRelativeTimeFr(item.timestamp) || 'Récemment'}
                       </span>
                       <span>·</span>
                       <span className="text-[#FF6B00] group-hover:underline font-medium inline-flex items-center gap-0.5">
