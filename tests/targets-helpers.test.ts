@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import type { Company } from '../packages/types/src/database.ts';
 import { POOL_SAMPLE } from '../src/data/pool-sample.ts';
+import { isConstructionCompany } from '../src/data/construction-filter.ts';
 import {
   normalizeSearch,
   getCompanyStatus,
@@ -121,26 +122,32 @@ test('filterCompanies: canton, language and status filters combine as AND', () =
   );
 });
 
-test('pool sample: 21 raw LINDAS rows, including the two off-field ones', () => {
+test('pool sample: 21 clean construction-only LINDAS rows', () => {
   assert.equal(POOL_SAMPLE.length, 21);
   const names = POOL_SAMPLE.map((p) => p.name);
-  assert.ok(names.includes('INSEKTOL AG PEST CONTROL'));
-  assert.ok(names.includes('Bio-Agrar-Counsel GmbH'));
-  assert.ok(names.includes('Aarebau AG'));
+  // The old "bau" substring sample let these off-field rows in — they are gone.
+  assert.ok(!names.includes('INSEKTOL AG PEST CONTROL'));
+  assert.ok(!names.includes('Bio-Agrar-Counsel GmbH'));
+  assert.ok(!names.includes('Hauert HBG Dünger AG'));
+  assert.ok(!names.includes('Schneiter AGRO AG'));
+  assert.ok(!names.includes('Société suisse des employés de commerce'));
+  assert.ok(names.includes('Gebr. Huber AG'));
+  assert.ok(names.includes('Baucal AG'));
   for (const p of POOL_SAMPLE) {
     assert.match(p.uid, /^CHE\d+$/);
     assert.ok(p.city.length > 0);
     assert.ok(p.canton.length === 2);
     assert.ok(p.purpose.length > 0);
+    assert.equal(isConstructionCompany(p.name, p.purpose), true, `${p.name} must be construction`);
   }
 });
 
 test('filterPool: empty search shows all 21 rows; search filters live', () => {
   assert.equal(filterPool(POOL_SAMPLE, '').length, 21);
-  assert.equal(filterPool(POOL_SAMPLE, 'aarebau').length, 1);
-  assert.equal(filterPool(POOL_SAMPLE, 'aarebau')[0].uid, 'CHE106000507');
-  assert.equal(filterPool(POOL_SAMPLE, 'CHE108006805').length, 1);
-  assert.equal(filterPool(POOL_SAMPLE, 'CHE108006805')[0].name, 'INSEKTOL AG PEST CONTROL');
-  assert.equal(filterPool(POOL_SAMPLE, 'zurich').length, 4);
+  assert.equal(filterPool(POOL_SAMPLE, 'baucal').length, 1);
+  assert.equal(filterPool(POOL_SAMPLE, 'baucal')[0].uid, 'CHE101961641');
+  assert.equal(filterPool(POOL_SAMPLE, 'CHE106019754').length, 1);
+  assert.equal(filterPool(POOL_SAMPLE, 'CHE106019754')[0].name, 'Clausen Beton-Trenn AG');
+  assert.equal(filterPool(POOL_SAMPLE, 'affoltern').length, 2);
   assert.equal(filterPool(POOL_SAMPLE, 'zzz-no-match').length, 0);
 });

@@ -33,10 +33,39 @@ export interface DiscoveryStepResult {
   nextRunAt?: string | null;
 }
 
-const RELEVANCE_TERMS = [
+// Relevance scoring for discovered candidates — tightened 12 Nov 2026 after
+// a PET-recycling association and a curtain shop reached the ready list:
+//   - VETO terms reject outright, whatever the score (off-field activities).
+//     The association name check covers "Verein/Verband/Genossenschaft".
+//   - Bare "recycling" is not a term at all: only construction-context
+//     recycling (aggregate / concrete / building-material recycling) counts.
+//     One generic word must never be enough to pass.
+//   - Scoring: base 0.50, strong term +0.12 (cap +0.36), generic term +0.03
+//     (cap +0.06), website +0.05. One strong term + website = 0.67 (pass);
+//     one generic term + website = 0.58 (reject). Threshold stays 0.65.
+export const STRONG_RELEVANCE_TERMS = [
   'tiefbau', 'terrassement', 'excavation', 'erdarbeiten', 'demolition', 'démolition',
-  'abbruch', 'bauunternehmen', 'construction', 'genio civile', 'baumaschinen',
-  'machine de chantier', 'gravière', 'kieswerk', 'carrière', 'quarry', 'recycling',
+  'abbruch', 'bauunternehmen', 'bauunternehmung', 'baugeschäft', 'baumaschinen',
+  'machine de chantier', 'gravière', 'kieswerk', 'carrière', 'quarry', 'hochbau',
+  'strassenbau', 'maurer', 'zimmerei', 'charpente', 'sanitärinstallation',
+  'elektroinstallation', 'baustoffrecycling', 'betonrecycling', 'bauschutt',
+  'recyclage de matériaux', 'entreprise de construction', 'entreprise générale',
+  'general contractor', 'spenglerei', 'dachdecker', 'gerüstbau', 'gipser',
+  'plâtrier', 'travaux publics', 'génie civil', 'genio civile',
+];
+
+export const GENERIC_RELEVANCE_TERMS = ['construction', 'building'];
+
+export const RELEVANCE_VETO_TERMS = [
+  'pet-recycling', 'pet recycling', 'petrecycling', 'plastikrecycling',
+  'kunststoffrecycling', 'papierrecycling', 'altpapier',
+  'gartenbau', 'pflanzenbau', 'weinbau', 'landwirtschaft', 'agrar', 'agro',
+  'dünger', 'pflanzenschutz', 'baumschule', 'gärtnerei', 'landschaftsgestaltung',
+  'pest control', 'schädlingsbekämpfung', 'entwesung',
+  'vorhänge', 'vorhang', 'rideaux', 'gardinen', 'voilages', 'dekoration', 'décoration',
+  'getränke', 'boissons', 'brauerei', 'weinhandel', 'partyservice', 'party-service',
+  'événementiel', 'catering', 'berufsorganisation', 'gewerkschaft', 'arbeitnehmer',
+  'liquidation',
 ];
 
 const CONTACT_HINTS = ['contact', 'kontakt', 'contatto', 'impressum', 'mentions-legales', 'about'];
@@ -174,15 +203,30 @@ async function findPublicBusinessEmail(website: string): Promise<{
   return { email: selectBestEmail(emails, host), evidenceUrl, text: combinedText };
 }
 
-function relevanceScore(place: PlaceCandidate, websiteText: string): { score: number; reason: string } {
+export function relevanceScore(place: PlaceCandidate, websiteText: string): { score: number; reason: string } {
   const haystack = `${place.name} ${(place.types || []).join(' ')} ${websiteText}`.toLowerCase();
-  const matches = RELEVANCE_TERMS.filter((term) => haystack.includes(term));
-  const score = Math.min(0.97, 0.52 + Math.min(0.36, matches.length * 0.09) + (place.website ? 0.05 : 0));
+  const host = normalizeHost(place.website || null) || '';
+  const veto = RELEVANCE_VETO_TERMS.find((term) => `${haystack} ${host}`.includes(term));
+  const nameTokens = place.name.toLowerCase().split(/[\s\-]+/).filter(Boolean);
+  const isAssociationName =
+    nameTokens.includes('verein') || nameTokens.includes('verband') || nameTokens.includes('genossenschaft');
+  if (veto || isAssociationName) {
+    const term = veto || 'association name (Verein/Verband/Genossenschaft)';
+    return { score: 0, reason: `Off-field activity detected: "${term}" — not construction.` };
+  }
+  const strong = STRONG_RELEVANCE_TERMS.filter((term) => haystack.includes(term));
+  const generic = GENERIC_RELEVANCE_TERMS.filter((term) => haystack.includes(term));
+  const score = Math.min(
+    0.97,
+    0.5 + Math.min(0.36, strong.length * 0.12) + Math.min(0.06, generic.length * 0.03) + (place.website ? 0.05 : 0),
+  );
   return {
     score,
-    reason: matches.length
-      ? `Matched contractor signals: ${matches.slice(0, 4).join(', ')}`
-      : 'Found by a targeted contractor search, but website evidence was weak.',
+    reason: strong.length
+      ? `Matched contractor signals: ${strong.slice(0, 4).join(', ')}`
+      : generic.length
+        ? 'Only generic construction words found — evidence too weak.'
+        : 'Found by a targeted contractor search, but website evidence was weak.',
   };
 }
 
