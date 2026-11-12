@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
@@ -7,6 +7,7 @@ import { Switch } from '@astryxdesign/core/Switch';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { AgentSettings, Company, ToneType } from '@/packages/types/src/database.ts';
 import { localizeEquipmentFocus } from '@/packages/types/src/swiss.ts';
+import { getCompanyStatus } from '@/src/components/targets/targets-helpers.ts';
 import { generateFrTemplate } from '@/apps/worker/src/templates/fr.template.ts';
 import { generateDeTemplate } from '@/apps/worker/src/templates/de.template.ts';
 import { generateItTemplate } from '@/apps/worker/src/templates/it.template.ts';
@@ -28,6 +29,83 @@ interface PersonaScreenProps {
   onOpenSetupWizard?: () => void;
 }
 
+/**
+ * Optimistic local copy of one server setting (QA #3, #37).
+ *
+ * The visible control updates the instant the user clicks it. The `settings`
+ * prop is adopted only when it agrees with the latest local choice, or when
+ * it changed for a reason other than one of our own saves. A PATCH response
+ * that arrives late — after a newer click already changed the value — must
+ * never flip the control back, so saves are tracked by request id: only the
+ * newest save's settlement may reconcile the local value, and an older
+ * response landing afterwards is ignored.
+ * (Same helper is duplicated in AgentControlsPanel.tsx for its own controls.)
+ */
+function useOptimisticSetting<T>(
+  serverValue: T,
+  isEqual: (a: T, b: T) => boolean
+) {
+  const [localValue, setLocalValue] = useState<T>(serverValue);
+  const intentRef = useRef<T>(serverValue);
+  const previousIntentRef = useRef<T>(serverValue);
+  const inFlightRef = useRef(0);
+  const latestReqRef = useRef(0);
+  const lastSettledReqRef = useRef(0);
+  const isEqualRef = useRef(isEqual);
+  isEqualRef.current = isEqual;
+
+  useEffect(() => {
+    // A save is still running: the prop may still reflect an older PATCH.
+    if (inFlightRef.current > 0) return;
+    if (isEqualRef.current(serverValue, intentRef.current)) {
+      // Server agrees with the latest choice (or nothing changed locally).
+      lastSettledReqRef.current = latestReqRef.current;
+      setLocalValue(serverValue);
+      return;
+    }
+    if (lastSettledReqRef.current === latestReqRef.current) {
+      // Every save settled in order, yet the server disagrees: the change
+      // came from elsewhere (another screen, a refetch) — adopt it.
+      intentRef.current = serverValue;
+      previousIntentRef.current = serverValue;
+      setLocalValue(serverValue);
+    }
+    // Otherwise an older PATCH response landed after a newer one: ignore it.
+  }, [serverValue]);
+
+  // Record a user change: show it immediately, return the request id and
+  // the resolved value to save. Accepts an updater so two clicks in a row
+  // always build on the latest choice, not on a stale render.
+  const beginChange = useCallback(
+    (next: T | ((prev: T) => T)): { reqId: number; value: T } => {
+      const value =
+        typeof next === 'function'
+          ? (next as (prev: T) => T)(intentRef.current)
+          : next;
+      previousIntentRef.current = intentRef.current;
+      intentRef.current = value;
+      setLocalValue(value);
+      latestReqRef.current += 1;
+      inFlightRef.current += 1;
+      return { reqId: latestReqRef.current, value };
+    },
+    []
+  );
+
+  // Record that the save for `reqId` settled. A failed newest save rolls
+  // the visible value back; a stale (out-of-order) settlement changes nothing.
+  const settleChange = useCallback((reqId: number, ok: boolean) => {
+    inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+    lastSettledReqRef.current = reqId;
+    if (!ok && reqId === latestReqRef.current) {
+      intentRef.current = previousIntentRef.current;
+      setLocalValue(previousIntentRef.current);
+    }
+  }, []);
+
+  return { value: localValue, beginChange, settleChange };
+}
+
 export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   settings,
   companies,
@@ -47,6 +125,28 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
 
+  // French labels for the tone options (QA #37, #54).
+  const toneLabels: Record<ToneType, string> = {
+    swiss_formal: 'Formel suisse',
+    approachable_trade: 'Simple et cordial',
+    fast_cash: 'Paiement rapide',
+  };
+
+  // Optimistic copies of the settings edited on this screen (QA #3): the
+  // switches and the tone selector read these, so they move instantly and a
+  // late PATCH response for an older click cannot flip them back.
+  const hooksSetting = useOptimisticSetting(
+    settings.hooks,
+    (a, b) =>
+      a.cash_settlement === b.cash_settlement &&
+      a.transport_covered === b.transport_covered &&
+      a.as_is === b.as_is
+  );
+  const toneSetting = useOptimisticSetting(
+    settings.tone,
+    (a, b) => a === b
+  );
+
   const handleOpenGuide = () => {
     onOpenGuide?.();
   };
@@ -57,27 +157,35 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
   };
 
   const handleToneChange = async (tone: ToneType) => {
-    await onUpdateSettings({ tone });
-    showToast(
-      `Tone updated to ${
-        tone === 'swiss_formal'
-          ? 'Formel suisse'
-          : tone === 'approachable_trade'
-          ? 'Professionnel et simple'
-          : 'Achat avec paiement rapide'
-      }`
-    );
+    if (tone === toneSetting.value) return;
+    const { reqId } = toneSetting.beginChange(tone);
+    // Toast immediately, in French, for the action just taken — the old code
+    // waited for the save, so the toast lagged one action behind (QA #37).
+    showToast(`Ton mis à jour : ${toneLabels[tone]}`);
+    try {
+      await onUpdateSettings({ tone });
+      toneSetting.settleChange(reqId, true);
+    } catch {
+      toneSetting.settleChange(reqId, false);
+      showToast('Impossible de changer le ton', true);
+    }
   };
 
   const handleToggleHook = async (
     key: 'cash_settlement' | 'transport_covered' | 'as_is'
   ) => {
-    const nextHooks = {
-      ...settings.hooks,
-      [key]: !settings.hooks[key],
-    };
-    await onUpdateSettings({ hooks: nextHooks });
-    showToast('Conditions du courriel mises à jour');
+    const { reqId, value: nextHooks } = hooksSetting.beginChange((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+    try {
+      await onUpdateSettings({ hooks: nextHooks });
+      hooksSetting.settleChange(reqId, true);
+      showToast('Conditions du courriel mises à jour');
+    } catch {
+      hooksSetting.settleChange(reqId, false);
+      showToast('Impossible de mettre à jour les conditions', true);
+    }
   };
 
   const handleSendTestEmail = async (e: React.FormEvent) => {
@@ -118,16 +226,32 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     }
   };
 
-  // Pick a real contractor from the user's Supabase directory for this language if one exists
-  const matchingContractor = companies.find((c) => c.language === activeLang);
-  const previewCompanyName = matchingContractor?.name || '{{company_name}}';
+  // Pick a real contractor from the user's Supabase directory for this language if one exists.
+  // The preview must show a company Jimy may actually write to: a READY
+  // company, never a "Refus (STOP)" one (QA #30). Fall back to any ready
+  // company, then to a clearly-marked example name — never a raw
+  // {{...}} placeholder (QA #9: a placeholder must never reach an email).
+  const matchingContractor =
+    companies.find(
+      (c) => c.language === activeLang && getCompanyStatus(c) === 'ready'
+    ) ?? companies.find((c) => getCompanyStatus(c) === 'ready');
+  const previewCompanyName = matchingContractor?.name || 'Société exemple';
   const previewCanton =
     matchingContractor?.canton ||
     (activeLang === 'de' ? 'ZH' : activeLang === 'it' ? 'TI' : 'VD');
   const previewRecipientLine = matchingContractor
     ? `${matchingContractor.name} (${matchingContractor.canton}) <${matchingContractor.email}>`
-    : `{{company_name}} (${previewCanton}) <{{contractor_email}}>`;
+    : `Société exemple (${previewCanton}) <contact@societe-exemple.ch>`;
   const previewEquipmentFocus = localizeEquipmentFocus(settings.equipment_focus, activeLang);
+
+  // The signature must match the preview language, not stay German in the
+  // French and Italian previews (QA #53).
+  const previewSignature =
+    activeLang === 'de'
+      ? 'JIMY EXPORT · Lastwagen & Baumaschine Händler'
+      : activeLang === 'it'
+        ? 'JIMY EXPORT · Commercio di autocarri e macchine da cantiere'
+        : 'JIMY EXPORT · Négoce de camions et machines de chantier';
 
   const templateParams = {
     companyName: previewCompanyName,
@@ -136,8 +260,8 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
     senderName: settings.sender_name,
     senderEmail: settings.sender_email,
     senderPhone: settings.sender_phone,
-    tone: settings.tone,
-    hooks: settings.hooks,
+    tone: toneSetting.value,
+    hooks: hooksSetting.value,
     // Localize the buyer's French default list before it reaches the preview.
     // Templates also normalize it, but doing it here keeps the on-screen
     // preview faithful to the message that will be sent.
@@ -346,8 +470,8 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
               {[
                 {
                   id: 'swiss_formal' as ToneType,
-                  title: 'Formel suisse (conseillé)',
-                  desc: 'Un ton poli et professionnel pour les sociétés suisses.',
+                  title: 'Formel suisse',
+                  desc: 'Recommandé pour un premier contact : un ton poli et professionnel pour les sociétés suisses.',
                 },
                 {
                   id: 'approachable_trade' as ToneType,
@@ -360,7 +484,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   desc: 'Met en avant le paiement rapide et l’achat immédiat.',
                 },
               ].map((item) => {
-                const isSelected = settings.tone === item.id;
+                const isSelected = toneSetting.value === item.id;
                 return (
                   <button
                     key={item.id}
@@ -419,7 +543,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                   desc: 'Vous ne demandez aucune réparation ni garantie après la vente.',
                 },
               ].map((hook) => {
-                const isChecked = settings.hooks[hook.key];
+                const isChecked = hooksSetting.value[hook.key];
                 return (
                   <div
                     key={hook.key}
@@ -572,7 +696,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 </div>
               </div>
               <span className="text-[12px] text-[#5f6368] shrink-0 pt-0.5">
-                09:14 (à l’instant)
+                à l’instant
               </span>
             </div>
 
@@ -607,15 +731,15 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
 
               <p>
                 {activeLang === 'de'
-                  ? `Planen Sie in nächster Zeit in Ihrem Betrieb (${previewCanton}) den Verkauf oder Ersatz einzelner Maschinen?`
+                  ? 'Planen Sie in nächster Zeit in Ihrem Betrieb den Verkauf oder Ersatz einzelner Maschinen?'
                   : activeLang === 'it'
-                  ? `Avete in programma di vendere o sostituire alcuni mezzi del vostro parco macchine (${previewCanton}) prossimamente?`
-                  : `Avez-vous prévu de vendre ou de renouveler certaines machines de votre parc (${previewCanton}) prochainement ?`}
+                  ? 'Avete in programma di vendere o sostituire alcuni mezzi del vostro parco macchine prossimamente?'
+                  : 'Avez-vous prévu de vendre ou de renouveler certaines machines de votre parc prochainement ?'}
               </p>
 
-              {(settings.hooks.cash_settlement ||
-                settings.hooks.transport_covered ||
-                settings.hooks.as_is) && (
+              {(hooksSetting.value.cash_settlement ||
+                hooksSetting.value.transport_covered ||
+                hooksSetting.value.as_is) && (
                 <div>
                   <p className="mb-1">
                     {activeLang === 'de'
@@ -625,7 +749,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                       : 'Nos conditions :'}
                   </p>
                   <ul className="list-disc pl-5 space-y-1 text-[#202124]">
-                    {settings.hooks.cash_settlement && (
+                    {hooksSetting.value.cash_settlement && (
                       <li>
                         {activeLang === 'de'
                           ? 'Sofortige Banküberweisung oder Barzahlung vor Abholung'
@@ -634,7 +758,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                           : 'Paiement par virement bancaire avant enlèvement'}
                       </li>
                     )}
-                    {settings.hooks.transport_covered && (
+                    {hooksSetting.value.transport_covered && (
                       <li>
                         {activeLang === 'de'
                           ? 'Komplette Organisation und Übernahme des Transports ab Ihrem Werkhof'
@@ -643,7 +767,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                           : 'Transport et convoi exceptionnel pris en charge depuis votre dépôt'}
                       </li>
                     )}
-                    {settings.hooks.as_is && (
+                    {hooksSetting.value.as_is && (
                       <li>
                         {activeLang === 'de'
                           ? 'Kauf im Ist-Zustand ab Platz, ohne Garantieansprüche'
@@ -693,7 +817,7 @@ export const PersonaScreen: React.FC<PersonaScreenProps> = ({
                 <div className="border-l border-[#dadce0] pl-3 text-[13px] leading-[1.4]">
                   <div className="font-bold text-[#202124]">{settings.sender_name}</div>
                   <div className="text-[12px] text-[#5f6368]">
-                    JIMY EXPORT · Lastwagen &amp; Baumaschine Händler
+                    {previewSignature}
                   </div>
                   <div className="text-[12px] text-[#5f6368] mt-0.5">
                     <span className="text-[#1a73e8]">{settings.sender_phone}</span> ·{' '}

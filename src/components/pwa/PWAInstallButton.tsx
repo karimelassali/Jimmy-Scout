@@ -34,8 +34,8 @@ export const PWAInstallButton: React.FC = () => {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 text-[#0B2240] space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 text-[#0B2240] space-y-5 my-auto">
             <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3.5">
                 <img
@@ -86,6 +86,12 @@ export const PWAInstallButton: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3 text-xs">
+                <p className="rounded-2xl bg-orange-50/60 border border-orange-200/80 p-3 text-slate-700 leading-relaxed">
+                  Sur cet appareil, le bouton « Installer » n’installe pas
+                  l’application directement : il ouvre ces instructions.
+                  L’installation se fait depuis votre navigateur, en suivant
+                  les étapes ci-dessous.
+                </p>
                 {isIOS ? (
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                     <div className="font-bold text-sm text-[#0B2240] flex items-center gap-2">
@@ -133,7 +139,7 @@ export const PWAInstallButton: React.FC = () => {
                   onClick={() => setShowModal(false)}
                   className="w-full h-11 rounded-full bg-[#0B2240] hover:bg-[#173863] text-sm font-semibold text-white transition-colors cursor-pointer"
                 >
-                  Got it
+                  Compris
                 </button>
               </div>
             )}

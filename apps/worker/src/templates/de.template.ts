@@ -66,7 +66,7 @@ export function generateDeTemplate(params: TemplateParams) {
     tone === 'fast_cash'
       ? `Sofortankauf Baumaschinen & LKW — ${params.companyName}`
       : tone === 'approachable_trade'
-      ? `Direktankauf ab Werkhof (${params.canton}) — ${params.companyName}`
+      ? `Direktankauf ab Werkhof im Kanton ${params.canton} — ${params.companyName}`
       : `Ankauf Baumaschinen & Nutzfahrzeuge — ${params.companyName}`;
 
   const introParagraph =
@@ -78,8 +78,8 @@ export function generateDeTemplate(params: TemplateParams) {
 
   const questionParagraph =
     tone === 'fast_cash'
-      ? `Haben Sie aktuell eine Maschine auf dem Platz (${params.canton}), die Sie kurzfristig und ohne Aufwand verkaufen möchten?`
-      : `Planen Sie in nächster Zeit in Ihrem Betrieb (${params.canton}) den Verkauf oder Ersatz einzelner Maschinen?`;
+      ? `Haben Sie aktuell eine Maschine auf Ihrem Platz im Kanton ${params.canton}, die Sie kurzfristig und ohne Aufwand verkaufen möchten?`
+      : `Planen Sie in nächster Zeit in Ihrem Betrieb im Kanton ${params.canton} den Verkauf oder Ersatz einzelner Maschinen?`;
 
   const body = `${salutation}
 

@@ -31,11 +31,29 @@ const IMPLENIA_RAW = {
 test('normalizes a real Zefix record to the small API shape', () => {
   assert.deepEqual(normalizeZefixEntry(IMPLENIA_RAW), {
     name: 'Implenia AG',
-    legalForm: 'SA',
+    legalForm: 'Société anonyme',
+    legalFormShort: 'SA',
     uid: 'CHE112626997',
     status: 'ACTIVE',
     city: 'Opfikon',
   });
+});
+
+test('prefers the full legal-form name over the ambiguous short name', () => {
+  // "Implenia Vorsorge" showed as just "Fond" (shortName) — the full name
+  // ("Fondation") is what the screen must show.
+  const entry = normalizeZefixEntry({
+    name: 'Implenia Vorsorge',
+    uid: 'CHE109325934',
+    legalSeat: 'Basel',
+    status: 'ACTIVE',
+    legalForm: {
+      name: { de: 'Stiftung', fr: 'Fondation', it: 'Fondazione', en: 'Foundation' },
+      shortName: { de: 'Stiftung', fr: 'Fond', it: 'Fondazione', en: 'Foundation' },
+    },
+  });
+  assert.strictEqual(entry?.legalForm, 'Fondation');
+  assert.strictEqual(entry?.legalFormShort, 'Fond');
 });
 
 test('normalizes a top-level array payload and drops nameless rows', () => {

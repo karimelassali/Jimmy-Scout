@@ -52,20 +52,20 @@ export function generateItTemplate(params: TemplateParams) {
     tone === 'fast_cash'
       ? `Acquisto immediato macchinari da cantiere — ${params.companyName}`
       : tone === 'approachable_trade'
-      ? `Acquisto diretto mezzi d'opera (${params.canton}) — ${params.companyName}`
+      ? `Acquisto diretto mezzi d'opera — ${params.companyName}`
       : `Acquisto macchinari da cantiere — ${params.companyName}`;
 
   const introParagraph =
     tone === 'fast_cash'
       ? `acquistiamo con ritiro immediato macchine da cantiere e autocarri usati in Svizzera con pagamento garantito prima del ritiro.`
       : tone === 'approachable_trade'
-      ? `come acquirenti diretti nel settore movimento terra in Svizzera (${params.canton}), ritiriamo regolarmente escavatori, pale e camion direttamente dai cantieri.`
+      ? `come acquirenti diretti nel settore movimento terra in Svizzera, ritiriamo regolarmente escavatori, pale e camion direttamente dai cantieri.`
       : `acquistiamo regolarmente macchine da cantiere e autocarri usati in Svizzera per l'esportazione e per i nostri cantieri partner.`;
 
   const questionParagraph =
     tone === 'fast_cash'
-      ? `Avete attualmente nel vostro piazzale (${params.canton}) un mezzo disponibile per una vendita rapida?`
-      : `Avete in programma di vendere o sostituire alcuni mezzi del vostro parco macchine (${params.canton}) prossimamente?`;
+      ? `Avete attualmente nel vostro piazzale un mezzo disponibile per una vendita rapida?`
+      : `Avete in programma di vendere o sostituire alcuni mezzi del vostro parco macchine prossimamente?`;
 
   const body = `${salutation}
 
@@ -85,7 +85,7 @@ Cordiali saluti,
 
 ${params.senderName}
 JIMY EXPORT
-Lastwagen & Baumaschine Händler
+Commercio di autocarri e macchine da cantiere
 Tel: ${params.senderPhone}
 ${params.senderEmail}
 
@@ -145,7 +145,7 @@ Se non desidera ricevere altri messaggi, risponda semplicemente STOP.`;
         </td>
         <td style="vertical-align: top; border-left: 1px solid #dadce0; padding-left: 12px;">
           <div style="font-weight: bold; color: #202124; font-size: 13px;">${safeName}</div>
-          <div style="color: #5f6368; font-size: 12px;">JIMY EXPORT · Lastwagen &amp; Baumaschine Händler</div>
+          <div style="color: #5f6368; font-size: 12px;">JIMY EXPORT · Commercio di autocarri e macchine da cantiere</div>
           <div style="color: #5f6368; font-size: 12px; margin-top: 2px;">
             <a href="tel:${safePhone}" style="color: #1a73e8; text-decoration: none;">${safePhone}</a> · <a href="mailto:${safeEmail}" style="color: #1a73e8; text-decoration: none;">${safeEmail}</a>
           </div>

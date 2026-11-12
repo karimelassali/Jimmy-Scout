@@ -1348,6 +1348,13 @@ export class SupabaseDataService {
               row.companies?.name ||
               row.sender_email,
             canton: row.canton || local?.canton || row.companies?.canton || 'CH',
+            // The SQL row wins the merge, but older rows predate some
+            // columns (latest_reply_text was not inserted until Nov 2026),
+            // so a NULL/empty SQL value must not clobber the good local one
+            // — otherwise "À vérifier" previews fall back to the full
+            // raw_body with its quoted history.
+            latest_reply_text:
+              row.latest_reply_text || local?.latest_reply_text || null,
             message_id: row.message_id ?? local?.message_id ?? null,
             match_score: row.match_score ?? local?.match_score ?? 85,
             classification_confidence:
@@ -1430,15 +1437,25 @@ export class SupabaseDataService {
       const dbRow: Record<string, any> = {
         id: record.id,
         company_id: record.company_id || null,
+        company_name: record.company_name || null,
+        canton: record.canton || null,
         sender_email: record.sender_email,
         raw_subject: record.raw_subject || null,
         raw_body: record.raw_body,
+        latest_reply_text: record.latest_reply_text || null,
         intent: safeIntent,
         machinery_detected: record.machinery_detected,
         contact_name: record.contact_name || null,
         contact_phone: record.contact_phone || null,
         lead_status: record.lead_status,
         ai_summary: record.ai_summary || null,
+        match_score: record.match_score ?? null,
+        classification_confidence: record.classification_confidence ?? null,
+        equipment_fit_score: record.equipment_fit_score ?? null,
+        needs_review: record.needs_review ?? false,
+        message_id: record.message_id || null,
+        in_reply_to: record.in_reply_to || null,
+        references: record.references || [],
         received_at: record.received_at,
       };
 
@@ -1998,7 +2015,9 @@ export class SupabaseDataService {
     return saved;
   }
 
-  async getDiscoveryStats(referenceDate = new Date()): Promise<DiscoveryStats> {
+  async getDiscoveryStats(
+    referenceDate = new Date()
+  ): Promise<DiscoveryStats & { scanned_today: number; error_today: number }> {
     const records = await this.getDiscoveryRecords(2000);
     const today = records.filter((record) =>
       isSameSwissDay(record.discovered_at, referenceDate)
@@ -2007,11 +2026,17 @@ export class SupabaseDataService {
       // Duplicates are places already seen on an earlier run, not new finds.
       // Counting them toward the daily limit let repeat encounters exhaust
       // the day's discovery budget before any new company was found.
+      // Reconciliation for the Home screen — found_today counts NEW finds
+      // only, so: found_today = ready + missing_email + rejected + error,
+      // and scanned_today (every record examined today, duplicates included)
+      // = found_today + duplicates_today.
       found_today: today.filter((r) => r.status !== 'duplicate').length,
       ready_today: today.filter((r) => r.status === 'ready').length,
       missing_email_today: today.filter((r) => r.status === 'missing_email').length,
       duplicates_today: today.filter((r) => r.status === 'duplicate').length,
       rejected_today: today.filter((r) => r.status === 'rejected').length,
+      error_today: today.filter((r) => r.status === 'error').length,
+      scanned_today: today.length,
       total_discovered: records.length,
     };
   }

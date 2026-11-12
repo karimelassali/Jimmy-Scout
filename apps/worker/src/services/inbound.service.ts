@@ -1,5 +1,5 @@
 import { supabaseDataService } from './supabase.service.ts';
-import { geminiService } from './gemini.service.ts';
+import { geminiService, personalizeUnavailableSummary } from './gemini.service.ts';
 import { telegramService } from './telegram.service.ts';
 import { computeDurableMessageKey, extractLatestReplyText } from './imap.service.ts';
 import { InboundLead } from '@/packages/types/src/lead.ts';
@@ -61,6 +61,26 @@ function inferCantonFromText(text: string, fallback = 'CH'): string {
     }
   }
   return fallback;
+}
+
+/**
+ * Our outbound subjects end with "— <Company Name>". A reply from a personal
+ * mailbox (no company matches the sender address) still names the company it
+ * answers, so the dossier can be filed under that company's CURRENT record
+ * instead of guessing the canton from the reply text ("in Bern" → BE for a
+ * Sion/VS company). Returns null when the subject names no known company.
+ */
+export function matchCompanyFromSubject(
+  subject: string,
+  companies: Array<{ id: string; name: string; canton: string }>
+): { id: string; name: string; canton: string } | null {
+  const suffix = (subject || '').split('—').pop()?.trim();
+  if (!suffix) return null;
+  const wanted = suffix.toLowerCase();
+  return (
+    companies.find((company) => company.name.trim().toLowerCase() === wanted) ||
+    null
+  );
 }
 
 export class InboundProcessingService {
@@ -184,17 +204,40 @@ export class InboundProcessingService {
         senderEmail.split('@')[0] ||
         senderEmail;
 
-      let canton = (params.canton?.trim() || existingCompany?.canton || '').toUpperCase();
+      // A reply from a personal mailbox matches no company by email, but the
+      // subject still names the company it answers. Use that company's
+      // CURRENT record for the canton (and the dossier link) instead of
+      // guessing from the reply text — "in Bern" must not file a Sion (VS)
+      // company under BE.
+      const subjectCompany = existingCompany
+        ? null
+        : matchCompanyFromSubject(
+            rawSubject,
+            await supabaseDataService.getCompanies()
+          );
+      const matchedCompany = existingCompany || subjectCompany;
+
+      let canton = (params.canton?.trim() || matchedCompany?.canton || '').toUpperCase();
       if (!canton || canton === 'CH') {
         canton = inferCantonFromText(`${rawSubject} ${latestReplyText}`, 'CH');
       }
 
       // 5. Analyze latest reply text with Gemini (with untrusted data boundaries & runtime validation)
-      const analysis = await geminiService.analyzeReply(
+      const rawAnalysis = await geminiService.analyzeReply(
         rawSubject,
         latestReplyText || rawBody,
         senderEmail
       );
+      // When Gemini was unavailable the summary is one identical generic line
+      // for every seller. Personalize it here, where the seller is known.
+      const analysis = {
+        ...rawAnalysis,
+        french_summary: personalizeUnavailableSummary(
+          rawAnalysis.french_summary,
+          rawAnalysis.contact_name || companyName,
+          companyName
+        ),
+      };
 
       // 6. Route by Intent:
       // 6a. UNSUBSCRIBE -> Permanent durable suppression (even for unknown senders!)
@@ -266,7 +309,7 @@ export class InboundProcessingService {
       }
 
       const createdLead = await supabaseDataService.createLead({
-        company_id: existingCompany?.id || null,
+        company_id: matchedCompany?.id || null,
         company_name: companyName,
         canton,
         sender_email: senderEmail,

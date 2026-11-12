@@ -21,6 +21,33 @@ export interface SendMailOptions {
   }>;
 }
 
+const UNREPLACED_PLACEHOLDER_PATTERN = /\{\{\s*[a-zA-Z0-9_.-]+\s*\}\}/g;
+
+/**
+ * Safety guard (QA issue 9): the pre-rewrite templates used {{company_name}}
+ * placeholders and sent emails went out with one unreplaced. Current
+ * templates interpolate directly, but any subject/body passing through here
+ * is scanned once more and leftover {{...}} placeholders are stripped
+ * (with a dangling " — " left behind cleaned up) instead of ever reaching
+ * a seller. Returns the cleaned text unchanged when nothing was found.
+ */
+export function stripUnreplacedPlaceholders(value: string): string {
+  if (!value || !value.includes('{{')) return value;
+  const removed = value.match(UNREPLACED_PLACEHOLDER_PATTERN) || [];
+  if (!removed.length) return value;
+  const cleaned = value
+    .replace(UNREPLACED_PLACEHOLDER_PATTERN, '')
+    .replace(/ {2,}/g, ' ')
+    .replace(/\s+[—–-]\s*$/, '')
+    .trim();
+  console.error(
+    `[SMTP] Stripped unreplaced placeholder(s) before sending: ${Array.from(
+      new Set(removed)
+    ).join(', ')}`
+  );
+  return cleaned;
+}
+
 export class SmtpService {
   private transporter: Transporter | null = null;
 
@@ -62,6 +89,12 @@ export class SmtpService {
     deliveryStatus?: 'accepted' | 'simulated' | 'failed' | 'bounced';
     error?: string;
   }> {
+    // Last-resort placeholder guard (see stripUnreplacedPlaceholders): no
+    // {{...}} token may ever leave this service, whatever built the email.
+    const subject = stripUnreplacedPlaceholders(options.subject);
+    const text = stripUnreplacedPlaceholders(options.text);
+    const html = options.html ? stripUnreplacedPlaceholders(options.html) : undefined;
+
     if (process.env.JIMISCOUT_STUB_EXTERNAL === 'true') {
       return {
         success: true,
@@ -107,9 +140,9 @@ export class SmtpService {
     const mailPayload: Record<string, any> = {
       from: `"${senderDisplayName}" <${config.smtp.user.trim()}>`,
       to: options.to,
-      subject: options.subject,
-      text: options.text,
-      html: options.html,
+      subject,
+      text,
+      html,
       replyTo: options.replyTo || config.smtp.user.trim(),
       attachments: attachments.length > 0 ? attachments : undefined,
     };

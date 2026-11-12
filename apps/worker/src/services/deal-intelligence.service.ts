@@ -1,6 +1,7 @@
 import { InboundLead, DetectedMachinery } from '@/packages/types/src/lead.ts';
 import { WatchlistRule } from '@/packages/types/src/database.ts';
 import { supabaseDataService } from './supabase.service.ts';
+import { convertToChf, parsePriceString } from '@/packages/types/src/swiss.ts';
 
 const currentYear = () => new Date().getUTCFullYear();
 
@@ -61,6 +62,94 @@ function qualificationDraft(lead: InboundLead, missing: string[]): { subject: st
   return {
     subject: `Quelques informations sur ${label}`,
     body: `Bonjour${lead.contact_name ? ` ${lead.contact_name}` : ''},\n\nMerci pour votre réponse. Pour étudier rapidement ${label}, pouvez-vous nous envoyer :\n${missing.map((item) => `- ${item}`).join('\n')}\n\nDes photos récentes sont aussi utiles.\n\nMerci et bonne journée.`,
+  };
+}
+
+export interface OfferPriceSummary {
+  /** Converted total, in CHF — the "Valeur totale des offres" figure. */
+  total_chf: number;
+  /** Machines with a usable price. */
+  offers_count: number;
+  /** Offers originally priced in a foreign currency and converted to CHF. */
+  converted_count: number;
+  /** Converted (non-CHF) part of total_chf. */
+  converted_total_chf: number;
+  /** Original amounts per currency, so the screen can label the mix. */
+  by_currency: Array<{ currency: 'CHF' | 'EUR' | 'USD'; count: number; total_amount: number }>;
+  /** French one-liner for the screen, e.g. "dont 1 offre en EUR convertie…". */
+  note: string;
+}
+
+/**
+ * Aggregate asking prices across leads exactly the way the Home screen sums
+ * them (stored asking_price_chf first, raw asking price parsed + converted
+ * as a fallback), but keep the original currency and amount alongside the
+ * converted CHF total so the screen can explain the mix instead of showing
+ * one bare CHF figure. EUR→CHF 0.94 / USD→CHF 0.88 are the fixed rates in
+ * packages/types/src/swiss.ts.
+ */
+export function summarizeOfferPrices(leads: InboundLead[]): OfferPriceSummary {
+  let total_chf = 0;
+  let offers_count = 0;
+  let converted_count = 0;
+  let converted_total_chf = 0;
+  const byCurrency = new Map<
+    'CHF' | 'EUR' | 'USD',
+    { currency: 'CHF' | 'EUR' | 'USD'; count: number; total_amount: number }
+  >();
+  const convertedCurrencies = new Set<string>();
+
+  for (const lead of leads) {
+    for (const machine of lead.machinery_detected || []) {
+      let chf: number | null =
+        typeof machine.asking_price_chf === 'number' && machine.asking_price_chf > 0
+          ? machine.asking_price_chf
+          : null;
+      let currency = machine.asking_price_currency as 'CHF' | 'EUR' | 'USD' | undefined;
+      let amount = machine.asking_price_amount ?? null;
+      if (chf === null && machine.asking_price) {
+        const parsed = parsePriceString(machine.asking_price);
+        amount = parsed.amount;
+        currency = parsed.currency;
+        chf = convertToChf(parsed.amount, parsed.currency);
+      }
+      if (!chf || chf <= 0) continue;
+      const originalCurrency = currency || 'CHF';
+      offers_count++;
+      total_chf += chf;
+      if (originalCurrency !== 'CHF') {
+        converted_count++;
+        converted_total_chf += chf;
+        convertedCurrencies.add(originalCurrency);
+      }
+      const bucket = byCurrency.get(originalCurrency) || {
+        currency: originalCurrency,
+        count: 0,
+        total_amount: 0,
+      };
+      bucket.count++;
+      bucket.total_amount += amount ?? chf;
+      byCurrency.set(originalCurrency, bucket);
+    }
+  }
+
+  const note =
+    converted_count > 0
+      ? `Total en CHF ; dont ${converted_count} offre${
+          converted_count > 1 ? 's' : ''
+        } en ${Array.from(convertedCurrencies).join(' / ')} convertie${
+          converted_count > 1 ? 's' : ''
+        } en CHF (taux fixe EUR→CHF 0,94, USD→CHF 0,88).`
+      : 'Total en CHF ; aucune offre en devise étrangère.';
+  return {
+    total_chf,
+    offers_count,
+    converted_count,
+    converted_total_chf,
+    by_currency: Array.from(byCurrency.values()).sort((a, b) =>
+      a.currency.localeCompare(b.currency)
+    ),
+    note,
   };
 }
 

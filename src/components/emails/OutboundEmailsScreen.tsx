@@ -41,6 +41,7 @@ interface OutboundEmailsScreenProps {
   settings: AgentSettings;
   todaySentCount: number;
   initialLogId?: string | null;
+  onClearFocusedLog?: () => void;
   onRefreshLogs: () => Promise<void>;
   onNavigateToTargets?: (searchQuery?: string) => void;
   onNavigateToPersona?: () => void;
@@ -58,6 +59,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
   settings,
   todaySentCount,
   initialLogId,
+  onClearFocusedLog,
   onRefreshLogs,
   onNavigateToTargets,
   onNavigateToPersona,
@@ -82,6 +84,13 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
   // Modal / Drawer details
   const [activeModalLog, setActiveModalLog] = useState<OutboundLog | null>(null);
+  // Closing the detail modal must also clear the focused log, otherwise the
+  // auto-open effect (initialLogId -> setActiveModalLog) re-fires on the
+  // next logs refresh and the modal pops back open by itself.
+  const closeLogModal = () => {
+    setActiveModalLog(null);
+    if (onClearFocusedLog) onClearFocusedLog();
+  };
   const [logToDelete, setLogToDelete] = useState<OutboundLog | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -271,8 +280,40 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
     setTimeout(() => setCopiedId(null), 2500);
   };
 
+  // Même règle que sur l’accueil : interrupteur principal + envoi auto +
+  // heures ouvrées suisses (lun.–ven., 08:30–17:00, Europe/Zurich). Cet
+  // écran ne reçoit pas le statut du planificateur, l’heure suisse est
+  // donc calculée côté client.
+  const isSwissBusinessHoursNow = () => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Zurich',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const value = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((p) => p.type === type)?.value ?? '';
+    const weekday = value('weekday');
+    const minutes = Number(value('hour')) * 60 + Number(value('minute'));
+    const isWeekday = weekday !== 'Sat' && weekday !== 'Sun';
+    return isWeekday && minutes >= 8 * 60 + 30 && minutes < 17 * 60;
+  };
+  const canDispatchNow =
+    settings.is_active && settings.outreach_active && isSwissBusinessHoursNow();
+  const dispatchTitle =
+    !settings.is_active || !settings.outreach_active
+      ? 'Activez Jimy et l’envoi automatique pour envoyer un courriel.'
+      : !isSwissBusinessHoursNow()
+        ? 'Les envois sont disponibles du lundi au vendredi, de 08:30 à 17:00 (Zurich).'
+        : 'Envoyer le prochain courriel de la file maintenant.';
+
   // Trigger manual dispatch
   const handleManualDispatch = async () => {
+    if (!canDispatchNow) {
+      showToast(dispatchTitle, true);
+      return;
+    }
     setIsDispatching(true);
     try {
       const res = await fetch('/api/worker/step', { method: 'POST' });
@@ -426,7 +467,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
   const successRate =
     totalSentCount > 0
       ? Math.round(((deliveredCount + simulatedCount) / totalSentCount) * 100)
-      : 100;
+      : null;
 
   // Language Breakdown
   const languageCounts = useMemo(() => {
@@ -492,14 +533,17 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             icon={<Download className="w-3.5 h-3.5 text-slate-500" />}
           />
 
-          <Button
-            label="Envoyer 1 courriel"
-            variant="primary"
-            size="sm"
-            onClick={handleManualDispatch}
-            isLoading={isDispatching}
-            icon={<Send className="w-3.5 h-3.5" />}
-          />
+          <div title={dispatchTitle}>
+            <Button
+              label="Envoyer 1 courriel"
+              variant="primary"
+              size="sm"
+              onClick={handleManualDispatch}
+              isLoading={isDispatching}
+              isDisabled={!canDispatchNow}
+              icon={<Send className="w-3.5 h-3.5" />}
+            />
+          </div>
         </div>
       </div>
 
@@ -562,10 +606,14 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
             </div>
           </div>
           <div className="mt-2 font-heading font-bold text-2xl text-emerald-600 tabular-nums">
-            {successRate}%
+            {successRate === null ? '—' : `${successRate}%`}
           </div>
           <div className="mt-2 text-[11px] text-slate-500">
-            {bouncedCount === 0 ? 'Aucun courriel rejeté' : `${bouncedCount} rejeté(s)`}
+            {totalSentCount === 0
+              ? 'Aucun courriel envoyé'
+              : bouncedCount === 0
+                ? 'Aucun courriel rejeté'
+                : `${bouncedCount} rejeté(s)`}
           </div>
         </div>
 
@@ -1239,7 +1287,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
               <button
                 type="button"
-                onClick={() => setActiveModalLog(null)}
+                onClick={closeLogModal}
                 className="w-8 h-8 rounded-full hover:bg-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -1386,7 +1434,7 @@ export const OutboundEmailsScreen: React.FC<OutboundEmailsScreenProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setActiveModalLog(null)}
+                  onClick={closeLogModal}
                   className="h-8 px-4 rounded-xl bg-[#0B2240] hover:bg-[#07172b] text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Fermer

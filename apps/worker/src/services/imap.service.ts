@@ -23,23 +23,38 @@ export interface IncomingRawEmail {
 /**
  * Strips quoted history (lines starting with ">", "On ... wrote:", "Le ... a écrit :", "Am ... schrieb")
  * so AI classification focuses on the contractor's actual latest reply while keeping full raw_body.
+ * Gmail wraps the quote header across two lines ("On Sat, 31 Oct 2026, 4:14 pm
+ * Jamal - JIMY EXPORT, <info@jimyexport.ch>\nwrote:" / "Il dom 8 nov 2026, 22:56
+ * ... ha\nscritto:"), so the header is also recognised when its tail
+ * ("wrote:", "scritto:", "écrit :") lands on the next line.
  */
 export function extractLatestReplyText(bodyText: string): string {
   if (!bodyText) return '';
   const lines = bodyText.replace(/\r\n/g, '\n').split('\n');
   const kept: string[] = [];
 
-  for (const line of lines) {
+  // Bare tail of a wrapped quote header, on its own line.
+  const isQuoteTail = (line: string) => /^(wrote|scritto|écrit)\s*:?$/i.test(line);
+  // Start of a quote header whose tail is on the next line.
+  const isWrappedQuoteHeader = (line: string, nextLine: string) =>
+    (/^(on|le|il)\b/i.test(line) && isQuoteTail(nextLine)) ||
+    (/^am\b/i.test(line) && /schrieb/i.test(nextLine));
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
+    const next = (lines[i + 1] || '').trim();
     if (
+      isQuoteTail(trimmed) ||
       /^on .+ wrote:$/i.test(trimmed) ||
       /^le .+ a écrit\s*:$/i.test(trimmed) ||
       /^am .+ schrieb .+:$/i.test(trimmed) ||
-      /^il giorno .+ ha scritto:$/i.test(trimmed) ||
+      /^il .+ ha scritto:$/i.test(trimmed) ||
       /^-----original message-----$/i.test(trimmed) ||
       /^_{5,}$/.test(trimmed) ||
       /^de\s*:\s*.+@/i.test(trimmed) ||
-      /^von\s*:\s*.+@/i.test(trimmed)
+      /^von\s*:\s*.+@/i.test(trimmed) ||
+      isWrappedQuoteHeader(trimmed, next)
     ) {
       break;
     }

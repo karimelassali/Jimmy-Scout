@@ -6,6 +6,8 @@
 export interface ZefixEntry {
   name: string;
   legalForm?: string;
+  /** Abbreviated legal form (e.g. "SA", "Fond"), when the register gives one. */
+  legalFormShort?: string;
   uid?: string;
   status?: string;
   city?: string;
@@ -38,14 +40,22 @@ export function normalizeZefixEntry(raw: unknown): ZefixEntry | null {
   const name = asNonEmptyString(record.name);
   if (!name) return null;
   const legalForm = record.legalForm;
-  const legalFormText =
+  // Prefer the full legal-form name ("Fondation", "Société anonyme") over the
+  // short name ("Fond", "SA"): the short form is ambiguous on screen
+  // ("Implenia Vorsorge" showed as just "Fond"). The short form is still
+  // returned as legalFormShort for callers that want the abbreviation.
+  const legalFormName =
     legalForm && typeof legalForm === 'object'
-      ? pickLocalizedText((legalForm as Record<string, unknown>).shortName) ??
-        pickLocalizedText((legalForm as Record<string, unknown>).name)
+      ? pickLocalizedText((legalForm as Record<string, unknown>).name)
       : pickLocalizedText(legalForm);
+  const legalFormShort =
+    legalForm && typeof legalForm === 'object'
+      ? pickLocalizedText((legalForm as Record<string, unknown>).shortName)
+      : undefined;
   return {
     name,
-    legalForm: legalFormText,
+    legalForm: legalFormName ?? legalFormShort,
+    legalFormShort,
     uid: asNonEmptyString(record.uid),
     status: asNonEmptyString(record.status),
     city: asNonEmptyString(record.legalSeat) ?? asNonEmptyString(record.city),

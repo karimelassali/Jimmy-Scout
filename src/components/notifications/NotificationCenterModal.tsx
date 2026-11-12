@@ -57,7 +57,13 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   const [filter, setFilter] = useState<'all' | 'unread' | 'offers' | 'emails'>('all');
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const offersCount = notifications.filter((n) => n.type === 'offer').length;
+  const emailsCount = notifications.filter((n) => n.type === 'email_sent').length;
 
+  // Each filter keeps only its own type. At the QA check all 8 notifications
+  // were offers (no sent-email notifications existed), so « Offres » rightly
+  // showed the same 8 as « Tout » — the counts on the pills now make that
+  // visible instead of looking like the filter did nothing.
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.isRead;
     if (filter === 'offers') return n.type === 'offer';
@@ -137,8 +143,8 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           >
             <SegmentedControlItem value="all" label={`Tout (${notifications.length})`} />
             <SegmentedControlItem value="unread" label={`Non lus (${unreadCount})`} />
-            <SegmentedControlItem value="offers" label="Offres" />
-            <SegmentedControlItem value="emails" label="Envoyés" />
+            <SegmentedControlItem value="offers" label={`Offres (${offersCount})`} />
+            <SegmentedControlItem value="emails" label={`Envoyés (${emailsCount})`} />
           </SegmentedControl>
 
           {unreadCount > 0 && (
@@ -153,16 +159,23 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
         </div>
 
         {/* Notifications List */}
+        <p className="px-5 pt-2 text-[11px] text-slate-400 shrink-0">
+          Ouvrir une notification la marque comme lue.
+        </p>
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {filteredNotifications.length === 0 ? (
             <div className="p-8">
               <EmptyState
                 icon={<Check className="w-6 h-6 text-emerald-500" />}
-                title="All caught up!"
+                title="Tout est à jour !"
                 description={
                   filter === 'unread'
                     ? 'Aucune nouvelle alerte.'
-                    : 'Les actions de Jimy et les réponses des sociétés apparaîtront ici.'
+                    : filter === 'offers'
+                      ? 'Aucune offre reçue pour le moment.'
+                      : filter === 'emails'
+                        ? 'Aucun courriel envoyé pour le moment.'
+                        : 'Les actions de Jimy et les réponses des sociétés apparaîtront ici.'
                 }
               />
             </div>
@@ -206,9 +219,16 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
 
                   <div className="flex-1 min-w-0 pr-4">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-heading font-bold text-xs text-[#0B2240]">
+                      <span
+                        className={
+                          isUnread
+                            ? 'font-heading font-bold text-xs text-[#0B2240]'
+                            : 'font-heading font-medium text-xs text-slate-500'
+                        }
+                      >
                         {item.title}
                       </span>
+                      {!isUnread && <Badge label="Lu" variant="gray" />}
                       {item.canton && (
                         <Badge label={item.canton} variant="gray" />
                       )}
@@ -217,7 +237,11 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
+                    <p
+                      className={`text-xs line-clamp-2 mt-0.5 leading-relaxed ${
+                        isUnread ? 'text-slate-600' : 'text-slate-400'
+                      }`}
+                    >
                       {item.subtitle}
                     </p>
 

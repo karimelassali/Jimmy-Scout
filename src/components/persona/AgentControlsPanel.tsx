@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AgentFeatureControls, AgentSettings, AutomationMode, WatchlistRule } from '@/packages/types/src/database.ts';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -29,11 +29,114 @@ const modes: Array<{ id: AutomationMode; label: string }> = [
   { id: 'auto', label: 'Auto' },
 ];
 
+/**
+ * Optimistic local copy of one server setting (QA #3).
+ *
+ * The visible control updates the instant the user clicks it. The `settings`
+ * prop is adopted only when it agrees with the latest local choice, or when
+ * it changed for a reason other than one of our own saves. A PATCH response
+ * that arrives late — after a newer click already changed the value — must
+ * never flip the control back, so saves are tracked by request id: only the
+ * newest save's settlement may reconcile the local value, and an older
+ * response landing afterwards is ignored.
+ * (Same helper is duplicated in PersonaScreen.tsx for its own controls.)
+ */
+function useOptimisticSetting<T>(
+  serverValue: T,
+  isEqual: (a: T, b: T) => boolean
+) {
+  const [localValue, setLocalValue] = useState<T>(serverValue);
+  const intentRef = useRef<T>(serverValue);
+  const previousIntentRef = useRef<T>(serverValue);
+  const inFlightRef = useRef(0);
+  const latestReqRef = useRef(0);
+  const lastSettledReqRef = useRef(0);
+  const isEqualRef = useRef(isEqual);
+  isEqualRef.current = isEqual;
+
+  useEffect(() => {
+    // A save is still running: the prop may still reflect an older PATCH.
+    if (inFlightRef.current > 0) return;
+    if (isEqualRef.current(serverValue, intentRef.current)) {
+      // Server agrees with the latest choice (or nothing changed locally).
+      lastSettledReqRef.current = latestReqRef.current;
+      setLocalValue(serverValue);
+      return;
+    }
+    if (lastSettledReqRef.current === latestReqRef.current) {
+      // Every save settled in order, yet the server disagrees: the change
+      // came from elsewhere (another screen, a refetch) — adopt it.
+      intentRef.current = serverValue;
+      previousIntentRef.current = serverValue;
+      setLocalValue(serverValue);
+    }
+    // Otherwise an older PATCH response landed after a newer one: ignore it.
+  }, [serverValue]);
+
+  // Record a user change: show it immediately, return the request id and
+  // the resolved value to save. Accepts an updater so two clicks in a row
+  // always build on the latest choice, not on a stale render.
+  const beginChange = useCallback(
+    (next: T | ((prev: T) => T)): { reqId: number; value: T } => {
+      const value =
+        typeof next === 'function'
+          ? (next as (prev: T) => T)(intentRef.current)
+          : next;
+      previousIntentRef.current = intentRef.current;
+      intentRef.current = value;
+      setLocalValue(value);
+      latestReqRef.current += 1;
+      inFlightRef.current += 1;
+      return { reqId: latestReqRef.current, value };
+    },
+    []
+  );
+
+  // Record that the save for `reqId` settled. A failed newest save rolls
+  // the visible value back; a stale (out-of-order) settlement changes nothing.
+  const settleChange = useCallback((reqId: number, ok: boolean) => {
+    inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+    lastSettledReqRef.current = reqId;
+    if (!ok && reqId === latestReqRef.current) {
+      intentRef.current = previousIntentRef.current;
+      setLocalValue(previousIntentRef.current);
+    }
+  }, []);
+
+  return { value: localValue, beginChange, settleChange };
+}
+
+const FEATURE_KEYS: Array<keyof AgentFeatureControls> = [
+  'deal_scoring',
+  'follow_ups',
+  'qualification',
+  'price_comparison',
+  'watchlists',
+  'daily_briefing',
+  'negotiation',
+  'seller_intelligence',
+];
+
+function sameFeatureControls(
+  a: AgentFeatureControls,
+  b: AgentFeatureControls
+): boolean {
+  return FEATURE_KEYS.every((key) => a[key] === b[key]);
+}
+
 export const AgentControlsPanel: React.FC<Props> = ({ settings, onUpdateSettings }) => {
   const [watchlists, setWatchlists] = useState<WatchlistRule[]>([]);
   const [name, setName] = useState('Bonne pelle');
   const [keywords, setKeywords] = useState('pelle, excavatrice, bagger');
   const [saving, setSaving] = useState(false);
+
+  // Optimistic copy of the feature modes (QA #3): the segmented controls
+  // read this, so they move instantly and a late PATCH response for an
+  // older click cannot flip them back.
+  const controlsSetting = useOptimisticSetting(
+    settings.feature_controls,
+    sameFeatureControls
+  );
 
   const loadWatchlists = async () => {
     const res = await fetch('/api/watchlists');
@@ -43,7 +146,17 @@ export const AgentControlsPanel: React.FC<Props> = ({ settings, onUpdateSettings
   useEffect(() => { void loadWatchlists(); }, []);
 
   const changeMode = async (key: keyof AgentFeatureControls, mode: AutomationMode) => {
-    await onUpdateSettings({ feature_controls: { ...settings.feature_controls, [key]: mode } });
+    if (controlsSetting.value[key] === mode) return;
+    const { reqId, value: next } = controlsSetting.beginChange((prev) => ({
+      ...prev,
+      [key]: mode,
+    }));
+    try {
+      await onUpdateSettings({ feature_controls: next });
+      controlsSetting.settleChange(reqId, true);
+    } catch {
+      controlsSetting.settleChange(reqId, false);
+    }
   };
 
   const createWatchlist = async () => {
@@ -92,7 +205,7 @@ export const AgentControlsPanel: React.FC<Props> = ({ settings, onUpdateSettings
                   label={`Mode pour ${feature.name}`}
                   size="sm"
                   layout="fill"
-                  value={settings.feature_controls[feature.key]}
+                  value={controlsSetting.value[feature.key]}
                   onChange={(val) => void changeMode(feature.key, val as AutomationMode)}
                 >
                   {availableModes.map((mode) => (

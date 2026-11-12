@@ -9,7 +9,10 @@ import { POOL_SAMPLE } from '@/src/data/pool-sample.ts';
 import {
   filterCompanies,
   filterPool,
+  findSuppressionForCompany,
   getCompanyStatus,
+  getDisplayCity,
+  suppressionReasonLabel,
   type StatusFilter,
 } from './targets-helpers.ts';
 import {
@@ -42,11 +45,35 @@ interface TargetsScreenProps {
   onUpdateSettings: (patch: Partial<AgentSettings>) => Promise<void>;
   onRefreshCompanies: () => Promise<void>;
   onNavigateToScanner?: () => void;
+  /** Canton présélectionné (tuile d'accueil). null = tous les cantons. */
+  initialCanton?: string | null;
 }
 
 type ScreenView = 'ready' | 'pool';
 
 const DEV_MODE_KEY = 'jimyscout-dev-mode';
+
+/** Rythme quotidien : les quatre seuls choix possibles (même échelle partout). */
+const DAILY_PACE_OPTIONS = [
+  { value: 5, label: '5 / jour (doux)' },
+  { value: 15, label: '15 / jour' },
+  { value: 25, label: '25 / jour (conseillé)' },
+  { value: 50, label: '50 / jour (rapide)' },
+] as const;
+
+/** Index de l'option la plus proche d'une valeur enregistrée (ex. 15). */
+function closestPaceIndex(value: number): number {
+  let best = 0;
+  for (let i = 1; i < DAILY_PACE_OPTIONS.length; i += 1) {
+    if (
+      Math.abs(DAILY_PACE_OPTIONS[i].value - value) <
+      Math.abs(DAILY_PACE_OPTIONS[best].value - value)
+    ) {
+      best = i;
+    }
+  }
+  return best;
+}
 
 export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   settings,
@@ -54,9 +81,12 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   onUpdateSettings,
   onRefreshCompanies,
   onNavigateToScanner,
+  initialCanton,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [cantonFilter, setCantonFilter] = useState('all');
+  const [cantonFilter, setCantonFilter] = useState(
+    initialCanton ? initialCanton.toUpperCase() : 'all'
+  );
   const [languageFilter, setLanguageFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
@@ -112,6 +142,19 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
   useEffect(() => {
     setDailyPace(settings.daily_limit);
   }, [settings.daily_limit]);
+
+  // Filtre canton venu de l'accueil : appliqué au montage, puis à chaque
+  // changement de la prop pendant que l'onglet est déjà ouvert. null = tout.
+  useEffect(() => {
+    setCantonFilter(initialCanton ? initialCanton.toUpperCase() : 'all');
+  }, [initialCanton]);
+
+  // Refus chargés dès le montage pour afficher le motif sur la carte
+  // (pas seulement dans la modale « Refus »).
+  useEffect(() => {
+    void loadSuppressions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
@@ -431,7 +474,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <>
                 Entreprises prêtes{' '}
                 <span className="ml-1 inline-flex items-center rounded-full bg-[#0B2240] px-3 py-1 align-middle text-sm font-bold text-white">
-                  {companies.length}
+                  {readyCount} sur {companies.length}
                 </span>
               </>
             )}
@@ -611,7 +654,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Rechercher une entreprise…"
+                  placeholder="Rechercher une société ou une ville"
                   className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
                   aria-label="Rechercher une entreprise ou une ville"
                 />
@@ -716,6 +759,12 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   const status = getCompanyStatus(comp);
                   const hasVerifiedEmail = Boolean(comp.email && comp.verified_email !== false);
                   const isExpanded = expandedCompanyId === comp.id;
+                  // Motif du refus propre à cette société (courriel/domaine),
+                  // pour l'afficher sur la carte — pas les rebonds des autres.
+                  const suppression =
+                    status === 'refused'
+                      ? findSuppressionForCompany(suppressions, comp)
+                      : undefined;
                   return (
                     <li key={comp.id}>
                       <div
@@ -736,7 +785,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                              {comp.city || 'Ville inconnue'}
+                              {getDisplayCity(comp)}
                             </span>
                             <span className="rounded-md bg-[#EAF0F8] px-2 py-0.5 text-xs font-bold text-[#0B2240]">
                               {comp.canton}
@@ -775,6 +824,10 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                           {status === 'refused' && (
                             <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
                               Refus (STOP)
+                              {suppression &&
+                                ` — ${suppressionReasonLabel(suppression.reason)} : ${
+                                  suppression.email || `@${suppression.domain}`
+                                }`}
                             </span>
                           )}
                           <button
@@ -893,7 +946,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <div className="border-t border-slate-100 px-5 pb-5 pt-4">
                 <h3 className="text-sm font-bold text-slate-600">Cantons où Jimmy cherche</h3>
                 <p className="mt-1 text-[13px] text-slate-400">
-                  Touchez un canton pour l’activer ou le désactiver. Les cantons en bleu sont actifs.
+                  Touchez un canton pour l’activer ou le désactiver. Les cantons en bleu foncé sont actifs.
                 </p>
                 <button
                   type="button"
@@ -936,18 +989,29 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
                   </div>
                   <input
                     type="range"
-                    min="5"
-                    max="50"
-                    step="5"
-                    value={dailyPace}
-                    onChange={(e) => void handlePaceChange(Number(e.target.value))}
+                    min="0"
+                    max={DAILY_PACE_OPTIONS.length - 1}
+                    step="1"
+                    value={closestPaceIndex(dailyPace)}
+                    onChange={(e) =>
+                      void handlePaceChange(DAILY_PACE_OPTIONS[Number(e.target.value)].value)
+                    }
                     className="mt-3 w-full cursor-pointer accent-[#FF6B00]"
                     aria-label="Rythme quotidien d’envoi"
                   />
                   <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>5 / jour (doux)</span>
-                    <span>25 / jour (conseillé)</span>
-                    <span>50 / jour (rapide)</span>
+                    {DAILY_PACE_OPTIONS.map((opt, i) => (
+                      <span
+                        key={opt.value}
+                        className={
+                          i === closestPaceIndex(dailyPace)
+                            ? 'font-bold text-[#0B2240]'
+                            : undefined
+                        }
+                      >
+                        {opt.label}
+                      </span>
+                    ))}
                   </div>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
                     Envoi automatique du lundi au vendredi, de 08 h 30 à 17 h 00, heure de Zurich
@@ -1394,6 +1458,7 @@ export const TargetsScreen: React.FC<TargetsScreenProps> = ({
               <a
                 href="/api/companies/export-csv"
                 download
+                onClick={() => showToast('Le fichier CSV a été téléchargé.')}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#0B2240] px-4 text-xs font-medium text-white hover:bg-[#16365C]"
               >
                 <Download className="w-3.5 h-3.5" />

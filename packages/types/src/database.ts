@@ -208,6 +208,10 @@ export interface DiscoveryStats {
   missing_email_today: number;
   duplicates_today: number;
   rejected_today: number;
+  // Every record examined today, duplicates included: scanned = found + duplicates.
+  scanned_today?: number;
+  // Records that errored during today's discovery (part of found_today).
+  error_today?: number;
   total_discovered: number;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Banner } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
@@ -62,7 +62,7 @@ interface ControlScreenProps {
   discoveryStatus?: DiscoverySchedulerStatus | null;
   onRefreshAll: () => Promise<void>;
   onNavigateToLeads: (leadId?: string) => void;
-  onNavigateToTargets: () => void;
+  onNavigateToTargets: (canton?: string) => void;
   onNavigateToPersona: () => void;
   onNavigateToScanner?: () => void;
   onNavigateToEmails?: (logId?: string) => void;
@@ -96,6 +96,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isEnablingPush, setIsEnablingPush] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | null>(() =>
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : null
+  );
+  const [pushHelpVisible, setPushHelpVisible] = useState(false);
   const [toast, setToast] = useState<{ msg: string; isError?: boolean } | null>(null);
 
   const showToast = (msg: string, isError = false) => {
@@ -176,17 +180,19 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     try {
       const res = await fetchWithTimeout('/api/imap/poll', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!res.ok || data.success === false) {
         showToast(
-          `Impossible de vérifier la boîte mail : ${data.error || 'vérifiez votre connexion'}`,
+          data.message ||
+            `Impossible de vérifier la boîte mail : ${data.error || 'vérifiez votre connexion'}`,
           true
         );
       } else {
         await onRefreshAll();
         showToast(
-          data.messagesProcessed > 0
-            ? `Jimy a trouvé ${data.messagesProcessed} nouvelle${data.messagesProcessed > 1 ? 's' : ''} réponse${data.messagesProcessed > 1 ? 's' : ''}.`
-            : 'Jimy a vérifié votre boîte mail : toutes les réponses sont à jour.'
+          data.message ||
+            (data.messagesProcessed > 0
+              ? `Jimy a trouvé ${data.messagesProcessed} nouvelle${data.messagesProcessed > 1 ? 's' : ''} réponse${data.messagesProcessed > 1 ? 's' : ''}.`
+              : 'Jimy a vérifié votre boîte mail : toutes les réponses sont à jour.')
         );
       }
     } catch (err: any) {
@@ -199,42 +205,77 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     }
   };
 
+  const subscribePush = async () => {
+    const keyRes = await fetch('/api/push/public-key');
+    const keyData = await keyRes.json();
+    if (!keyRes.ok || !keyData.publicKey) throw new Error(keyData.error || 'Notifications not configured');
+    const publicKey = Uint8Array.from(
+      atob(keyData.publicKey.replace(/-/g, '+').replace(/_/g, '/')),
+      (char) => char.charCodeAt(0)
+    );
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: publicKey,
+    });
+    const saveRes = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription),
+    });
+    const saveData = await saveRes.json();
+    if (!saveRes.ok) throw new Error(saveData.error || 'Unable to save notification settings');
+    showToast('Notifications activées : Jimy vous alertera même lorsque l’application est fermée.');
+  };
+
   const handleEnablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       showToast('Les notifications ne sont pas prises en charge par ce navigateur.', true);
       return;
     }
+    // Permission refusée : pas de toast rouge, on explique calmement sur place.
+    if (Notification.permission === 'denied') {
+      setPushPermission('denied');
+      setPushHelpVisible(true);
+      return;
+    }
     setIsEnablingPush(true);
     try {
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        showToast('Autorisez les notifications dans les réglages du navigateur pour recevoir les réponses.', true);
+      setPushPermission(permission);
+      if (permission === 'denied') {
+        setPushHelpVisible(true);
         return;
       }
-      const keyRes = await fetch('/api/push/public-key');
-      const keyData = await keyRes.json();
-      if (!keyRes.ok || !keyData.publicKey) throw new Error(keyData.error || 'Notifications not configured');
-      const publicKey = Uint8Array.from(
-        atob(keyData.publicKey.replace(/-/g, '+').replace(/_/g, '/')),
-        (char) => char.charCodeAt(0)
-      );
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: publicKey,
-      });
-      const saveRes = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) throw new Error(saveData.error || 'Unable to save notification settings');
-      showToast('Notifications activées : Jimy vous alertera même lorsque l’application est fermée.');
+      if (permission !== 'granted') return;
+      await subscribePush();
+      setPushHelpVisible(false);
     } catch (err: any) {
       showToast(`Notifications impossibles : ${err?.message || 'erreur inconnue'}`, true);
     } finally {
       setIsEnablingPush(false);
+    }
+  };
+
+  // L'utilisateur a pu réactiver les notifications dans les réglages du
+  // navigateur : on vérifie à nouveau au lieu de redemander aveuglément.
+  const handleRecheckPush = async () => {
+    if (!('Notification' in window)) return;
+    const permission = Notification.permission;
+    setPushPermission(permission);
+    if (permission === 'denied') return;
+    setPushHelpVisible(false);
+    if (permission === 'granted') {
+      setIsEnablingPush(true);
+      try {
+        await subscribePush();
+      } catch (err: any) {
+        showToast(`Notifications impossibles : ${err?.message || 'erreur inconnue'}`, true);
+      } finally {
+        setIsEnablingPush(false);
+      }
+    } else {
+      await handleEnablePush();
     }
   };
 
@@ -265,13 +306,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     try {
       const res = await fetchWithTimeout('/api/test-telegram', { method: 'POST' }, 10_000);
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && data.success !== false) {
         showToast(
-          `Alerte de test envoyée sur Telegram (@${data.botUsername || 'Jimy_scout_bot'}).`
+          data.message ||
+            `Alerte de test envoyée sur Telegram (@${data.botUsername || 'Jimy_scout_bot'}).`
         );
       } else {
         showToast(
-          `Erreur d’alerte : ${data.error || 'impossible d’envoyer l’alerte Telegram'}`,
+          data.message ||
+            `Erreur d’alerte : ${data.error || 'impossible d’envoyer l’alerte Telegram'}`,
           true
         );
       }
@@ -360,6 +403,23 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
     return sum;
   }, 0);
 
+  // Provenance note for the offers total (QA #23): the server's
+  // /api/leads/offers-summary explains the conversion (e.g. how many offers
+  // were converted from EUR). Falls back to the plain label if unavailable.
+  const [offersNote, setOffersNote] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/leads/offers-summary')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.note) setOffersNote(data.note);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [leads.length]);
+
   const formattedPipelineChf =
     totalAskingValueChf > 0
       ? `CHF ${totalAskingValueChf.toLocaleString('de-CH')}`
@@ -415,6 +475,15 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
   };
 
   const schedulerBadge = getSchedulerBadge();
+  // Source unique de vérité : l'interrupteur principal. « Jimy travaille »
+  // ne s'affiche que pendant une exécution réelle, sinon « En attente ».
+  const isRunInProgress =
+    schedulerStatus?.state === 'running' || discoveryStatus?.state === 'running';
+  const missionHeading = !settings.is_active
+    ? 'Jimy est en pause'
+    : isRunInProgress
+      ? 'Jimy travaille'
+      : 'En attente';
   const mascotState = getJimmyMascotState({
     isActive: settings.is_active,
     schedulerState: schedulerStatus?.state,
@@ -509,7 +578,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <span className="text-xs font-medium text-slate-500">Mission Jimy</span>
                 </div>
                 <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[#0B2240] mt-1">
-                  {settings.is_active ? 'Jimy est en mission' : 'Jimy attend votre signal'}
+                  {missionHeading}
                 </h2>
               </div>
               <div className="ml-0 md:ml-auto">
@@ -519,8 +588,10 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
 
             <p className="text-base leading-7 text-slate-600 max-w-xl">
               {settings.is_active
-                ? `Je surveille ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.`
-                : `Vous avez ${activeContractorsCount} sociétés vérifiées. Lancez-moi quand vous voulez chercher les prochaines bonnes occasions.`}
+                ? isRunInProgress
+                  ? `Je cherche en ce moment dans ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.`
+                  : `Je surveille ${settings.selected_cantons.length} cantons suisses et je vous préviendrai dès qu’une occasion mérite votre attention.${schedulerStatus?.next_send_at ? ` Prochain passage ${new Date(schedulerStatus.next_send_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}.` : ''}`
+                : `Vous avez ${activeContractorsCount} sociétés prêtes sur ${companies.length} vérifiées. Lancez-moi quand vous voulez chercher les prochaines bonnes occasions.`}
             </p>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
@@ -561,7 +632,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 />
               </div>
               <Button
-                label="Activer les alertes"
+                label={pushPermission === 'denied' ? 'Notifications bloquées — voir comment activer' : 'Activer les alertes'}
                 variant="secondary"
                 size="sm"
                 onClick={handleEnablePush}
@@ -595,6 +666,26 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 />
               </div>
             </div>
+
+            {pushHelpVisible && pushPermission === 'denied' && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 max-w-xl">
+                <p className="text-sm font-medium text-[#0B2240]">Les notifications sont bloquées pour ce site.</p>
+                <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                  Pour les réactiver : ouvrez les réglages du navigateur (icône cadenas à gauche de l’adresse),
+                  autorisez les notifications pour ce site, puis revenez ici et touchez « Vérifier à nouveau ».
+                </p>
+                <div className="mt-3">
+                  <Button
+                    label="Vérifier à nouveau"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRecheckPush}
+                    isLoading={isEnablingPush}
+                    icon={<Bell className="w-3.5 h-3.5 text-[#FF6B00]" />}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -608,23 +699,33 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-heading font-medium text-sm text-[#0B2240]">Recherche de sociétés</h3>
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
-                    settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
+                    settings.is_active && settings.discovery_active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                   }`}>
-                    {settings.discovery_active ? statusFr(discoveryStatus?.state) : 'en pause'}
+                    {settings.is_active && settings.discovery_active ? statusFr(discoveryStatus?.state) : 'en pause'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Recherche dans les cantons choisis toutes les {settings.discovery_interval_minutes} minutes.
                 </p>
+                {!settings.is_active && (
+                  <p className="text-[11px] text-slate-500 mt-1.5">
+                    Sans effet — l’interrupteur principal est éteint.
+                  </p>
+                )}
                 {(!settings.is_active || !settings.discovery_active) && discoveryStatus?.provider_configured && (
                   <p className="text-[11px] text-blue-700 mt-1.5">
                     Jimy est en pause, mais vous pouvez lancer une recherche unique avec « Chercher maintenant ».
                   </p>
                 )}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
-                  <span className="font-semibold text-[#0B2240]">{discoveryStatus?.found_today || 0} trouvées aujourd’hui</span>
+                  <span className="font-semibold text-[#0B2240]">{(discoveryStatus?.scanned_today ?? (discoveryStatus?.found_today || 0) + (discoveryStatus?.duplicates_today || 0))} examinées aujourd’hui</span>
+                  <span className="text-slate-500">{discoveryStatus?.found_today || 0} trouvées</span>
                   <span className="text-emerald-700">{discoveryStatus?.ready_today || 0} prêtes</span>
+                  <span className="text-slate-500">{discoveryStatus?.rejected_today || 0} écartées</span>
                   <span className="text-amber-700">{discoveryStatus?.missing_email_today || 0} sans courriel</span>
+                  {(discoveryStatus?.error_today || 0) > 0 && (
+                    <span className="text-red-700">{discoveryStatus?.error_today} erreur{(discoveryStatus?.error_today || 0) > 1 ? 's' : ''}</span>
+                  )}
                   <span className="text-slate-500">{discoveryStatus?.duplicates_today || 0} doublons</span>
                 </div>
                 {!discoveryStatus?.provider_configured && (
@@ -660,13 +761,18 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-heading font-medium text-sm text-[#0B2240]">Envoi automatique</h3>
                   <Badge
-                    label={settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
-                    variant={settings.outreach_active ? 'green' : 'gray'}
+                    label={settings.is_active && settings.outreach_active ? statusFr(schedulerStatus?.state) : 'en pause'}
+                    variant={settings.is_active && settings.outreach_active ? 'green' : 'gray'}
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Envoie des courriels aux sociétés vérifiées pendant les heures suisses.
                 </p>
+                {!settings.is_active && (
+                  <p className="text-[11px] text-slate-500 mt-1.5">
+                    Sans effet — l’interrupteur principal est éteint.
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
                   <span className="font-semibold text-[#0B2240]">{todaySentCount}/{settings.daily_limit} envoyés aujourd’hui</span>
                   <span className="text-emerald-700">{activeContractorsCount} prêtes</span>
@@ -689,7 +795,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
         data-tour="pipeline-stats"
       >
         <div
-          onClick={onNavigateToTargets}
+          onClick={() => onNavigateToTargets()}
           className="bg-white rounded-xl p-5 border border-slate-200/90 hover:border-[#0B2240]/30 shadow-2xs hover:shadow-sm transition-[border-color,box-shadow] cursor-pointer flex flex-col justify-between group"
         >
           <div>
@@ -751,7 +857,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {leads.length}
             </div>
             <span className="text-xs text-slate-600 mt-1 block">
-              {newLeadsCount} {newLeadsCount === 1 ? 'réponse non lue' : 'réponses non lues'}
+              {leads.length} réponses reçues — {leads.length - newLeadsCount} dossier{leads.length - newLeadsCount === 1 ? '' : 's'} actif{leads.length - newLeadsCount === 1 ? '' : 's'}, {newLeadsCount} à vérifier
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-orange-100 flex items-center justify-between text-[#FF6B00] font-semibold text-xs group-hover:text-[#E05E00]">
@@ -772,7 +878,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               {formattedPipelineChf}
             </div>
             <span className="text-xs text-emerald-600 font-medium mt-1 block">
-              Convertie en CHF
+              {offersNote || 'Convertie en CHF'}
             </span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-slate-500 text-xs">
@@ -813,7 +919,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   </h3>
                   <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-slate-700">{topLead.company_name}</span>
-                    {topLead.contact_name && (
+                    {topLead.contact_name && topLead.contact_name !== topLead.company_name && (
                       <>
                         <span>·</span>
                         <span>{topLead.contact_name}</span>
@@ -894,7 +1000,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                 )}
                 <button
                   type="button"
-                  onClick={onNavigateToTargets}
+                  onClick={() => onNavigateToTargets()}
                   className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200/70 border border-slate-200 text-[#0B2240] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -907,7 +1013,17 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               <div className="p-6">
                 <EmptyState
                   title="Jimy n’a encore envoyé aucun courriel"
-                  description="Activez Jimy pour commencer les envois, ou cliquez sur « Envoyer 1 maintenant »."
+                  description={
+                    canDispatchNow
+                      ? 'Activez Jimy pour commencer les envois, ou cliquez sur « Envoyer 1 maintenant ».'
+                      : !settings.is_active
+                        ? 'Activez Jimy pour commencer les envois.'
+                        : !settings.outreach_active
+                          ? 'Activez l’envoi automatique pour commencer les envois.'
+                          : schedulerStatus?.next_send_at
+                            ? `L’envoi reprend ${new Date(schedulerStatus.next_send_at).toLocaleString('fr-CH', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}.`
+                            : 'L’envoi reprend à 08:30.'
+                  }
                 />
               </div>
             ) : (
@@ -1011,7 +1127,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
               </div>
               <button
                 type="button"
-                onClick={onNavigateToTargets}
+                onClick={() => onNavigateToTargets()}
                 className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0B2240] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
                 <span>Gérer</span>
@@ -1034,7 +1150,7 @@ export const ControlScreen: React.FC<ControlScreenProps> = ({
                   <button
                     key={canton}
                     type="button"
-                    onClick={onNavigateToTargets}
+                    onClick={() => onNavigateToTargets(canton)}
                     className="p-2.5 rounded-lg bg-slate-50/90 hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-300 text-left transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center justify-between gap-1">

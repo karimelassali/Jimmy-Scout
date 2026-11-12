@@ -13,10 +13,13 @@ import {
 import { generateDeTemplate } from './apps/worker/src/templates/de.template.ts';
 import { generateFrTemplate } from './apps/worker/src/templates/fr.template.ts';
 import { generateItTemplate } from './apps/worker/src/templates/it.template.ts';
-import { smtpService } from './apps/worker/src/services/smtp.service.ts';
+import { smtpService, stripUnreplacedPlaceholders } from './apps/worker/src/services/smtp.service.ts';
 import { imapService } from './apps/worker/src/services/imap.service.ts';
 import { telegramService } from './apps/worker/src/services/telegram.service.ts';
-import { geminiService } from './apps/worker/src/services/gemini.service.ts';
+import {
+  geminiService,
+  resolveChatFallbackNavigate,
+} from './apps/worker/src/services/gemini.service.ts';
 import { supabaseDataService } from './apps/worker/src/services/supabase.service.ts';
 import { inboundService } from './apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from './apps/worker/src/services/outbound-scheduler.service.ts';
@@ -26,7 +29,10 @@ import {
   ZefixSearchError,
 } from './apps/worker/src/services/zefix.service.ts';
 import { agentOrchestrator } from './apps/worker/src/services/agent-orchestrator.service.ts';
-import { dealIntelligenceService } from './apps/worker/src/services/deal-intelligence.service.ts';
+import {
+  dealIntelligenceService,
+  summarizeOfferPrices,
+} from './apps/worker/src/services/deal-intelligence.service.ts';
 import { webPushService } from './apps/worker/src/services/web-push.service.ts';
 import { normalizeCantonCode } from './packages/types/src/swiss.ts';
 
@@ -511,6 +517,19 @@ app.get('/api/leads', async (_req, res) => {
   try {
     const leads = await supabaseDataService.getLeads();
     res.json(leads);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message });
+  }
+});
+
+// Converted CHF total with the original currencies alongside it, so the Home
+// screen can label the mix ("dont 1 offre en EUR convertie…") instead of
+// showing one bare CHF figure (QA issue 23). The per-machine original
+// currency/amount already travel on each lead's machinery_detected entries.
+app.get('/api/leads/offers-summary', async (_req, res) => {
+  try {
+    const leads = await supabaseDataService.getLeads();
+    res.json(summarizeOfferPrices(leads));
   } catch (err: any) {
     res.status(500).json({ error: err?.message });
   }
@@ -1303,16 +1322,31 @@ app.post('/api/imap/poll', rateLimit(10, 60_000), async (_req, res) => {
       return res.status(400).json({
         success: false,
         error: pollResult.error || 'IMAP poll failed',
+        message: 'La vérification des réponses a échoué.',
         messagesProcessed: 0,
       });
     }
 
+    const plural = (count: number, one: string, many: string) =>
+      count === 1 ? one : many;
     res.json({
       success: true,
       messagesProcessed: newLeadsCount,
       totalChecked: processedResults.length,
       skippedOverlap: pollResult.skippedOverlap,
       results: processedResults,
+      message:
+        processedResults.length === 0
+          ? 'Aucun nouveau message à vérifier.'
+          : `${processedResults.length} ${plural(
+              processedResults.length,
+              'message vérifié',
+              'messages vérifiés'
+            )}, ${newLeadsCount} ${plural(
+              newLeadsCount,
+              'nouvelle réponse',
+              'nouvelles réponses'
+            )}.`,
     });
   } catch (err: any) {
     res.status(500).json({
@@ -1360,6 +1394,12 @@ app.post('/api/test-email', rateLimit(10, 60_000), async (req, res) => {
     if (!body) body = rendered.body;
     if (!html) html = rendered.html;
 
+    // Custom subject/body typed in by hand can still carry a {{...}}
+    // placeholder — strip it here too (smtpService.sendMail re-checks).
+    subject = stripUnreplacedPlaceholders(subject);
+    body = stripUnreplacedPlaceholders(body);
+    html = html ? stripUnreplacedPlaceholders(html) : html;
+
     const result = await smtpService.sendMail({
       to: recipient,
       subject,
@@ -1398,6 +1438,7 @@ app.post('/api/test-telegram', rateLimit(10, 60_000), async (_req, res) => {
       return res.status(400).json({
         success: false,
         error: botCheck.error || 'Telegram Bot verification failed',
+        message: `Alerte test impossible : ${botCheck.error || 'Telegram Bot verification failed'}`,
       });
     }
 
@@ -1424,6 +1465,9 @@ app.post('/api/test-telegram', rateLimit(10, 60_000), async (_req, res) => {
         botUsername: botCheck.username,
         messageId: tgRes.messageId,
         error: tgRes.error,
+        message: tgRes.success
+          ? 'Alerte test envoyée.'
+          : `L'alerte test n'a pas pu être envoyée : ${tgRes.error || 'Telegram a refusé le message.'}`,
       });
     }
 
@@ -1447,6 +1491,9 @@ app.post('/api/test-telegram', rateLimit(10, 60_000), async (_req, res) => {
       botUsername: botCheck.username,
       messageId: tgRes.messageId,
       error: tgRes.error,
+      message: tgRes.success
+        ? 'Alerte test envoyée.'
+        : `L'alerte test n'a pas pu être envoyée : ${tgRes.error || 'Telegram a refusé le message.'}`,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
@@ -1496,9 +1543,16 @@ app.post('/api/jimmy/chat', rateLimit(30, 60_000), async (req, res) => {
     res.json(answer);
   } catch (err: any) {
     console.warn('[Jimmy chat] Gemini unavailable:', err?.message || err);
-    const lower = message.toLowerCase();
-    const navigate = /réponse|dossier|offre/.test(lower) ? 'leads' : /email|envoy/.test(lower) ? 'emails' : /sociét|canton|région/.test(lower) ? 'targets' : /réglage|profil/.test(lower) ? 'persona' : 'control';
-    res.json({ navigate, reply: `Je suis prêt à vous aider. L’analyse Gemini est momentanément indisponible, mais je vous ouvre la page la plus utile pour votre demande. ${context}` });
+    // No `navigate` hint unless the user explicitly asked to open a page:
+    // a greeting like "bonjour, test" must not offer a "Voir : Accueil"
+    // button (QA issue 5).
+    const navigate = resolveChatFallbackNavigate(message);
+    res.json({
+      ...(navigate ? { navigate } : {}),
+      reply: navigate
+        ? `Je suis prêt à vous aider. L’analyse Gemini est momentanément indisponible, mais je vous ouvre la page la plus utile pour votre demande. ${context}`
+        : `Je suis prêt à vous aider. L’analyse Gemini est momentanément indisponible. ${context}`,
+    });
   }
 });
 

@@ -12,6 +12,57 @@ const ALLOWED_INTENTS = new Set<LeadIntent>([
   'IRRELEVANT',
 ]);
 
+/**
+ * Generic summary used when every Gemini model fails (timeout, 503 overload
+ * or quota) and a reply must still be kept for manual review. It names no
+ * seller, so the inbound flow personalizes it with
+ * personalizeUnavailableSummary() before storing it — otherwise every
+ * "analyse indisponible" notification reads identically.
+ */
+export const AI_UNAVAILABLE_SUMMARY =
+  'Réponse reçue — analyse IA temporairement indisponible, vérification manuelle requise.';
+
+/**
+ * Make the generic AI-unavailable summary specific to one seller. Any other
+ * summary passes through unchanged.
+ */
+export function personalizeUnavailableSummary(
+  summary: string | undefined | null,
+  sellerName?: string | null,
+  companyName?: string | null
+): string {
+  if (summary !== AI_UNAVAILABLE_SUMMARY) return summary || '';
+  const seller = (sellerName || '').trim() || (companyName || '').trim() || 'le vendeur';
+  const company = (companyName || '').trim();
+  if (company && seller.toLowerCase() !== company.toLowerCase()) {
+    return `Réponse de ${seller} (${company}) — analyse IA indisponible, vérification manuelle requise.`;
+  }
+  return `Réponse de ${seller} — analyse IA indisponible, vérification manuelle requise.`;
+}
+
+export type ChatTab = 'control' | 'leads' | 'emails' | 'targets' | 'persona';
+
+/**
+ * Fallback navigation hint for Jimmy chat when Gemini is unreachable. Only
+ * an explicit request to open/show/go to a page yields a tab; a plain
+ * greeting or question ("bonjour, test") yields no hint, so the chat does
+ * not offer a meaningless "Voir : Accueil" button.
+ */
+export function resolveChatFallbackNavigate(message: string): ChatTab | undefined {
+  const lower = (message || '').toLowerCase();
+  const wantsNavigation =
+    /(ouvr\w*|all(?:er|ez)|\bva\b|montre\w*|montrer|affiche\w*|afficher|am[eè]ne\w*|emm[eè]ne\w*|retour\w*|voir|\bpage\b|\bonglet\b|[eé]cran)/.test(
+      lower
+    );
+  if (!wantsNavigation) return undefined;
+  if (/r[eé]ponse|dossier|offre/.test(lower)) return 'leads';
+  if (/email|courriel|envoy/.test(lower)) return 'emails';
+  if (/soci[eé]t|canton|r[eé]gion/.test(lower)) return 'targets';
+  if (/r[eé]glage|profil|param[eè]tre/.test(lower)) return 'persona';
+  if (/accueil/.test(lower)) return 'control';
+  return undefined;
+}
+
 function getAiClient() {
   return new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -258,7 +309,7 @@ export class GeminiTriageService {
     let lastError: any = null;
     for (const model of modelsToTry) {
       try {
-        const response = await withTimeout(getAiClient().models.generateContent({ model, contents: `You are Jimmy, a concise helpful Swiss machinery procurement copilot. Context: ${context}\nUser: ${message}\nReply in French. End with one of these exact navigation tokens when useful: [NAV:control], [NAV:leads], [NAV:emails], [NAV:targets], [NAV:persona].`, config: { systemInstruction: 'Never claim you sent email or changed settings. Those actions require confirmation.' } }), 20_000);
+        const response = await withTimeout(getAiClient().models.generateContent({ model, contents: `You are Jimmy, a concise helpful Swiss machinery procurement copilot. Context: ${context}\nUser: ${message}\nReply in French. Append one of these exact navigation tokens ONLY if the user explicitly asks to open, show or go to a page (for example "ouvre les dossiers" or "montre-moi les courriels"). Otherwise append no token: [NAV:control], [NAV:leads], [NAV:emails], [NAV:targets], [NAV:persona].`, config: { systemInstruction: 'Never claim you sent email or changed settings. Those actions require confirmation.' } }), 20_000);
         const raw = response.text || 'Je n’ai pas pu préparer une réponse.';
         const match = raw.match(/\[NAV:(control|leads|emails|targets|persona)\]/);
         return { reply: raw.replace(/\s*\[NAV:[^\]]+\]/g, '').trim(), navigate: match?.[1] };
@@ -411,8 +462,7 @@ Classification Rules:
                 equipment_fit_score: 0,
                 needs_review: true,
                 machinery_detected: [],
-                french_summary:
-                  'Réponse reçue — analyse IA temporairement indisponible, vérification manuelle requise.',
+                french_summary: AI_UNAVAILABLE_SUMMARY,
               },
               safeBody
             );
@@ -440,8 +490,7 @@ Classification Rules:
         equipment_fit_score: 0,
         needs_review: true,
         machinery_detected: [],
-        french_summary:
-          'Réponse reçue — analyse IA temporairement indisponible, vérification manuelle requise.',
+        french_summary: AI_UNAVAILABLE_SUMMARY,
       },
       safeBody
     );

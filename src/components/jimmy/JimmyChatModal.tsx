@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import {
   ChatComposer,
@@ -19,6 +18,16 @@ import {
 } from './jimmy-mascot.ts';
 
 type Message = { role: 'user' | 'jimmy'; text: string };
+
+// Pages Jimmy can suggest opening. Shown as a button under the reply —
+// the chat never navigates away (and closes) on its own.
+const NAVIGABLE_TABS: Record<string, { tab: TabId; label: string }> = {
+  control: { tab: 'control', label: 'Accueil' },
+  leads: { tab: 'leads', label: 'Dossiers' },
+  emails: { tab: 'emails', label: 'Courriels' },
+  targets: { tab: 'targets', label: 'Régions' },
+  persona: { tab: 'persona', label: 'Réglages' },
+};
 
 export function JimmyChatModal({
   open,
@@ -39,11 +48,15 @@ export function JimmyChatModal({
   ]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
+  // Page suggested by the last reply, if any. Kept here (not followed
+  // automatically) so the reply stays visible in the open chat.
+  const [pendingNavigate, setPendingNavigate] = useState<TabId | null>(null);
 
   const submitMessage = async (rawInput: string) => {
     const input = rawInput.trim();
     if (!input || loading) return;
     setText('');
+    setPendingNavigate(null);
     setMessages((p) => [...p, { role: 'user', text: input }]);
     setLoading(true);
     try {
@@ -53,7 +66,12 @@ export function JimmyChatModal({
         body: JSON.stringify({ message: input }),
       });
       const d = await r.json();
-      if (d.navigate) onNavigate(d.navigate);
+      // Show the reply in place. Do NOT call onNavigate here: the parent
+      // closes the chat when navigating, so following the server's
+      // `navigate` hint automatically hid the reply. Offer it as a button.
+      const suggestion =
+        typeof d.navigate === 'string' ? NAVIGABLE_TABS[d.navigate] : undefined;
+      if (suggestion) setPendingNavigate(suggestion.tab);
       setMessages((p) => [
         ...p,
         { role: 'jimmy', text: d.reply || d.error || 'Je n’ai pas pu terminer cette action.' },
@@ -97,7 +115,7 @@ export function JimmyChatModal({
             endContent={
               <div className="inline-flex items-center gap-1.5">
                 <StatusDot variant="success" isPulsing label="En ligne" />
-                <Badge label="En ligne et prêt" variant="orange" />
+                <span className="text-xs font-semibold text-emerald-700">En ligne</span>
               </div>
             }
           />
@@ -166,6 +184,18 @@ export function JimmyChatModal({
                   <ChatMessage sender="assistant" name="Jimmy">
                     <ChatMessageBubble>Jimmy vérifie le terrain…</ChatMessageBubble>
                   </ChatMessage>
+                )}
+
+                {!loading && pendingNavigate && (
+                  <div>
+                    <Button
+                      label={`Voir : ${NAVIGABLE_TABS[pendingNavigate].label}`}
+                      variant="secondary"
+                      size="sm"
+                      icon={<ArrowUpRight className="w-3.5 h-3.5 text-[#FF6B00]" />}
+                      onClick={() => onNavigate(pendingNavigate)}
+                    />
+                  </div>
                 )}
               </div>
             </ChatMessageList>

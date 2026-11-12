@@ -44,10 +44,77 @@ const getDealProgress = (status: DealStatus) => {
   return index < 0 ? 0 : Math.max(4, Math.round((index / (DEAL_STAGE_ORDER.length - 1)) * 100));
 };
 
+/** French relative time, e.g. "à l'instant", "il y a 5 min", "il y a 2 h", "il y a 3 jours". */
+const formatRelativeTimeFr = (iso?: string | null): string => {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diffMs = Date.now() - then;
+  if (diffMs < 60_000) return "à l'instant";
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `il y a ${days} jour${days === 1 ? '' : 's'}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `il y a ${months} mois`;
+  const years = Math.floor(months / 12);
+  return `il y a ${years} an${years === 1 ? '' : 's'}`;
+};
+
+/**
+ * Clean a quoted email body for display: strip "[image: ...]" placeholders,
+ * decode percent-encoded parts (e.g. "<+41%2079%20123%2045%2067>" becomes
+ * "+41 79 123 45 67") and unwrap angle-bracketed phone numbers / emails.
+ * Display-only: the stored text is never changed.
+ */
+const cleanQuotedEmailBody = (text?: string | null): string => {
+  if (!text) return '';
+  let out = String(text).replace(/\[image:[^\]\n]*\]/gi, '');
+  out = out.replace(/((?:%[0-9A-Fa-f]{2})+)/g, (match) => {
+    try {
+      return decodeURIComponent(match);
+    } catch {
+      return match;
+    }
+  });
+  out = out.replace(/mailto:([^\s<>]+)/gi, '$1');
+  out = out.replace(/<(\+?\d[\d\s().-]*|[^\s<>]+@[^\s<>]+)>/g, '$1');
+  return out.replace(/\n{3,}/g, '\n\n').trim();
+};
+
+/** "2026-11-12" -> "12/11/2026" for French date inputs. */
+const isoToFrDate = (iso?: string | null): string => {
+  if (!iso) return '';
+  const m = iso.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  return `${m[3]}/${m[2]}/${m[1]}`;
+};
+
+/** "12/11/2026" -> "2026-11-12"; null when the text is not a real calendar date. */
+const frDateToIso = (value: string): string | null => {
+  const m = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
 interface LeadsScreenProps {
   leads: InboundLead[];
   companies: Company[];
   initialLeadId?: string | null;
+  onClearFocusedLead?: () => void;
   onUpdateLeadStatus: (leadId: string, status: DealStatus) => Promise<void>;
   onDeleteLead: (leadId: string) => Promise<void>;
   onRefreshLeads: () => Promise<void>;
@@ -59,6 +126,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   leads,
   companies,
   initialLeadId,
+  onClearFocusedLead,
   onUpdateLeadStatus,
   onDeleteLead,
   onRefreshLeads,
@@ -135,8 +203,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     setSelectedModalLead(lead);
     setModalTab(tab);
     setCrmNextAction(lead.next_action || '');
-    setCrmNextActionDue(lead.next_action_due_at ? lead.next_action_due_at.slice(0, 10) : '');
-    setCrmInspectionDate(lead.inspection_date ? lead.inspection_date.slice(0, 10) : '');
+    setCrmNextActionDue(isoToFrDate(lead.next_action_due_at));
+    setCrmInspectionDate(isoToFrDate(lead.inspection_date));
     setCrmInspectionLocation(lead.inspection_location || '');
     setCrmInspectionNotes(lead.inspection_notes || '');
     setCrmPassReason(lead.pass_reason || '');
@@ -166,6 +234,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
     if (onInboundModalClose) onInboundModalClose();
   };
 
+  // Closing the dossier modal also clears the deep-linked lead id (state +
+  // URL param in App) so the auto-open effect cannot pop it open again
+  // when the leads list refreshes.
+  const closeLeadModal = () => {
+    setSelectedModalLead(null);
+    onClearFocusedLead?.();
+  };
+
   const showToast = (msg: string, isError = false) => {
     setToast({ msg, isError });
     setTimeout(() => setToast(null), 4000);
@@ -188,6 +264,20 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   const handleSaveCrmDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedModalLead) return;
+    // French date inputs hold jj/mm/aaaa; convert back to ISO for the API.
+    const nextActionDueIso = crmNextActionDue.trim()
+      ? frDateToIso(crmNextActionDue)
+      : '';
+    const inspectionDateIso = crmInspectionDate.trim()
+      ? frDateToIso(crmInspectionDate)
+      : '';
+    if (
+      (crmNextActionDue.trim() && !nextActionDueIso) ||
+      (crmInspectionDate.trim() && !inspectionDateIso)
+    ) {
+      showToast('Date invalide : utilisez le format jj/mm/aaaa.', true);
+      return;
+    }
     setIsSavingCrm(true);
     try {
       const res = await fetch(`/api/leads/${selectedModalLead.id}`, {
@@ -195,8 +285,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           next_action: crmNextAction.trim() || null,
-          next_action_due_at: crmNextActionDue || null,
-          inspection_date: crmInspectionDate || null,
+          next_action_due_at: nextActionDueIso || null,
+          inspection_date: inspectionDateIso || null,
           inspection_location: crmInspectionLocation.trim() || null,
           inspection_notes: crmInspectionNotes.trim() || null,
           pass_reason: crmPassReason.trim() || null,
@@ -396,51 +486,67 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
   const reviewLeads = activeLeads.filter(isReviewInbox);
   const dealLeads = activeLeads.filter((lead) => !isReviewInbox(lead));
 
-  const filteredLeads = dealLeads.filter((lead) => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch =
-      !q ||
-      lead.company_name?.toLowerCase().includes(q) ||
-      lead.canton?.toLowerCase().includes(q) ||
-      lead.contact_name?.toLowerCase().includes(q) ||
-      lead.machinery_detected.some(
-        (m) => m.make_model.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)
-      );
+  // One list for dossiers AND replies to verify (issues 7/16/17): the search
+  // and the category filters cover both, so "Tous les dossiers (8)" really
+  // lists all 8 items. Searching covers seller name, company, machine and
+  // snippet/message text.
+  const searchableText = (lead: InboundLead): string =>
+    [
+      lead.company_name,
+      lead.canton,
+      lead.contact_name,
+      lead.sender_email,
+      lead.raw_subject,
+      lead.latest_reply_text,
+      lead.raw_body,
+      lead.ai_summary,
+      ...lead.machinery_detected.flatMap((m) => [m.make_model, m.type, m.asking_price]),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
 
-    if (!matchesSearch) return false;
+  const matchesCategory = (lead: InboundLead, keywords: string[]): boolean => {
+    const haystack = `${lead.machinery_detected
+      .map((m) => `${m.type} ${m.make_model}`)
+      .join(' ')} ${searchableText(lead)}`.toLowerCase();
+    return keywords.some((keyword) => haystack.includes(keyword));
+  };
 
-    if (selectedFilter === 'pelles') {
-      return lead.machinery_detected.some(
-        (m) =>
-          m.type.toLowerCase().includes('pelle') ||
-          m.type.toLowerCase().includes('bagger') ||
-          m.type.toLowerCase().includes('escavatore') ||
-          m.type.toLowerCase().includes('excavator')
-      );
-    }
-    if (selectedFilter === 'camions') {
-      return lead.machinery_detected.some(
-        (m) =>
-          m.type.toLowerCase().includes('chargeuse') ||
-          m.type.toLowerCase().includes('camion') ||
-          m.type.toLowerCase().includes('radlader') ||
-          m.type.toLowerCase().includes('kipper') ||
-          m.type.toLowerCase().includes('loader') ||
-          m.type.toLowerCase().includes('truck')
-      );
-    }
-    if (selectedFilter === 'new') {
-      return lead.lead_status === 'new';
-    }
-    if (selectedFilter === 'review') return false;
-    if (selectedFilter === 'saved') {
-      return bookmarkedIds.includes(lead.id);
-    }
+  const filteredItems = activeLeads
+    .map((lead) => ({
+      lead,
+      kind: (isReviewInbox(lead) ? 'reply' : 'dossier') as 'reply' | 'dossier',
+    }))
+    .filter(({ lead, kind }) => {
+      const q = searchTerm.trim().toLowerCase();
+      if (q && !searchableText(lead).includes(q)) return false;
 
-    return true;
-  });
+      if (selectedFilter === 'pelles') {
+        return matchesCategory(lead, ['pelle', 'bagger', 'escavatore', 'excavator']);
+      }
+      if (selectedFilter === 'camions') {
+        return matchesCategory(lead, [
+          'chargeuse',
+          'camion',
+          'radlader',
+          'kipper',
+          'loader',
+          'truck',
+        ]);
+      }
+      if (selectedFilter === 'new') {
+        return lead.lead_status === 'new';
+      }
+      if (selectedFilter === 'review') return kind === 'reply';
+      if (selectedFilter === 'saved') {
+        return bookmarkedIds.includes(lead.id);
+      }
 
-  const savedCount = dealLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
+      return true;
+    });
+
+  const savedCount = activeLeads.filter((l) => bookmarkedIds.includes(l.id)).length;
 
   const moveToDossiers = async (lead: InboundLead) => {
     try {
@@ -493,7 +599,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
             <StatusDot variant="warning" label="Dossiers" />
-            <span>{dealLeads.length} dossier{dealLeads.length === 1 ? '' : 's'} actif{dealLeads.length === 1 ? '' : 's'}</span>
+            <span>{activeLeads.length} réponses — {dealLeads.length} dossier{dealLeads.length === 1 ? '' : 's'} actif{dealLeads.length === 1 ? '' : 's'} · {reviewLeads.length} à vérifier</span>
           </div>
           <h1 className="font-heading text-3xl font-medium leading-tight text-[#0B2240] sm:text-4xl">
             Dossiers de machines
@@ -533,7 +639,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher une machine, une société ou un canton"
+            placeholder="Rechercher une machine, une société, un vendeur ou un message"
             className="w-full bg-transparent text-sm text-[#0B2240] placeholder:text-slate-400 focus:outline-none"
             aria-label="Rechercher dans les dossiers"
           />
@@ -581,26 +687,30 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
         </div>
       </section>
 
+      {/* Responsive deal cards: dossiers and replies to verify in one list */}
       {selectedFilter === 'review' && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-heading text-xl font-medium text-[#0B2240]">Réponses à vérifier</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Jimy n’a pas identifié de machine précise dans ces messages. Elles n’affectent pas vos dossiers tant que vous ne les y placez pas.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {reviewLeads.map((lead) => (
+        <div>
+          <h2 className="font-heading text-xl font-medium text-[#0B2240]">Réponses à vérifier</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Jimy n’a pas identifié de machine précise dans ces messages. Elles n’affectent pas vos dossiers tant que vous ne les y placez pas.
+          </p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {filteredItems.map(({ lead, kind }) => {
+          if (kind === 'reply') {
+            return (
               <article key={lead.id} className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="font-semibold text-[#0B2240]">{lead.company_name || lead.sender_email}</span>
-                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">À lire</span>
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">Réponse à vérifier</span>
+                      <span className="text-xs text-slate-500 tabular-nums">{formatRelativeTimeFr(lead.received_at)}</span>
                     </div>
                     <p className="mt-2 text-sm font-medium text-slate-700">{lead.raw_subject || 'Réponse reçue'}</p>
                     <p className="mt-1 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-600">
-                      {lead.latest_reply_text || lead.raw_body || lead.ai_summary || 'Aperçu indisponible'}
+                      {cleanQuotedEmailBody(lead.latest_reply_text || lead.raw_body || lead.ai_summary) || 'Aperçu indisponible'}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
@@ -609,27 +719,14 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </div>
                 </div>
               </article>
-            ))}
-            {reviewLeads.length === 0 && (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">Aucune réponse en attente de vérification.</p>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Responsive deal cards */}
-      {selectedFilter !== 'review' && <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {filteredLeads.map((lead) => {
+            );
+          }
           const primaryMachine = lead.machinery_detected[0];
           const isBookmarked = bookmarkedIds.includes(lead.id);
           const rawPhone = lead.contact_phone || '';
           const telHref = rawPhone
             ? `tel:${rawPhone.replace(/\s+/g, '')}`
             : `mailto:${lead.sender_email}`;
-          const minutesAgo = Math.max(
-            1,
-            Math.floor((Date.now() - new Date(lead.received_at).getTime()) / 60000)
-          );
 
           const parsedPrice = parsePriceString(primaryMachine?.asking_price);
           const chfEquiv =
@@ -649,7 +746,8 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                       {lead.company_name || lead.sender_email}
                     </span>
                     <span>Canton {lead.canton || 'CH'}</span>
-                    <span className="tabular-nums">il y a {minutesAgo} min</span>
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">Dossier</span>
+                    <span className="tabular-nums">{formatRelativeTimeFr(lead.received_at)}</span>
                     {lead.intent === 'NEEDS_REVIEW' && (
                       <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
                         À vérifier
@@ -712,7 +810,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     <div className="font-mono text-xl font-medium tabular-nums text-[#C44F00]">
                       {primaryMachine?.asking_price || 'Prix sur demande'}
                     </div>
-                    {chfEquiv && parsedPrice.currency !== 'CHF' && (
+                    {chfEquiv > 0 && parsedPrice.currency !== 'CHF' && (
                       <div className="text-[11px] font-mono text-slate-500">
                         ≈ CHF {chfEquiv.toLocaleString('de-CH')}
                       </div>
@@ -762,7 +860,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     </span>
                   </div>
                   <p className="text-sm text-[#0B2240] leading-relaxed">
-                    {lead.ai_summary || lead.raw_body}
+                    {cleanQuotedEmailBody(lead.ai_summary || lead.raw_body)}
                   </p>
                 </div>
 
@@ -794,7 +892,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                     {lead.inspection_date && (
                       <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600">
                         <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" />
-                        Visite : {lead.inspection_date.slice(0, 10)}
+                        Visite : {isoToFrDate(lead.inspection_date)}
                       </span>
                     )}
                   </div>
@@ -874,22 +972,22 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
             </article>
           );
         })}
-      </div>}
+      </div>
 
-      {selectedFilter !== 'review' && filteredLeads.length === 0 && (
+      {filteredItems.length === 0 && (
         <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-12 text-center sm:py-16">
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#0B2240] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
             <Inbox className="h-5 w-5" strokeWidth={1.5} />
           </div>
           <h3 className="font-heading text-xl font-medium text-[#0B2240]">
-            {leads.length === 0 ? 'Le premier dossier arrivera ici' : 'Aucun dossier ne correspond'}
+            {activeLeads.length === 0 ? 'Le premier dossier arrivera ici' : 'Aucun dossier ne correspond'}
           </h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-            {leads.length === 0
+            {activeLeads.length === 0
               ? 'Quand un vendeur répond, Jimy rassemble la machine, le prix et le contact dans un dossier prêt à suivre.'
               : 'Modifiez la recherche ou revenez à tous les dossiers.'}
           </p>
-          {leads.length === 0 ? (
+          {activeLeads.length === 0 ? (
             <button
               type="button"
               onClick={() => setShowInboundModal(true)}
@@ -920,7 +1018,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                 </h3>
               </div>
               <button
-                onClick={() => setSelectedModalLead(null)}
+                onClick={closeLeadModal}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
                 aria-label="Fermer"
               >
@@ -974,7 +1072,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                   </span>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4 font-body text-sm leading-relaxed whitespace-pre-wrap text-[#0B2240]">
-                  {selectedModalLead.raw_body}
+                  {cleanQuotedEmailBody(selectedModalLead.raw_body)}
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -1020,9 +1118,12 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                         Date de la prochaine action
                       </label>
                       <input
-                        type="date"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={10}
                         value={crmNextActionDue}
                         onChange={(e) => setCrmNextActionDue(e.target.value)}
+                        placeholder="jj/mm/aaaa"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[#0B2240]"
                       />
                     </div>
@@ -1034,9 +1135,12 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                         Date de la visite
                       </label>
                       <input
-                        type="date"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={10}
                         value={crmInspectionDate}
                         onChange={(e) => setCrmInspectionDate(e.target.value)}
+                        placeholder="jj/mm/aaaa"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[#0B2240]"
                       />
                     </div>
@@ -1066,7 +1170,6 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                         type="number"
                         value={crmEstBuyChf}
                         onChange={(e) => setCrmEstBuyChf(e.target.value)}
-                        placeholder="38000"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-[#0B2240]"
                       />
                     </div>
@@ -1078,7 +1181,6 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                         type="number"
                         value={crmEstResaleChf}
                         onChange={(e) => setCrmEstResaleChf(e.target.value)}
-                        placeholder="46000"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-[#0B2240]"
                       />
                     </div>
@@ -1090,7 +1192,6 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                         type="number"
                         value={crmActualBuyChf}
                         onChange={(e) => setCrmActualBuyChf(e.target.value)}
-                        placeholder="36500"
                         className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 font-mono text-[#0B2240]"
                       />
                     </div>
@@ -1239,7 +1340,7 @@ export const LeadsScreen: React.FC<LeadsScreenProps> = ({
                           <strong className="text-[#0B2240]">{rep.subject}</strong>
                           <span>{new Date(rep.sent_at || rep.created_at || Date.now()).toLocaleString()}</span>
                         </div>
-                        <p className="text-slate-700 whitespace-pre-wrap">{rep.body}</p>
+                        <p className="text-slate-700 whitespace-pre-wrap">{cleanQuotedEmailBody(rep.body)}</p>
                       </div>
                     ))}
                   </div>

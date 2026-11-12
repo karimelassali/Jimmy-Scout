@@ -10,6 +10,7 @@ import { themes, defaultThemeSlug } from './astryx-themes.ts';
 import { TopHeader } from './components/navigation/TopHeader.tsx';
 import { BottomBar, TabId } from './components/navigation/BottomBar.tsx';
 import { SplashScreen } from './components/common/SplashScreen.tsx';
+import { ScreenLoader } from './components/common/ScreenLoader.tsx';
 import type { NotificationItem } from './components/notifications/NotificationCenterModal.tsx';
 import {
   AgentSettings,
@@ -76,8 +77,11 @@ const NotificationCenterModal = lazy(() =>
   }))
 );
 
-const MINIMUM_SPLASH_TIME_MS = 1250;
-const SPLASH_FADE_TIME_MS = 500;
+const MINIMUM_SPLASH_TIME_MS = 700;
+const SPLASH_FADE_TIME_MS = 400;
+// Hard ceiling: even if the first data fetch is slow, the splash never
+// holds the screen longer than this (fade included).
+const MAX_SPLASH_TIME_MS = 2500;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>(() => {
@@ -116,13 +120,46 @@ export default function App() {
     return null;
   });
 
-  const selectTab = (tab: TabId) => {
+  const [targetsCanton, setTargetsCanton] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('canton');
+    }
+    return null;
+  });
+
+  const selectTab = (tab: TabId, extraParams?: Record<string, string>) => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', tab);
       if (tab !== 'leads') url.searchParams.delete('leadId');
       if (tab !== 'emails') url.searchParams.delete('logId');
+      if (extraParams) {
+        for (const [key, value] of Object.entries(extraParams)) {
+          url.searchParams.set(key, value);
+        }
+      }
+      if (tab === 'targets' && !extraParams?.canton) url.searchParams.delete('canton');
+      window.history.replaceState({}, '', url);
+    }
+  };
+
+  // Clears the deep-linked lead (state + URL) so the dossier modal cannot
+  // re-open itself when the leads list refreshes.
+  const handleClearFocusedLead = () => {
+    setFocusedLeadId(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('leadId');
+      window.history.replaceState({}, '', url);
+    }
+  };
+
+  const handleClearFocusedLog = () => {
+    setFocusedLogId(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('logId');
       window.history.replaceState({}, '', url);
     }
   };
@@ -355,6 +392,24 @@ export default function App() {
     };
   }, [isLoading]);
 
+  // Hard ceiling on the splash: if the first fetch is slow, fade the splash
+  // out anyway so the app itself is usable instead of a blank logo screen.
+  useEffect(() => {
+    const fadeTimer = window.setTimeout(
+      () => setIsSplashLeaving(true),
+      MAX_SPLASH_TIME_MS
+    );
+    const removeTimer = window.setTimeout(
+      () => setShowStartupSplash(false),
+      MAX_SPLASH_TIME_MS + SPLASH_FADE_TIME_MS
+    );
+
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, []);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -380,8 +435,15 @@ export default function App() {
     }
   };
 
+  // Guards the parent-level settings race (QA #3): PATCH responses are only
+  // applied when they belong to the latest save; a late response from an
+  // older click must not overwrite newer local state, and a failed older
+  // save must not roll back a newer choice.
+  const settingsSaveSeq = useRef(0);
+
   const handleUpdateSettings = async (patch: Partial<AgentSettings>) => {
     const previous = settings;
+    const seq = ++settingsSaveSeq.current;
     setSettings((prev: AgentSettings) => ({ ...prev, ...patch }));
     try {
       const res = await fetch('/api/settings', {
@@ -390,14 +452,14 @@ export default function App() {
         body: JSON.stringify(patch),
       });
       if (!res.ok) {
-        setSettings(previous);
+        if (seq === settingsSaveSeq.current) setSettings(previous);
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || `Impossible d’enregistrer les réglages (HTTP ${res.status})`);
       }
       const updated = await res.json();
-      setSettings(updated);
+      if (seq === settingsSaveSeq.current) setSettings(updated);
     } catch (err) {
-      setSettings(previous);
+      if (seq === settingsSaveSeq.current) setSettings(previous);
       console.error('Settings patch failed:', err);
       throw err;
     }
@@ -549,12 +611,15 @@ export default function App() {
   };
 
   const handlePrimaryTrigger = () => {
-    setActiveTab('leads');
+    selectTab('leads');
     setOpenInboundModal(true);
   };
 
   const startupSplash = showStartupSplash ? (
-    <SplashScreen isLeaving={isSplashLeaving} />
+    <SplashScreen
+      isLeaving={isSplashLeaving}
+      statusText={isLoading ? 'Chargement de vos données…' : 'C’est prêt !'}
+    />
   ) : null;
 
   // Owner Authentication Gate when JIMISCOUT_ADMIN_TOKEN is enabled
@@ -652,7 +717,7 @@ export default function App() {
 
       {/* Responsive Workspace Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
-          <Suspense fallback={null}>
+          <Suspense fallback={<ScreenLoader />}>
             {activeTab === 'control' && (
               <ControlScreen
                 settings={settings}
@@ -666,14 +731,17 @@ export default function App() {
                 onRefreshAll={fetchData}
                 onNavigateToLeads={(leadId?: string) => {
                   if (leadId) setFocusedLeadId(leadId);
-                  setActiveTab('leads');
+                  selectTab('leads', leadId ? { leadId } : undefined);
                 }}
-                onNavigateToTargets={() => setActiveTab('targets')}
-                onNavigateToPersona={() => setActiveTab('persona')}
-                onNavigateToScanner={() => setActiveTab('scanner')}
+                onNavigateToTargets={(canton?: string) => {
+                  setTargetsCanton(canton ?? null);
+                  selectTab('targets', canton ? { canton } : undefined);
+                }}
+                onNavigateToPersona={() => selectTab('persona')}
+                onNavigateToScanner={() => selectTab('scanner')}
                 onNavigateToEmails={(logId?: string) => {
                   if (logId) setFocusedLogId(logId);
-                  setActiveTab('emails');
+                  selectTab('emails', logId ? { logId } : undefined);
                 }}
                 todaySentCount={todaySentCount}
               />
@@ -684,6 +752,7 @@ export default function App() {
                 leads={leads}
                 companies={companies}
                 initialLeadId={focusedLeadId}
+                onClearFocusedLead={handleClearFocusedLead}
                 onUpdateLeadStatus={handleUpdateLeadStatus}
                 onDeleteLead={handleDeleteLead}
                 onRefreshLeads={fetchData}
@@ -699,9 +768,10 @@ export default function App() {
                 settings={settings}
                 todaySentCount={todaySentCount}
                 initialLogId={focusedLogId}
+                onClearFocusedLog={handleClearFocusedLog}
                 onRefreshLogs={fetchData}
-                onNavigateToTargets={(_query?: string) => setActiveTab('targets')}
-                onNavigateToPersona={() => setActiveTab('persona')}
+                onNavigateToTargets={(_query?: string) => selectTab('targets')}
+                onNavigateToPersona={() => selectTab('persona')}
               />
             )}
 
@@ -709,9 +779,10 @@ export default function App() {
               <TargetsScreen
                 settings={settings}
                 companies={companies}
+                initialCanton={targetsCanton}
                 onUpdateSettings={handleUpdateSettings}
                 onRefreshCompanies={fetchData}
-                onNavigateToScanner={() => setActiveTab('scanner')}
+                onNavigateToScanner={() => selectTab('scanner')}
               />
             )}
 
@@ -719,7 +790,7 @@ export default function App() {
               <BusinessCardScannerScreen
                 existingCompanies={companies}
                 onRefreshCompanies={fetchData}
-                onNavigateToTargets={() => setActiveTab('targets')}
+                onNavigateToTargets={() => selectTab('targets')}
               />
             )}
 
@@ -751,7 +822,7 @@ export default function App() {
         sentCount={unseenLogsCount}
       />
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<ScreenLoader />}>
         {/* Personalized First-Time Setup Wizard */}
         <SetupWizardModal
           isOpen={!isLoading && isSetupWizardOpen}
@@ -775,11 +846,11 @@ export default function App() {
           onMarkAllAsRead={handleMarkAllAsRead}
           onNavigateToDeals={(leadId) => {
             if (leadId) setFocusedLeadId(leadId);
-            setActiveTab('leads');
+            selectTab('leads', leadId ? { leadId } : undefined);
           }}
           onNavigateToEmails={(logId) => {
             if (logId) setFocusedLogId(logId);
-            setActiveTab('emails');
+            selectTab('emails', logId ? { logId } : undefined);
           }}
           onClearSeenCounters={handleClearSeenCounters}
         />

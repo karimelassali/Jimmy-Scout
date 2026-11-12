@@ -1,5 +1,5 @@
 import { supabaseDataService } from './supabase.service.ts';
-import { smtpService } from './smtp.service.ts';
+import { smtpService, stripUnreplacedPlaceholders } from './smtp.service.ts';
 import {
   getNextSwissBusinessWindowStart,
   getRandomJitterMs,
@@ -240,15 +240,22 @@ export class OutboundSchedulerService {
         ? generateItTemplate(templateParams)
         : generateDeTemplate(templateParams);
 
+    // Strip any leftover {{...}} placeholder BEFORE the log is written and
+    // the email is sent, so neither the stored record nor the seller ever
+    // sees one (QA issue 9). smtpService.sendMail re-checks as a last resort.
+    const subject = stripUnreplacedPlaceholders(rendered.subject);
+    const body = stripUnreplacedPlaceholders(rendered.body);
+    const html = stripUnreplacedPlaceholders(rendered.html);
+
     // Transactional outbox: record 'sending' state before transport call
     const pendingLog = await supabaseDataService.addOutboundLog({
       company_id: company.id,
       sent_at: refDate.toISOString(),
       language: lang,
-      subject: rendered.subject,
-      body_snippet: rendered.body.substring(0, 180),
-      full_body: rendered.body,
-      html_body: rendered.html,
+      subject,
+      body_snippet: body.substring(0, 180),
+      full_body: body,
+      html_body: html,
       sender_email: settings.sender_email,
       recipient_email: company.email,
       company_name: company.name,
@@ -260,9 +267,9 @@ export class OutboundSchedulerService {
     try {
       const sendResult = await smtpService.sendMail({
         to: company.email,
-        subject: rendered.subject,
-        text: rendered.body,
-        html: rendered.html,
+        subject,
+        text: body,
+        html,
         fromName: `${settings.sender_name} - JIMY EXPORT`,
         replyTo: settings.sender_email,
       });
