@@ -1,7 +1,7 @@
 import React from 'react';
-import { Gauge, Inbox, MapPin, Camera, SlidersHorizontal, MailCheck } from 'lucide-react';
+import { Gauge, Inbox, MapPin, Camera, SlidersHorizontal, MailCheck, Landmark } from 'lucide-react';
 
-export type TabId = 'control' | 'leads' | 'emails' | 'targets' | 'scanner' | 'persona' | 'guide';
+export type TabId = 'control' | 'leads' | 'emails' | 'targets' | 'scanner' | 'persona' | 'guide' | 'zefix';
 
 interface BottomBarProps {
   activeTab: TabId;
@@ -49,11 +49,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       label: 'Réglages',
       icon: <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
+    {
+      id: 'zefix',
+      label: 'Zefix',
+      icon: <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />,
+    },
   ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 pb-safe bg-white/95 backdrop-blur-md border-t border-slate-200">
-      <div className="grid grid-cols-6 items-center h-16 max-w-lg mx-auto px-1">
+      <div className="grid grid-cols-7 items-center h-16 max-w-lg mx-auto px-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (

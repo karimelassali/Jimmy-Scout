@@ -44,6 +44,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
     { id: 'targets', label: 'Régions' },
     { id: 'scanner', label: 'Scanner' },
     { id: 'persona', label: 'Réglages' },
+    { id: 'zefix', label: 'Zefix' },
   ];
 
   const tabValue = activeTab === 'guide' ? 'control' : activeTab;

@@ -59,6 +59,11 @@ const GuideScreen = lazy(() =>
     default: m.GuideScreen,
   }))
 );
+const ZefixCheckerScreen = lazy(() =>
+  import('./components/zefix/ZefixCheckerScreen.tsx').then((m) => ({
+    default: m.ZefixCheckerScreen,
+  }))
+);
 const SetupWizardModal = lazy(() =>
   import('./components/onboarding/SetupWizardModal.tsx').then((m) => ({
     default: m.SetupWizardModal,
@@ -85,7 +90,8 @@ export default function App() {
         param === 'targets' ||
         param === 'scanner' ||
         param === 'persona' ||
-        param === 'guide'
+        param === 'guide' ||
+        param === 'zefix'
       ) {
         return param;
       }
@@ -212,6 +218,7 @@ export default function App() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [logs, setLogs] = useState<OutboundLog[]>([]);
   const [todaySentCount, setTodaySentCount] = useState(0);
+  const [zefixConfigured, setZefixConfigured] = useState(false);
   const [sqlReady, setSqlReady] = useState(true);
   const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null);
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoverySchedulerStatus | null>(null);
@@ -287,6 +294,9 @@ export default function App() {
         const hData = await healthRes.json();
         setTodaySentCount(typeof hData.today_sent === 'number' ? hData.today_sent : 0);
         setSqlReady(Boolean(hData.sql_ready));
+        if (hData.integrations) {
+          setZefixConfigured(Boolean(hData.integrations.zefix_configured));
+        }
         if (hData.scheduler) {
           setSchedulerStatus(hData.scheduler);
         }
@@ -724,6 +734,10 @@ export default function App() {
 
             {activeTab === 'guide' && (
               <GuideScreen onNavigate={(tab) => selectTab(tab)} />
+            )}
+
+            {activeTab === 'zefix' && (
+              <ZefixCheckerScreen zefixConfigured={zefixConfigured} />
             )}
           </Suspense>
       </main>

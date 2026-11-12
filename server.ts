@@ -21,6 +21,10 @@ import { supabaseDataService } from './apps/worker/src/services/supabase.service
 import { inboundService } from './apps/worker/src/services/inbound.service.ts';
 import { outboundScheduler } from './apps/worker/src/services/outbound-scheduler.service.ts';
 import { companyDiscoveryService } from './apps/worker/src/services/company-discovery.service.ts';
+import {
+  searchZefixCompanies,
+  ZefixSearchError,
+} from './apps/worker/src/services/zefix.service.ts';
 import { agentOrchestrator } from './apps/worker/src/services/agent-orchestrator.service.ts';
 import { dealIntelligenceService } from './apps/worker/src/services/deal-intelligence.service.ts';
 import { webPushService } from './apps/worker/src/services/web-push.service.ts';
@@ -1585,6 +1589,42 @@ app.post('/api/discovery/step', rateLimit(10, 60_000), async (req, res) => {
     res.status(outcome.status === 'completed' ? 200 : 400).json(outcome);
   } catch (err: any) {
     res.status(500).json({ status: 'error', message: err?.message || 'Discovery run failed' });
+  }
+});
+
+// 14b. Standalone Zefix company check — read-only and independent.
+// It only queries the Swiss commercial register and returns normalized
+// entries. It never triggers discovery, never touches the queue, companies
+// or leads, and never sends anything.
+app.post('/api/zefix/search', rateLimit(15, 60_000), async (req, res) => {
+  try {
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    if (!name) {
+      return res.status(400).json({ error: 'Le nom de la société est obligatoire.' });
+    }
+    const maxEntries = Math.max(1, Math.min(10, Number(req.body?.maxEntries) || 5));
+    const username = (process.env.ZEFIX_USERNAME || '').trim();
+    const password = process.env.ZEFIX_PASSWORD || '';
+    if (!username || !password) {
+      return res.status(503).json({
+        error:
+          'Zefix n’est pas configuré sur ce serveur (ZEFIX_USERNAME / ZEFIX_PASSWORD manquants).',
+      });
+    }
+    const entries = await searchZefixCompanies(name, maxEntries, username, password);
+    res.json({ count: entries.length, entries });
+  } catch (err: any) {
+    if (err instanceof ZefixSearchError && err.status === 404) {
+      return res.json({ count: 0, entries: [] });
+    }
+    if (err instanceof ZefixSearchError && (err.status === 401 || err.status === 403)) {
+      return res.status(502).json({
+        error: 'Zefix a refusé l’identifiant. Vérifiez les accès Zefix du serveur.',
+      });
+    }
+    const status =
+      err instanceof ZefixSearchError ? ` (HTTP ${err.status})` : '';
+    res.status(502).json({ error: `La recherche Zefix a échoué${status}.` });
   }
 });
 
